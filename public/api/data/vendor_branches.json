@@ -1,0 +1,142 @@
+[
+  {
+    "id": "branch-lab1-1",
+    "labId": "lab-1020304050",
+    "name": "Counter A — Reception & Billing Desk",
+    "badge": "Main Counter",
+    "address": "SCO 101, Medical Enclave, Civil Road, Ludhiana - 141001",
+    "phone": "+91 1020304050",
+    "timings": "Open 24x7 (Round the Clock Testing)",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-lab1-2",
+    "labId": "lab-1020304050",
+    "name": "Testing Counter B — Hematology & Biochemistry Floor",
+    "badge": "Analyzer Station",
+    "address": "1st Floor, SCO 101, Medical Enclave, Civil Road, Ludhiana",
+    "phone": "+91 1020304050",
+    "timings": "Open 24x7 (STAT-Track)",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-lab2-1",
+    "labId": "lab-6070809010",
+    "name": "Counter A — Reception & Fast-Track Token Counter",
+    "badge": "Main Counter",
+    "address": "SCO 202, Sector 70, Healthcare Boulevard, Mohali - 160071",
+    "phone": "+91 6070809010",
+    "timings": "Open 24x7 (Fast-Track Service)",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-lab2-2",
+    "labId": "lab-6070809010",
+    "name": "Testing Counter B — Molecular & STAT Analyzer Desk",
+    "badge": "Automated Lab",
+    "address": "2nd Floor, SCO 202, Sector 70, Healthcare Boulevard, Mohali",
+    "phone": "+91 6070809010",
+    "timings": "Open 24x7 (Live Barcoded Testing)",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-1",
+    "labId": "lab-apex",
+    "name": "Device A — Reception & Billing Desk (Counter 1)",
+    "badge": "Device A (Primary)",
+    "address": "SCF 42-43, Sector 18-C, Central Healthcare Complex, Ludhiana",
+    "phone": "+91 7087033009",
+    "timings": "Open 24x7 (Round the Clock Testing)",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-2",
+    "labId": "lab-apex",
+    "name": "Device B — Lab Testing & Analyzer Workstation (Counter 2)",
+    "badge": "Device B (Connected)",
+    "address": "Testing Floor, Central Healthcare Complex, Ludhiana",
+    "phone": "+91 7087033009",
+    "timings": "Open 24x7 (Real-time Live Sync)",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-cc-1",
+    "labId": "lab-citycare",
+    "name": "Device A — Reception Counter (Counter 1)",
+    "badge": "Device A",
+    "address": "SCO 14, Phase 7, Near Fortis Chowk, Mohali",
+    "phone": "+91 9815012345",
+    "timings": "Mon–Sat: 7:00 AM – 9:00 PM",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-cc-2",
+    "labId": "lab-citycare",
+    "name": "Device B — Lab Workstation (Counter 2)",
+    "badge": "Device B",
+    "address": "SCO 14, Phase 7, Near Fortis Chowk, Mohali",
+    "phone": "+91 9815012345",
+    "timings": "Mon–Sat: 7:00 AM – 9:00 PM",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-mp-1",
+    "labId": "lab-metropath",
+    "name": "MetroPath Scans & Molecular Pathology Hub",
+    "badge": "Main Reference Lab",
+    "address": "SCO 128-129, Sector 34-A, Healthcare District, Chandigarh",
+    "phone": "+91 9417098765",
+    "timings": "Open 24x7",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-sanj-1",
+    "labId": "lab-sanjivani",
+    "name": "Sanjivani Civil Lines Lab",
+    "badge": "Main Center",
+    "address": "Near Gate 2, District Civil Hospital Road, Amritsar",
+    "phone": "+91 9888123456",
+    "timings": "Mon–Sat: 7:00 AM – 8:30 PM",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-life-1",
+    "labId": "lab-lifeline-due",
+    "name": "LifeLine Main Diagnostic Desk",
+    "badge": "Main Facility",
+    "address": "Opp. Civil Hospital Gate 1, Jalandhar",
+    "phone": "+91 9872011223",
+    "timings": "Mon–Sat: 7:30 AM – 8:00 PM",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-ht-1",
+    "labId": "lab-healtech-pending",
+    "name": "HealTech Patiala Central Hub",
+    "badge": "Molecular & Allergy Center",
+    "address": "Leela Bhawan Commercial Complex, Patiala",
+    "phone": "+91 9876512345",
+    "timings": "Mon–Sat: 8:00 AM – 8:00 PM",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-pls-1",
+    "labId": "lab-pulse",
+    "name": "Pulse Sector 5 Diagnostics & MRI Hub",
+    "badge": "Main Stat Lab",
+    "address": "SCO 88, Sector 5, MDC, Panchkula",
+    "phone": "+91 9815099881",
+    "timings": "Open 24x7",
+    "isEmergency": true
+  },
+  {
+    "id": "branch-cp-1",
+    "labId": "lab-carepoint",
+    "name": "CarePoint Mall Road Diagnostic Centre",
+    "badge": "Central Lab",
+    "address": "The Mall Road, Near Lift, Shimla",
+    "phone": "+91 9816044332",
+    "timings": "Mon–Sat: 8:00 AM – 7:30 PM",
+    "isEmergency": true
+  }
+]

@@ -1,0 +1,13 @@
+# Disable script rewriting and directory listing inside /api/
+<IfModule mod_rewrite.c>
+    RewriteEngine Off
+</IfModule>
+
+Options -Indexes
+
+# Disable caching for all API endpoints across Hostinger LiteSpeed / Apache & CDN
+<IfModule mod_headers.c>
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+</IfModule>

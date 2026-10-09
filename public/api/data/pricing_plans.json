@@ -1,0 +1,71 @@
+[
+  {
+    "id": "plan-1month",
+    "name": "1 Month",
+    "target": "Starter & Flexible",
+    "duration": "1 Month",
+    "priceINR": 1499,
+    "monthlyPriceINR": 1499,
+    "yearlyPriceINR": 1499,
+    "billingCycle": "Per Month",
+    "description": "Full software access with complete features for 1 month. No long-term commitment.",
+    "isPopular": false,
+    "features": [
+      "Unlimited Patients, Bills & Test Entries",
+      "WhatsApp PDF Reports with QR Code Verification",
+      "500+ Pre-Configured Pathology & Radiology Tests",
+      "Instant Dynamic UPI QR Payment Billing",
+      "Doctor Commissions & B2B Referral Tracker",
+      "Multi-Role Staff & Pathologist Digital Signatures",
+      "Patient Online Report Download Portal",
+      "Automatic Cloud Backup & Real-Time Sync",
+      "Dedicated Indian WhatsApp & Phone Support"
+    ]
+  },
+  {
+    "id": "plan-3months",
+    "name": "3 Months",
+    "target": "Quarterly • Most Popular",
+    "duration": "3 Months",
+    "priceINR": 3999,
+    "monthlyPriceINR": 3999,
+    "yearlyPriceINR": 3999,
+    "billingCycle": "Per 3 Months",
+    "description": "Quarterly access with complete features. Best for steady diagnostic workflow.",
+    "isPopular": true,
+    "features": [
+      "Unlimited Patients, Bills & Test Entries",
+      "WhatsApp PDF Reports with QR Code Verification",
+      "500+ Pre-Configured Pathology & Radiology Tests",
+      "Instant Dynamic UPI QR Payment Billing",
+      "Doctor Commissions & B2B Referral Tracker",
+      "Multi-Role Staff & Pathologist Digital Signatures",
+      "Patient Online Report Download Portal",
+      "Automatic Cloud Backup & Real-Time Sync",
+      "Dedicated Indian WhatsApp & Phone Support"
+    ]
+  },
+  {
+    "id": "plan-1year",
+    "name": "1 Year",
+    "target": "Annual • Best Value",
+    "duration": "1 Year",
+    "priceINR": 11999,
+    "monthlyPriceINR": 11999,
+    "yearlyPriceINR": 11999,
+    "billingCycle": "Per Year",
+    "description": "Full 1-year license with all features, maximum savings, and priority onboarding.",
+    "isPopular": false,
+    "features": [
+      "Unlimited Patients, Bills & Test Entries",
+      "WhatsApp PDF Reports with QR Code Verification",
+      "500+ Pre-Configured Pathology & Radiology Tests",
+      "Instant Dynamic UPI QR Payment Billing",
+      "Doctor Commissions & B2B Referral Tracker",
+      "Multi-Role Staff & Pathologist Digital Signatures",
+      "Patient Online Report Download Portal",
+      "Automatic Cloud Backup & Real-Time Sync",
+      "Dedicated Indian WhatsApp & Phone Support"
+    ]
+  }
+]

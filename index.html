@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#123B6D" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="IndianLalaji" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <script>
+      (function() {
+        try {
+          var origFetch = window.fetch;
+          var currentFetch = typeof origFetch === 'function' ? origFetch.bind(window) : origFetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return currentFetch;
+            },
+            set: function(fn) {
+              currentFetch = fn;
+            },
+            configurable: true,
+            enumerable: true,
+          });
+
+          // Check for Service Worker updates immediately on load to prevent serving stale hosted versions
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var i = 0; i < regs.length; i++) {
+                regs[i].update().catch(function() {});
+              }
+            }).catch(function() {});
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <title>INDIANLALAJI.COM - Laboratory Management Software for India</title>
+    <meta name="description" content="Complete laboratory management software for Indian laboratories. Works offline, ₹ INR billing, digital WhatsApp reports, and no-login patient report portal." />
+    <meta property="og:title" content="INDIANLALAJI.COM - Laboratory Management Software for India" />
+    <meta property="og:description" content="Complete laboratory management software for Indian laboratories. Works offline, ₹ INR billing, digital WhatsApp reports, and no-login patient report portal." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://indianlalaji.com" />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1200&q=80" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="INDIANLALAJI.COM - Laboratory Management Software for India" />
+    <meta name="twitter:description" content="Complete laboratory management software for Indian laboratories. Works offline, ₹ INR billing, digital WhatsApp reports, and no-login patient report portal." />
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1200&q=80" />
+    <link rel="canonical" href="https://indianlalaji.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Gurmukhi:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#F8FAFC] text-[#172033] antialiased selection:bg-[#123B6D]/15 selection:text-[#123B6D]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

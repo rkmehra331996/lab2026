@@ -1,0 +1,1014 @@
+[
+  {
+    "reportId": "RPT-434",
+    "tokenNumber": "TK-434",
+    "uhid": "UHID-434",
+    "labId": "lab-6070809010",
+    "branchId": "branch-lab2-1",
+    "branchName": "Lab 2 Central Diagnostics Hub",
+    "patientName": "Manpreet Singh",
+    "ageGender": "42 Yrs / Male",
+    "mobile": "1122334455",
+    "doctor": "Dr. R. K. Singla, MD (Medicine)",
+    "sampleCollectedAt": "Today, 08:30 AM",
+    "reportedAt": "Today, 11:45 AM",
+    "labName": "Lab 2 Diagnostic Centre",
+    "labAddress": "SCO 202, Sector 70, Healthcare Boulevard, Mohali - 160071",
+    "labPhone": "+91 6070809010",
+    "nablAccreditationNo": "MC-6070",
+    "pathologist": "Dr. Vikramaditya Sen, MD (Pathology)",
+    "pathologistDegrees": "Chief Pathologist • Reg No: PMC-52194",
+    "barcode": "||||| ||| |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 434b9e22f01a7c3381a5b94f220c434e",
+    "status": "Verified",
+    "clinicalImpression": "Hemogram within physiological baseline. Fasting glycemia normal.",
+    "items": [
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Hemoglobin (Hb)",
+        "result": "14.5",
+        "unit": "g/dL",
+        "referenceRange": "13.0 – 17.0",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Total Leukocyte Count (TLC)",
+        "result": "7,200",
+        "unit": "/cu.mm",
+        "referenceRange": "4,000 – 11,000",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Platelet Count",
+        "result": "2.45",
+        "unit": "Lakhs/cu.mm",
+        "referenceRange": "1.50 – 4.50",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Blood Glucose (Fasting)",
+        "parameter": "Fasting Blood Sugar (FBS)",
+        "result": "94.0",
+        "unit": "mg/dL",
+        "referenceRange": "70.0 – 100.0",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-459",
+    "tokenNumber": "TK-459",
+    "uhid": "UHID-459",
+    "labId": "lab-6070809010",
+    "branchId": "branch-lab2-1",
+    "branchName": "Lab 2 Central Diagnostics Hub",
+    "patientName": "Priya Sharma",
+    "ageGender": "29 Yrs / Female",
+    "mobile": "9998887770",
+    "doctor": "Dr. Neha Bhasin, MD (Endocrinology)",
+    "sampleCollectedAt": "Today, 09:15 AM",
+    "reportedAt": "Today, 12:30 PM",
+    "labName": "Lab 2 Diagnostic Centre",
+    "labAddress": "SCO 202, Sector 70, Healthcare Boulevard, Mohali - 160071",
+    "labPhone": "+91 6070809010",
+    "nablAccreditationNo": "MC-6070",
+    "pathologist": "Dr. Vikramaditya Sen, MD (Pathology)",
+    "pathologistDegrees": "Chief Pathologist • Reg No: PMC-52194",
+    "barcode": "||||| |||| |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 459c8a11e52b7d88d12a67e912c4459b",
+    "status": "Verified",
+    "clinicalImpression": "Euthyroid profile. Serum ferritin within acceptable parameters.",
+    "items": [
+      {
+        "testName": "Thyroid Profile (Total)",
+        "parameter": "Total Triiodothyronine (T3)",
+        "result": "1.30",
+        "unit": "ng/mL",
+        "referenceRange": "0.80 – 2.00",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Thyroid Profile (Total)",
+        "parameter": "Total Thyroxine (T4)",
+        "result": "8.90",
+        "unit": "µg/dL",
+        "referenceRange": "5.10 – 14.10",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Thyroid Profile (Total)",
+        "parameter": "Thyroid Stimulating Hormone (TSH)",
+        "result": "2.45",
+        "unit": "µIU/mL",
+        "referenceRange": "0.35 – 4.94",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Iron Deficiency Profile",
+        "parameter": "Serum Ferritin",
+        "result": "48.0",
+        "unit": "ng/mL",
+        "referenceRange": "15.0 – 150.0",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-575",
+    "tokenNumber": "TK-575",
+    "uhid": "UHID-575",
+    "labId": "lab-6070809010",
+    "branchId": "branch-lab2-1",
+    "branchName": "Lab 2 Central Diagnostics Hub",
+    "patientName": "Rajinder Verma",
+    "ageGender": "56 Yrs / Male",
+    "mobile": "9181716151",
+    "doctor": "Dr. H. S. Dhillon, MS (General Surgery)",
+    "sampleCollectedAt": "Today, 09:45 AM",
+    "reportedAt": "Today, 01:15 PM",
+    "labName": "Lab 2 Diagnostic Centre",
+    "labAddress": "SCO 202, Sector 70, Healthcare Boulevard, Mohali - 160071",
+    "labPhone": "+91 6070809010",
+    "nablAccreditationNo": "MC-6070",
+    "pathologist": "Dr. Vikramaditya Sen, MD (Pathology)",
+    "pathologistDegrees": "Chief Pathologist • Reg No: PMC-52194",
+    "barcode": "|||| ||||| |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 575e1f77a83c6d99e71b28d003a5575a",
+    "status": "Verified",
+    "clinicalImpression": "Renal biochemistry and lipid panel within optimal reference intervals.",
+    "items": [
+      {
+        "testName": "Kidney Function Test (KFT)",
+        "parameter": "Blood Urea",
+        "result": "28.5",
+        "unit": "mg/dL",
+        "referenceRange": "17.0 – 43.0",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Kidney Function Test (KFT)",
+        "parameter": "Serum Creatinine",
+        "result": "0.95",
+        "unit": "mg/dL",
+        "referenceRange": "0.70 – 1.30",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Lipid Profile (Screening)",
+        "parameter": "Total Cholesterol",
+        "result": "182.0",
+        "unit": "mg/dL",
+        "referenceRange": "< 200.0 (Desirable)",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Lipid Profile (Screening)",
+        "parameter": "Triglycerides",
+        "result": "142.0",
+        "unit": "mg/dL",
+        "referenceRange": "< 150.0 (Normal)",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-101",
+    "tokenNumber": "TK-101",
+    "uhid": "UHID-101",
+    "labId": "lab-1020304050",
+    "branchId": "branch-lab1-1",
+    "branchName": "Lab 1 Medical Collection Counter",
+    "patientName": "Karamjit Kaur",
+    "ageGender": "36 Yrs / Female",
+    "mobile": "9876543210",
+    "doctor": "Dr. S. K. Bansal, MD",
+    "sampleCollectedAt": "Today, 08:15 AM",
+    "reportedAt": "Today, 11:00 AM",
+    "labName": "Lab 1 Diagnostic Centre",
+    "labAddress": "SCO 101, Medical Enclave, Civil Road, Ludhiana - 141001",
+    "labPhone": "+91 1020304050",
+    "nablAccreditationNo": "MC-1020",
+    "pathologist": "Dr. Jagdish Chander, MD (Pathology)",
+    "pathologistDegrees": "Consultant Clinical Pathologist • Reg No: PMC-38291",
+    "barcode": "||||| || ||||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 101a2b33c44d55e66f77a88b99c00101",
+    "status": "Verified",
+    "clinicalImpression": "Complete blood count within standard reference limits.",
+    "items": [
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Hemoglobin (Hb)",
+        "result": "13.2",
+        "unit": "g/dL",
+        "referenceRange": "12.0 – 15.0",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Total Leukocyte Count (TLC)",
+        "result": "6,400",
+        "unit": "/cu.mm",
+        "referenceRange": "4,000 – 11,000",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-2026-8812",
+    "uhid": "LAB-2026-9041",
+    "labId": "lab-apex",
+    "branchId": "branch-1",
+    "branchName": "Apex Central Diagnostic Hub",
+    "patientName": "Ramesh Kumar Verma",
+    "ageGender": "48 Yrs / Male",
+    "mobile": "9876543210",
+    "doctor": "Dr. S. K. Gupta, MD (Internal Medicine)",
+    "sampleCollectedAt": "03-Sep-2026 08:45 AM IST",
+    "reportedAt": "03-Sep-2026 11:30 AM IST",
+    "labName": "APEX DIAGNOSTICS & PATHOLOGY LABORATORY",
+    "labAddress": "SCO 42, Green Park Avenue, Near Civil Hospital, Ludhiana, Punjab - 141001",
+    "labPhone": "+91 7087033009",
+    "nablAccreditationNo": "MC-2849",
+    "pathologist": "Dr. Rohit Sharma, MD (Pathology)",
+    "pathologistDegrees": "Consultant Pathologist • Reg No: PMC-48192",
+    "barcode": "||||| | |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 9b2d8e41a94f6c8d37e1b52c009a24ec",
+    "items": [
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Hemoglobin (Hb)",
+        "result": "14.6",
+        "unit": "g/dL",
+        "referenceRange": "13.0 – 17.0",
+        "isAbnormal": false,
+        "notes": "Normal adult male concentration"
+      },
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Total Leukocyte Count (TLC)",
+        "result": "7,400",
+        "unit": "/cu.mm",
+        "referenceRange": "4,000 – 11,000",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Platelet Count",
+        "result": "2.45",
+        "unit": "Lakhs/cu.mm",
+        "referenceRange": "1.50 – 4.50",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Diabetes Profile",
+        "parameter": "HbA1c (Glycosylated Hemoglobin)",
+        "result": "6.8",
+        "unit": "%",
+        "referenceRange": "< 5.7% (Good Control)",
+        "isAbnormal": true,
+        "notes": "Elevated: Suggests fair-to-moderate glycaemic control over past 90 days"
+      },
+      {
+        "testName": "Diabetes Profile",
+        "parameter": "Estimated Average Glucose (eAG)",
+        "result": "148.6",
+        "unit": "mg/dL",
+        "referenceRange": "90 – 120",
+        "isAbnormal": true
+      },
+      {
+        "testName": "Lipid Profile",
+        "parameter": "Serum Total Cholesterol",
+        "result": "224.0",
+        "unit": "mg/dL",
+        "referenceRange": "< 200.0",
+        "isAbnormal": true,
+        "notes": "Borderline High: Dietary lifestyle modifications suggested"
+      },
+      {
+        "testName": "Lipid Profile",
+        "parameter": "Triglycerides",
+        "result": "138.0",
+        "unit": "mg/dL",
+        "referenceRange": "< 150.0",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Lipid Profile",
+        "parameter": "HDL Cholesterol (Good)",
+        "result": "44.0",
+        "unit": "mg/dL",
+        "referenceRange": "> 40.0",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-2026-8813",
+    "uhid": "LAB-2026-9042",
+    "labId": "lab-apex",
+    "branchId": "branch-2",
+    "branchName": "Model Town Collection Centre",
+    "patientName": "Gurpreet Kaur",
+    "ageGender": "34 Yrs / Female",
+    "mobile": "9815098765",
+    "doctor": "Dr. Anita Joshi, MD (Obs & Gynae)",
+    "sampleCollectedAt": "03-Sep-2026 09:15 AM IST",
+    "reportedAt": "03-Sep-2026 12:45 PM IST",
+    "labName": "APEX DIAGNOSTICS & PATHOLOGY LABORATORY",
+    "labAddress": "SCO 42, Green Park Avenue, Near Civil Hospital, Ludhiana, Punjab - 141001",
+    "labPhone": "+91 7087033009",
+    "nablAccreditationNo": "MC-2849",
+    "pathologist": "Dr. Rohit Sharma, MD (Pathology)",
+    "pathologistDegrees": "Consultant Pathologist • Reg No: PMC-48192",
+    "barcode": "||||| || ||||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 7a1d3f22b88e5d1490e2c63f119b35cd",
+    "items": [
+      {
+        "testName": "Thyroid Profile (Total)",
+        "parameter": "Total Triiodothyronine (T3)",
+        "result": "1.25",
+        "unit": "ng/mL",
+        "referenceRange": "0.80 – 2.00",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Thyroid Profile (Total)",
+        "parameter": "Total Thyroxine (T4)",
+        "result": "8.40",
+        "unit": "µg/dL",
+        "referenceRange": "5.10 – 14.10",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Thyroid Profile (Total)",
+        "parameter": "Thyroid Stimulating Hormone (TSH)",
+        "result": "5.42",
+        "unit": "µIU/mL",
+        "referenceRange": "0.35 – 4.94",
+        "isAbnormal": true,
+        "notes": "Mild subclinical hypothyroidism indicator. Repeat test recommended in 6 weeks."
+      },
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Hemoglobin (Hb)",
+        "result": "11.8",
+        "unit": "g/dL",
+        "referenceRange": "12.0 – 15.0",
+        "isAbnormal": true,
+        "notes": "Mild microcytic hypochromic picture. Dietary iron advice advised."
+      },
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Total Leukocyte Count (TLC)",
+        "result": "6,800",
+        "unit": "/cu.mm",
+        "referenceRange": "4,000 – 11,000",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-2026-8814",
+    "uhid": "LAB-2026-9043",
+    "labId": "lab-apex",
+    "branchId": "branch-1",
+    "branchName": "Apex Central Diagnostic Hub",
+    "patientName": "Rajesh Sharma",
+    "ageGender": "52 Yrs / Male",
+    "mobile": "9872011223",
+    "doctor": "Dr. Hardeep Bawa, MS (Gen Surgery)",
+    "sampleCollectedAt": "03-Sep-2026 09:40 AM IST",
+    "reportedAt": "03-Sep-2026 01:10 PM IST",
+    "labName": "APEX DIAGNOSTICS & PATHOLOGY LABORATORY",
+    "labAddress": "SCO 42, Green Park Avenue, Near Civil Hospital, Ludhiana, Punjab - 141001",
+    "labPhone": "+91 7087033009",
+    "nablAccreditationNo": "MC-2849",
+    "pathologist": "Dr. Rohit Sharma, MD (Pathology)",
+    "pathologistDegrees": "Consultant Pathologist • Reg No: PMC-48192",
+    "barcode": "||||| ||| |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 4e9a8b11c62f7d3381a5b94f220c46de",
+    "items": [
+      {
+        "testName": "Kidney Function Test (KFT)",
+        "parameter": "Blood Urea",
+        "result": "34.2",
+        "unit": "mg/dL",
+        "referenceRange": "17.0 – 43.0",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Kidney Function Test (KFT)",
+        "parameter": "Serum Creatinine",
+        "result": "1.08",
+        "unit": "mg/dL",
+        "referenceRange": "0.70 – 1.30",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Kidney Function Test (KFT)",
+        "parameter": "Serum Uric Acid",
+        "result": "7.8",
+        "unit": "mg/dL",
+        "referenceRange": "3.5 – 7.2",
+        "isAbnormal": true,
+        "notes": "Hyperuricemia detected. Advise hydration and low purine diet."
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-2026-8815",
+    "uhid": "LAB-2026-9044",
+    "labId": "lab-apex",
+    "branchId": "branch-2",
+    "branchName": "Model Town Collection Centre",
+    "patientName": "Sunita Devi",
+    "ageGender": "61 Yrs / Female",
+    "mobile": "9888123456",
+    "doctor": "Dr. M. K. Aggarwal, MD",
+    "sampleCollectedAt": "03-Sep-2026 10:10 AM IST",
+    "reportedAt": "03-Sep-2026 02:30 PM IST",
+    "labName": "APEX DIAGNOSTICS & PATHOLOGY LABORATORY",
+    "labAddress": "SCO 42, Green Park Avenue, Near Civil Hospital, Ludhiana, Punjab - 141001",
+    "labPhone": "+91 7087033009",
+    "nablAccreditationNo": "MC-2849",
+    "pathologist": "Dr. Rohit Sharma, MD (Pathology)",
+    "pathologistDegrees": "Consultant Pathologist • Reg No: PMC-48192",
+    "barcode": "||||| |||| |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 2c8b7a44f19e6d5572b4c83e110a57ef",
+    "items": [
+      {
+        "testName": "Liver Function Test (LFT)",
+        "parameter": "Serum Bilirubin - Total",
+        "result": "0.9",
+        "unit": "mg/dL",
+        "referenceRange": "0.2 – 1.2",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Liver Function Test (LFT)",
+        "parameter": "SGOT / AST",
+        "result": "28.0",
+        "unit": "U/L",
+        "referenceRange": "15.0 – 40.0",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Liver Function Test (LFT)",
+        "parameter": "SGPT / ALT",
+        "result": "32.0",
+        "unit": "U/L",
+        "referenceRange": "10.0 – 49.0",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-2026-8816",
+    "uhid": "LAB-2026-9045",
+    "labId": "lab-apex",
+    "branchId": "branch-1",
+    "branchName": "Apex Central Diagnostic Hub",
+    "patientName": "Vikramjit Singh",
+    "ageGender": "29 Yrs / Male",
+    "mobile": "7087033009",
+    "doctor": "Dr. Hardeep Bawa, MS",
+    "sampleCollectedAt": "03-Sep-2026 10:45 AM IST",
+    "reportedAt": "03-Sep-2026 03:00 PM IST",
+    "labName": "APEX DIAGNOSTICS & PATHOLOGY LABORATORY",
+    "labAddress": "SCO 42, Green Park Avenue, Near Civil Hospital, Ludhiana, Punjab - 141001",
+    "labPhone": "+91 7087033009",
+    "nablAccreditationNo": "MC-2849",
+    "pathologist": "Dr. Rohit Sharma, MD (Pathology)",
+    "pathologistDegrees": "Consultant Pathologist • Reg No: PMC-48192",
+    "barcode": "||||| ||||| |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 5f6a9c33d28e7e4491c3b72f001b68fa",
+    "items": [
+      {
+        "testName": "Dengue Serology",
+        "parameter": "Dengue NS1 Antigen",
+        "result": "Negative",
+        "unit": "Qualitative",
+        "referenceRange": "Negative",
+        "isAbnormal": false,
+        "notes": "Non-reactive for Dengue NS1 early antigen"
+      },
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Platelet Count",
+        "result": "2.10",
+        "unit": "Lakhs/cu.mm",
+        "referenceRange": "1.50 – 4.50",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Hemoglobin (Hb)",
+        "result": "15.2",
+        "unit": "g/dL",
+        "referenceRange": "13.0 – 17.0",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-2026-8818",
+    "uhid": "LAB-2026-9046",
+    "labId": "lab-apex",
+    "branchId": "branch-1",
+    "branchName": "Apex Central Diagnostic Hub",
+    "patientName": "Manpreet Singh",
+    "ageGender": "41 Yrs / Male",
+    "mobile": "9876112233",
+    "doctor": "Dr. S. K. Gupta, MD",
+    "sampleCollectedAt": "03-Sep-2026 11:00 AM IST",
+    "reportedAt": "03-Sep-2026 01:15 PM IST",
+    "labName": "APEX DIAGNOSTICS & PATHOLOGY LABORATORY",
+    "labAddress": "SCO 42, Green Park Avenue, Near Civil Hospital, Ludhiana, Punjab - 141001",
+    "labPhone": "+91 7087033009",
+    "nablAccreditationNo": "MC-2849",
+    "pathologist": "Dr. Rohit Sharma, MD (Pathology)",
+    "pathologistDegrees": "Consultant Pathologist • Reg No: PMC-48192",
+    "barcode": "||||| ||||| |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 7d8c11aa23fe55bb89cc01a342ef9981",
+    "items": [
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Hemoglobin (Hb)",
+        "result": "14.2",
+        "unit": "g/dL",
+        "referenceRange": "13.0 – 17.0",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Total Leukocyte Count (TLC)",
+        "result": "7,400",
+        "unit": "/cumm",
+        "referenceRange": "4,000 – 11,000",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Inflammatory Markers",
+        "parameter": "ESR (Westergren)",
+        "result": "12",
+        "unit": "mm/1st hr",
+        "referenceRange": "0 – 15",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-CC-701",
+    "uhid": "CC-2026-101",
+    "labId": "lab-citycare",
+    "branchId": "branch-cc-1",
+    "branchName": "CityCare Phase 7 Diagnostic Hub",
+    "patientName": "Simranjeet Kaur",
+    "ageGender": "38 Yrs / Female",
+    "mobile": "9815012345",
+    "doctor": "Dr. Balwinder Singh, MD",
+    "sampleCollectedAt": "03-Sep-2026 09:00 AM IST",
+    "reportedAt": "03-Sep-2026 01:30 PM IST",
+    "labName": "CITYCARE ADVANCED DIAGNOSTICS & SCAN CENTRE",
+    "labAddress": "SCO 14, Phase 7, Near Fortis Chowk, Mohali, Punjab - 160062",
+    "labPhone": "+91 9815012345",
+    "nablAccreditationNo": "MC-3912 (QCI Certified)",
+    "pathologist": "Dr. S. K. Narang, MD (Pathology)",
+    "pathologistDegrees": "Senior Clinical Director • Reg No: PMC-39102",
+    "barcode": "||||| ||||| ||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 4a9c1e77f02b5e88d12a67e912c448bb",
+    "items": [
+      {
+        "testName": "Vitamin D3 (25-OH)",
+        "parameter": "25-Hydroxy Vitamin D",
+        "result": "22.4",
+        "unit": "ng/mL",
+        "referenceRange": "30.0 – 100.0",
+        "isAbnormal": true,
+        "notes": "Insufficient: Vitamin D supplementation recommended as per physician advice."
+      },
+      {
+        "testName": "Diabetes Profile",
+        "parameter": "HbA1c (Glycosylated Hemoglobin)",
+        "result": "5.8",
+        "unit": "%",
+        "referenceRange": "< 5.7% (Normal)",
+        "isAbnormal": false,
+        "notes": "Pre-diabetes threshold. Annual screening advised."
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-MP-901",
+    "uhid": "MP-2026-501",
+    "labId": "lab-metropath",
+    "branchId": "branch-mp-1",
+    "branchName": "MetroPath Sector 34-A Super Specialty Hub",
+    "patientName": "Anirudh Saxena",
+    "ageGender": "54 Yrs / Male",
+    "mobile": "9417098765",
+    "doctor": "Dr. Arunava Ghosh, MD",
+    "sampleCollectedAt": "03-Sep-2026 08:45 AM IST",
+    "reportedAt": "03-Sep-2026 12:15 PM IST",
+    "labName": "METROPATH SCANS & MOLECULAR PATHOLOGY HUB",
+    "labAddress": "SCO 128-129, Sector 34-A, Healthcare District, Chandigarh - 160022",
+    "labPhone": "+91 9417098765",
+    "nablAccreditationNo": "MC-5104 (NABL Accredited)",
+    "pathologist": "Dr. Arunava Ghosh, MD (Pathology)",
+    "pathologistDegrees": "Consultant Molecular Pathologist • Reg No: DCI-51829",
+    "barcode": "|||| ||||| |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 8c3e2f11a45b9d77e62a19c433b552ef",
+    "items": [
+      {
+        "testName": "Prostate Specific Antigen (PSA)",
+        "parameter": "PSA - Total",
+        "result": "1.8",
+        "unit": "ng/mL",
+        "referenceRange": "0.0 – 4.0",
+        "isAbnormal": false,
+        "notes": "Normal age-specific prostate marker value."
+      },
+      {
+        "testName": "Biochemistry",
+        "parameter": "Serum Uric Acid",
+        "result": "5.4",
+        "unit": "mg/dL",
+        "referenceRange": "3.5 – 7.2",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-MP-902",
+    "uhid": "MP-2026-502",
+    "labId": "lab-metropath",
+    "branchId": "branch-mp-1",
+    "branchName": "MetroPath Sector 34-A Super Specialty Hub",
+    "patientName": "Priya Singhania",
+    "ageGender": "41 Yrs / Female",
+    "mobile": "9876599887",
+    "doctor": "Dr. Rajiv Anand, MD (Cardiology)",
+    "sampleCollectedAt": "03-Sep-2026 09:30 AM IST",
+    "reportedAt": "03-Sep-2026 01:00 PM IST",
+    "labName": "METROPATH SCANS & MOLECULAR PATHOLOGY HUB",
+    "labAddress": "SCO 128-129, Sector 34-A, Healthcare District, Chandigarh - 160022",
+    "labPhone": "+91 9417098765",
+    "nablAccreditationNo": "MC-5104 (NABL Accredited)",
+    "pathologist": "Dr. Arunava Ghosh, MD (Pathology)",
+    "pathologistDegrees": "Consultant Molecular Pathologist • Reg No: DCI-51829",
+    "barcode": "||||| ||||| |||| ||| ||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 9e2b4c55d61a7f88e99b01c344a773ee",
+    "items": [
+      {
+        "testName": "Cardiac Markers",
+        "parameter": "Troponin-I (High Sensitivity)",
+        "result": "0.01",
+        "unit": "ng/mL",
+        "referenceRange": "< 0.04 (Negative for Myocardial Necrosis)",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Cardiac Markers",
+        "parameter": "CPK-MB Isoenzyme",
+        "result": "12.0",
+        "unit": "U/L",
+        "referenceRange": "0.0 – 25.0",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-SANJ-101",
+    "uhid": "SANJ-2026-401",
+    "labId": "lab-sanjivani",
+    "branchId": "branch-sanj-1",
+    "branchName": "Sanjivani Civil Lines Lab",
+    "patientName": "Sohan Lal Mittal",
+    "ageGender": "58 Yrs / Male",
+    "mobile": "9888123456",
+    "doctor": "Dr. Rameshwar Das, MD",
+    "sampleCollectedAt": "03-Sep-2026 08:00 AM IST",
+    "reportedAt": "03-Sep-2026 11:30 AM IST",
+    "labName": "SANJIVANI PATHOLOGY & PREVENTIVE HEALTH LAB",
+    "labAddress": "Near Gate 2, District Civil Hospital Road, Amritsar, Punjab - 143001",
+    "labPhone": "+91 9888123456",
+    "nablAccreditationNo": "PMC Reg: 4421",
+    "pathologist": "Dr. Rameshwar Das, MD (Pathology)",
+    "pathologistDegrees": "Consultant Clinical Pathologist",
+    "barcode": "||||| ||||| ||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 7f1e2a33c44d55e66b77a88c99d00e11",
+    "items": [
+      {
+        "testName": "Complete Blood Count (CBC)",
+        "parameter": "Hemoglobin (Hb)",
+        "result": "13.8",
+        "unit": "g/dL",
+        "referenceRange": "13.0 – 17.0",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Biochemistry",
+        "parameter": "Fasting Blood Sugar",
+        "result": "98",
+        "unit": "mg/dL",
+        "referenceRange": "70 – 110",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-CC-702",
+    "uhid": "CC-2026-102",
+    "labId": "lab-citycare",
+    "branchId": "branch-cc-1",
+    "branchName": "CityCare Phase 7 Diagnostic Hub",
+    "patientName": "Karan Malhotra",
+    "ageGender": "39 Yrs / Male",
+    "mobile": "9814400112",
+    "doctor": "Dr. Vivek Chadha, MD",
+    "sampleCollectedAt": "03-Sep-2026 09:15 AM IST",
+    "reportedAt": "03-Sep-2026 12:45 PM IST",
+    "labName": "CITYCARE ADVANCED DIAGNOSTICS & SCAN CENTRE",
+    "labAddress": "SCO 14, Phase 7, Near Fortis Chowk, Mohali, Punjab - 160062",
+    "labPhone": "+91 9815012345",
+    "nablAccreditationNo": "MC-3921 (NABL & ICMR Approved)",
+    "pathologist": "Dr. Sanjeev Bajaj, MD (Pathology)",
+    "pathologistDegrees": "Lead Pathologist • Reg No: PMC-39811",
+    "barcode": "||||| ||| |||||| ||||| ||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 4b9c1d2e3f4a5b6c7d8e9f0a1b2c3d4e",
+    "items": [
+      {
+        "testName": "Lipid Risk Profile",
+        "parameter": "Total Cholesterol",
+        "result": "218",
+        "unit": "mg/dL",
+        "referenceRange": "< 200",
+        "isAbnormal": true,
+        "notes": "Mild hypercholesterolemia observed."
+      },
+      {
+        "testName": "Lipid Risk Profile",
+        "parameter": "Triglycerides",
+        "result": "165",
+        "unit": "mg/dL",
+        "referenceRange": "< 150",
+        "isAbnormal": true
+      },
+      {
+        "testName": "Lipid Risk Profile",
+        "parameter": "HDL Cholesterol",
+        "result": "44",
+        "unit": "mg/dL",
+        "referenceRange": "> 40",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-MP-903",
+    "uhid": "MP-2026-503",
+    "labId": "lab-metropath",
+    "branchId": "branch-mp-1",
+    "branchName": "MetroPath Sector 34-A Super Specialty Hub",
+    "patientName": "Manmohan Sethi",
+    "ageGender": "62 Yrs / Male",
+    "mobile": "9814088776",
+    "doctor": "Dr. Arunava Ghosh, MD",
+    "sampleCollectedAt": "03-Sep-2026 09:00 AM IST",
+    "reportedAt": "03-Sep-2026 01:15 PM IST",
+    "labName": "METROPATH SCANS & MOLECULAR PATHOLOGY HUB",
+    "labAddress": "SCO 128-129, Sector 34-A, Healthcare District, Chandigarh - 160022",
+    "labPhone": "+91 9417098765",
+    "nablAccreditationNo": "MC-5104 (NABL Accredited)",
+    "pathologist": "Dr. Arunava Ghosh, MD (Pathology)",
+    "pathologistDegrees": "Consultant Molecular Pathologist • Reg No: DCI-51829",
+    "barcode": "|||| ||||| |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 3a2b1c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+    "items": [
+      {
+        "testName": "Immunology",
+        "parameter": "High-Sensitivity CRP (hs-CRP)",
+        "result": "1.4",
+        "unit": "mg/L",
+        "referenceRange": "< 1.0 Low Risk",
+        "isAbnormal": false,
+        "notes": "Average cardiovascular risk assessment."
+      },
+      {
+        "testName": "Coagulation",
+        "parameter": "D-Dimer (Quantitative)",
+        "result": "280",
+        "unit": "ng/mL FEU",
+        "referenceRange": "< 500",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-LF-101",
+    "uhid": "LIFE-2026-001",
+    "labId": "lab-lifeline-due",
+    "branchId": "branch-life-1",
+    "branchName": "LifeLine Main Diagnostic Desk",
+    "patientName": "Gurmeet Singh",
+    "ageGender": "49 Yrs / Male",
+    "mobile": "9872011223",
+    "doctor": "Dr. Gurpreet Singh, MD",
+    "sampleCollectedAt": "03-Sep-2026 08:30 AM IST",
+    "reportedAt": "03-Sep-2026 11:45 AM IST",
+    "labName": "LIFELINE PATHCARE DIAGNOSTIC CENTRE",
+    "labAddress": "Opp. Civil Hospital Gate 1, Jalandhar, Punjab - 144001",
+    "labPhone": "+91 9872011223",
+    "nablAccreditationNo": "PMC-Reg-9120",
+    "pathologist": "Dr. Harpreet Singh, MD (Pathology)",
+    "pathologistDegrees": "Senior Consulting Pathologist",
+    "barcode": "||||| |||| ||| |||||| ||||| |||",
+    "verified": true,
+    "verificationHash": "SHA256: 1f2e3d4c5b6a7f8e9d0c1b2a3f4e5d6c",
+    "items": [
+      {
+        "testName": "Hematology",
+        "parameter": "Hemoglobin (Hb)",
+        "result": "14.2",
+        "unit": "g/dL",
+        "referenceRange": "13.0 – 17.0",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Biochemistry",
+        "parameter": "Fasting Blood Glucose",
+        "result": "92",
+        "unit": "mg/dL",
+        "referenceRange": "70 – 100",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Biochemistry",
+        "parameter": "Serum Creatinine",
+        "result": "1.0",
+        "unit": "mg/dL",
+        "referenceRange": "0.7 – 1.3",
+        "isAbnormal": false
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-HT-201",
+    "uhid": "HT-2026-001",
+    "labId": "lab-healtech-pending",
+    "branchId": "branch-ht-1",
+    "branchName": "HealTech Patiala Central Hub",
+    "patientName": "Meenakshi Arora",
+    "ageGender": "31 Yrs / Female",
+    "mobile": "9876512345",
+    "doctor": "Dr. Vandana Sood, MD (Allergy & Immuno)",
+    "sampleCollectedAt": "03-Sep-2026 09:15 AM IST",
+    "reportedAt": "03-Sep-2026 01:30 PM IST",
+    "labName": "HEALTECH MOLECULAR & ALLERGY DIAGNOSTIC LAB",
+    "labAddress": "Leela Bhawan Commercial Complex, Patiala, Punjab - 147001",
+    "labPhone": "+91 9876512345",
+    "nablAccreditationNo": "NABL Application Ref: HT-2026-PTL",
+    "pathologist": "Dr. P. K. Sehgal, MD (Immunopathology)",
+    "pathologistDegrees": "Consultant Clinical Immunologist",
+    "barcode": "|||| ||||| ||| |||||| ||||| ||||",
+    "verified": true,
+    "verificationHash": "SHA256: 7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a",
+    "items": [
+      {
+        "testName": "Allergy & Immunology",
+        "parameter": "Total Serum IgE",
+        "result": "185",
+        "unit": "IU/mL",
+        "referenceRange": "< 100",
+        "isAbnormal": true,
+        "notes": "Elevated IgE suggestive of atopic diathesis or active allergic rhinitis."
+      },
+      {
+        "testName": "Hematology",
+        "parameter": "Absolute Eosinophil Count (AEC)",
+        "result": "540",
+        "unit": "cells/µL",
+        "referenceRange": "40 – 440",
+        "isAbnormal": true,
+        "notes": "Peripheral eosinophilia noted."
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-PLS-301",
+    "uhid": "PLS-2026-001",
+    "labId": "lab-pulse",
+    "branchId": "branch-pls-1",
+    "branchName": "Pulse Sector 5 Diagnostics & MRI Hub",
+    "patientName": "Col. H. S. Brar (Retd.)",
+    "ageGender": "67 Yrs / Male",
+    "mobile": "9815099881",
+    "doctor": "Dr. Vikram Singhal, DM (Cardiology)",
+    "sampleCollectedAt": "03-Sep-2026 07:45 AM IST",
+    "reportedAt": "03-Sep-2026 10:15 AM IST",
+    "labName": "PULSE DIAGNOSTICS & MRI CENTRE",
+    "labAddress": "SCO 88, Sector 5, MDC, Panchkula, Haryana - 134114",
+    "labPhone": "+91 9815099881",
+    "nablAccreditationNo": "MC-4482 (NABL & AERB Certified)",
+    "pathologist": "Dr. Neena Gupta, MD (Pathology)",
+    "pathologistDegrees": "Senior Pathologist & Lab Director",
+    "barcode": "||||| ||||| ||| |||| |||||| |||||",
+    "verified": true,
+    "verificationHash": "SHA256: 9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b",
+    "items": [
+      {
+        "testName": "Cardiology",
+        "parameter": "High-Sensitivity Troponin-I",
+        "result": "0.012",
+        "unit": "ng/mL",
+        "referenceRange": "< 0.040",
+        "isAbnormal": false,
+        "notes": "Negative for acute myocardial injury."
+      },
+      {
+        "testName": "Biochemistry",
+        "parameter": "Direct LDL Cholesterol",
+        "result": "142",
+        "unit": "mg/dL",
+        "referenceRange": "< 100 Optimal",
+        "isAbnormal": true
+      },
+      {
+        "testName": "Biochemistry",
+        "parameter": "HbA1c (Glycated Hemoglobin)",
+        "result": "6.2",
+        "unit": "%",
+        "referenceRange": "< 5.7 (5.7-6.4 Prediabetic)",
+        "isAbnormal": true
+      }
+    ]
+  },
+  {
+    "reportId": "RPT-CP-401",
+    "uhid": "CP-2026-001",
+    "labId": "lab-carepoint",
+    "branchId": "branch-cp-1",
+    "branchName": "CarePoint Mall Road Diagnostic Centre",
+    "patientName": "Mohan Lal Thakur",
+    "ageGender": "52 Yrs / Male",
+    "mobile": "9816044332",
+    "doctor": "Dr. Alok Verma, MD (Internal Medicine)",
+    "sampleCollectedAt": "03-Sep-2026 08:30 AM IST",
+    "reportedAt": "03-Sep-2026 11:30 AM IST",
+    "labName": "CAREPOINT CLINICAL LABORATORY",
+    "labAddress": "The Mall Road, Near Lift, Shimla, Himachal Pradesh - 171001",
+    "labPhone": "+91 9816044332",
+    "nablAccreditationNo": "HP-PMC-1823",
+    "pathologist": "Dr. Sunita Negi, MD (Pathology)",
+    "pathologistDegrees": "Consultant Clinical Pathologist",
+    "barcode": "|||| |||||| ||| ||||| |||||| ||||",
+    "verified": true,
+    "verificationHash": "SHA256: 5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0c",
+    "items": [
+      {
+        "testName": "Hematology",
+        "parameter": "Hemoglobin (Hb)",
+        "result": "15.6",
+        "unit": "g/dL",
+        "referenceRange": "13.0 – 17.5",
+        "isAbnormal": false,
+        "notes": "Normal high-altitude physiological hemoglobin range."
+      },
+      {
+        "testName": "Biochemistry",
+        "parameter": "Fasting Blood Sugar",
+        "result": "94",
+        "unit": "mg/dL",
+        "referenceRange": "70 – 100",
+        "isAbnormal": false
+      },
+      {
+        "testName": "Thyroid",
+        "parameter": "TSH (Thyroid Stimulating Hormone)",
+        "result": "2.84",
+        "unit": "µIU/mL",
+        "referenceRange": "0.35 – 4.94",
+        "isAbnormal": false
+      }
+    ]
+  }
+]

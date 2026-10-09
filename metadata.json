@@ -1,0 +1,6 @@
+{
+  "name": "INDIANLALAJI.COM - Laboratory Management Software for India",
+  "description": "Laboratory management software for Indian diagnostic and pathology labs. Works offline, WhatsApp reports, INR billing, zero-login patient portal, and single-center diagnostic lab workflow.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
