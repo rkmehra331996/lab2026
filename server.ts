@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import fs from 'fs';
@@ -564,7 +565,32 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
         store[key] = [];
       }
 
-      if (action === 'delete') {
+      if (action === 'batch_save') {
+        const items = body.items || (Array.isArray(data) ? data : []);
+        const map = new Map<string, any>();
+        for (const it of store[key]) {
+          const itId = it.id || it.reportId || it.labId;
+          if (itId) map.set(itId, it);
+        }
+        for (const it of items) {
+          const itId = it.id || it.reportId || it.labId;
+          if (itId) {
+            it._updatedAt = new Date().toISOString();
+            const existing = map.get(itId) || {};
+            map.set(itId, { ...existing, ...it });
+          }
+        }
+        store[key] = Array.from(map.values());
+      } else if (action === 'seed_all') {
+        const allCols = body.collections || {};
+        for (const [colName, colItems] of Object.entries(allCols)) {
+          if (!store[colName] || (Array.isArray(store[colName]) && store[colName].length === 0)) {
+            if (Array.isArray(colItems)) {
+              store[colName] = colItems;
+            }
+          }
+        }
+      } else if (action === 'delete') {
         const targetId = id || data?.id || data?.reportId;
         if (targetId) {
           store[key] = store[key].filter((item: any) => (item.id || item.reportId || item.labId) !== targetId);
@@ -693,15 +719,26 @@ Consultant Doctors: ${JSON.stringify(vendorContext?.doctors || [])}
       appType: 'spa',
     });
     app.use(vite.middlewares);
+    app.use('*', async (req, res, next) => {
+      const url = req.originalUrl;
+      try {
+        let template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
   } else {
     // Production static serving
     const distPath = path.join(__dirname, 'dist');
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath));
-      app.get('*', (req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
-      });
     }
+    app.use('*', (_req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
