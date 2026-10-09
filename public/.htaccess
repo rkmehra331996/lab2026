@@ -1,3 +1,6 @@
+# Directory Index priority: ensure index.html loads first
+DirectoryIndex index.html index.php
+
 # Apache / LiteSpeed configuration for Hostinger Shared & Cloud Hosting (React Vite SPA)
 <IfModule mod_rewrite.c>
   RewriteEngine On
@@ -7,14 +10,17 @@
   RewriteCond %{HTTP:Authorization} .
   RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
+  # If index.html is directly requested, don't rewrite
+  RewriteRule ^index\.html$ - [L]
+
   # Exclude Hostinger PHP API and Uploads directory from frontend SPA rewrite
   RewriteCond %{REQUEST_URI} !^/api/
   RewriteCond %{REQUEST_URI} !^/uploads/
 
-  # If requested resource is not an existing file or directory, redirect to index.html
+  # If requested resource is not an existing file or directory, redirect to /index.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^ index.html [L]
+  RewriteRule . /index.html [L]
 </IfModule>
 
 # Correct MIME types for modern JS/TS and web assets

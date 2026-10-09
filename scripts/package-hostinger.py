@@ -51,6 +51,8 @@ def package_hostinger():
     # Copy to public/ and dist/
     shutil.copy2(zip_root_path, zip_public_path)
     shutil.copy2(zip_root_path, zip_dist_path)
+    shutil.copy2(zip_root_path, os.path.join(public_dir, 'hostinger_public_html.zip'))
+    shutil.copy2(zip_root_path, os.path.join(dist_dir, 'hostinger_public_html.zip'))
 
     size_mb = os.path.getsize(zip_root_path) / (1024 * 1024)
     print(f"✅ Successfully packaged {file_count} files into Hostinger Build Zip:")
