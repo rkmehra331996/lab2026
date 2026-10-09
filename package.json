@@ -4,10 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
-    "start": "node server.ts",
-    "build": "vite build && node scripts/createHostingerZip.mjs",
-    "package": "node scripts/createHostingerZip.mjs",
+    "dev": "vite",
+    "build": "vite build && python3 scripts/package-hostinger.py",
+    "package": "python3 scripts/package-hostinger.py",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
