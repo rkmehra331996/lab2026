@@ -1,4 +1,5 @@
 import 'dotenv/config';
+process.env.DISABLE_HMR = 'true';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import fs from 'fs';
@@ -781,7 +782,11 @@ Consultant Doctors: ${JSON.stringify(vendorContext?.doctors || [])}
   const isProd = process.env.NODE_ENV === 'production';
   if (!isProd) {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+        watch: null,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
