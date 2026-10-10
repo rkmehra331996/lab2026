@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { TermsConditionsModal } from './TermsConditionsModal';
+import { IndianLalajiMarquee } from './IndianLalajiMarquee';
 
 interface FinalCTASectionProps {
   onOpenDemo?: () => void;
@@ -252,8 +253,13 @@ export const FinalCTASection: React.FC<FinalCTASectionProps> = () => {
           </div>
         </div>
 
+        {/* IndianLalaji Infinite Loop Marquee - Just Before Footer */}
+        <div className="mt-14 -mx-4 sm:-mx-6 lg:-mx-8">
+          <IndianLalajiMarquee theme="dark" />
+        </div>
+
         {/* Clean Bottom Copyright Strip with Terms & Conditions */}
-        <div className="mt-16 pt-8 border-t border-white/10 text-center text-xs text-slate-400">
+        <div className="mt-8 pt-8 border-t border-white/10 text-center text-xs text-slate-400">
           <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
             <span>© 2026 IndianLalaJi.com — LIMS</span>
             <span className="text-slate-600 hidden sm:inline">|</span>

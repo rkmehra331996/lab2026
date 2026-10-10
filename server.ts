@@ -3,6 +3,7 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 
@@ -121,6 +122,71 @@ async function startServer() {
 
   // Static serving for Hostinger uploads directory
   app.use('/uploads', express.static(UPLOADS_DIR));
+
+  // Build Zip Download: Hostinger Build Zip (Always fresh latest updated version)
+  app.get(
+    [
+      '/indianalala_hostinger_build.zip',
+      '/hostinger_public_html.zip',
+      '/api/download-build',
+      '/api/download-hostinger-build',
+    ],
+    (req, res) => {
+      try {
+        const rootDir = __dirname;
+        const distIndex = path.join(rootDir, 'dist', 'index.html');
+        const srcDir = path.join(rootDir, 'src');
+
+        let needsRebuild = false;
+        if (!fs.existsSync(distIndex)) {
+          needsRebuild = true;
+        } else {
+          const distMtime = fs.statSync(distIndex).mtimeMs;
+          const checkDir = (dir: string): boolean => {
+            if (!fs.existsSync(dir)) return false;
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+              const fullPath = path.join(dir, entry.name);
+              if (entry.isDirectory()) {
+                if (checkDir(fullPath)) return true;
+              } else {
+                const stat = fs.statSync(fullPath);
+                if (stat.mtimeMs > distMtime) return true;
+              }
+            }
+            return false;
+          };
+          needsRebuild = checkDir(srcDir);
+        }
+
+        if (needsRebuild) {
+          console.log('[Hostinger Build] Rebuilding updated software distribution package...');
+          execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
+        } else {
+          try {
+            execSync('python3 scripts/package-hostinger.py', { cwd: rootDir, stdio: 'inherit' });
+          } catch {}
+        }
+
+        const targetZip = path.join(rootDir, 'public', 'indianalala_hostinger_build.zip');
+        if (fs.existsSync(targetZip)) {
+          const stat = fs.statSync(targetZip);
+          res.setHeader('Content-Type', 'application/zip');
+          res.setHeader('Content-Disposition', 'attachment; filename="indianalala_hostinger_build.zip"');
+          res.setHeader('Content-Length', stat.size);
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+          const stream = fs.createReadStream(targetZip);
+          stream.pipe(res);
+          return;
+        }
+      } catch (err: any) {
+        console.error('[Hostinger Download Error]:', err);
+      }
+      res.status(500).json({ error: 'Failed to prepare build zip' });
+    }
+  );
 
   // 1. Health check & Ping
   app.get(['/api/sync/ping', '/api/ping'], (req, res) => {

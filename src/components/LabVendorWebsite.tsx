@@ -76,6 +76,7 @@ import { TermsConditionsModal } from './TermsConditionsModal';
 import { VendorPolicyModal, PolicyTabType } from './vendor/VendorPolicyModal';
 import { HomeScreenShortcutModal, DownloadAppModal } from './DownloadAppModal';
 import { VendorAiVoiceBot } from './vendor/VendorAiVoiceBot';
+import { IndianLalajiMarquee } from './IndianLalajiMarquee';
 import { getTenantWebsiteUrl, getTenantSubdomain, getTenantBrowserUrl, SUPER_ADMIN_DOMAIN, normalizeToDirectoryUrl } from '../constants/domains';
 import { isTenantMatch, isReportAccessibleToTenant } from '../utils/tenantSecurity';
 import { optimizeImageFile } from '../utils/imageOptimizer';
@@ -4463,6 +4464,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
           </div>
         </div>
       </section>
+
+      {/* IndianLalaji Infinite Loop Marquee - Just Before Vendor Footer */}
+      <IndianLalajiMarquee theme="light" labName={labName} labId={labShopId} />
 
       {/* 10. Footer */}
       <footer className="bg-white border-t border-slate-200 py-12">

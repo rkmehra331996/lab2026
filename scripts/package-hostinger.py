@@ -18,11 +18,30 @@ def package_hostinger():
         print(f"[ERROR] 'index.html' not found in dist. Build may have failed.")
         sys.exit(1)
 
-    # Ensure public/.htaccess and public/api are copied to dist if not already there
+    # 1. Always copy latest .htaccess from public/ to dist/
     htaccess_src = os.path.join(public_dir, '.htaccess')
     htaccess_dst = os.path.join(dist_dir, '.htaccess')
-    if os.path.exists(htaccess_src) and not os.path.exists(htaccess_dst):
+    if os.path.exists(htaccess_src):
         shutil.copy2(htaccess_src, htaccess_dst)
+
+    # 2. Always copy latest public/api to dist/api
+    api_src = os.path.join(public_dir, 'api')
+    api_dst = os.path.join(dist_dir, 'api')
+    if os.path.exists(api_src):
+        if os.path.exists(api_dst):
+            shutil.rmtree(api_dst)
+        shutil.copytree(api_src, api_dst)
+
+    # 3. Always copy uploads if present
+    uploads_src = os.path.join(public_dir, 'uploads')
+    uploads_dst = os.path.join(dist_dir, 'uploads')
+    if os.path.exists(uploads_src):
+        os.makedirs(uploads_dst, exist_ok=True)
+        for item in os.listdir(uploads_src):
+            s = os.path.join(uploads_src, item)
+            d = os.path.join(uploads_dst, item)
+            if os.path.isfile(s):
+                shutil.copy2(s, d)
 
     # Target zip outputs
     zip_root_path = os.path.join(root_dir, 'hostinger_public_html.zip')

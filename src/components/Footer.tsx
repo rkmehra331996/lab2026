@@ -3,6 +3,7 @@ import { MessageSquare, Phone, MapPin, Heart, Shield } from 'lucide-react';
 import { AppView } from '../types';
 import { useCms } from '../context/CmsContext';
 import { TermsConditionsModal } from './TermsConditionsModal';
+import { IndianLalajiMarquee } from './IndianLalajiMarquee';
 
 interface FooterProps {
   onSelectView: (view: AppView) => void;
@@ -24,7 +25,11 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
   };
 
   return (
-    <footer className="bg-[#0b1c33] text-slate-300 text-xs border-t border-slate-800 pb-20 sm:pb-8">
+    <>
+      {/* IndianLalaji Infinite Loop Marquee - Just Before Footer */}
+      <IndianLalajiMarquee theme="dark" />
+
+      <footer className="bg-[#0b1c33] text-slate-300 text-xs border-t border-slate-800 pb-20 sm:pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand Column */}
@@ -201,5 +206,6 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
         />
       </div>
     </footer>
+    </>
   );
 };

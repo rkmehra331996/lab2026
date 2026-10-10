@@ -50,6 +50,7 @@ import { WebsiteBackupTab } from './admin/WebsiteBackupTab';
 import { VendorPlanRenewTab } from './admin/VendorPlanRenewTab';
 import { SeoSettingsTab } from './admin/SeoSettingsTab';
 import { forceFreshReload } from '../utils/cacheManager';
+import { IndianLalajiMarquee } from './IndianLalajiMarquee';
 
 interface CompanyAdminDashboardProps {
   onNavigateView: (view: AppView) => void;
@@ -2750,6 +2751,9 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
       </div>
     )}
   </div>
+
+  {/* IndianLalaji Infinite Loop Marquee - Just Before Super Admin Footer */}
+  <IndianLalajiMarquee theme="superadmin" />
 
   {/* Super Admin Footer with Cache & Hard Reload Controls */}
   <footer

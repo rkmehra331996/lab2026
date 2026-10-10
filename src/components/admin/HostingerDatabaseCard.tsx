@@ -134,7 +134,11 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
           <a
             href="/indianalala_hostinger_build.zip"
             download="indianalala_hostinger_build.zip"
-            onClick={() => showToast('📦 Downloading ready Hostinger build zip package...')}
+            onClick={(e) => {
+              const freshUrl = `/indianalala_hostinger_build.zip?t=${Date.now()}`;
+              e.currentTarget.href = freshUrl;
+              showToast('📦 Downloading ready Hostinger build zip package...');
+            }}
             className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95 shrink-0 text-decoration-none"
           >
             <Download className="w-4 h-4 text-emerald-100" />
