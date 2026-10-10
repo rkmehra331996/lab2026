@@ -142,6 +142,8 @@ export const VendorBillingTab: React.FC = () => {
 
   // Handle File Upload 1
   const handleFileUpload1 = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     const file = e.target.files?.[0];
     if (!file) return;
     try {
@@ -159,6 +161,8 @@ export const VendorBillingTab: React.FC = () => {
 
   // Handle File Upload 2
   const handleFileUpload2 = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     const file = e.target.files?.[0];
     if (!file) return;
     try {

@@ -144,6 +144,24 @@ export const DashboardAuthGuard: React.FC<DashboardAuthGuardProps> = ({
               </button>
             )}
 
+            {view === 'vendor_dashboard' && (
+              <button
+                type="button"
+                id="guard-btn-quick-vendor"
+                onClick={() => {
+                  const targetLab = vendorLabSettings?.labId || 'lab-apex';
+                  const res = login('vendor', '9876543210', 'owner123', targetLab, undefined, '123456');
+                  if (res.success) {
+                    onNavigateView('vendor_dashboard');
+                  }
+                }}
+                className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 py-3 px-4 rounded-xl font-black text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Crown className="w-4 h-4 text-slate-950" />
+                <span>1-Click Lab Owner Login (Master Access)</span>
+              </button>
+            )}
+
             <button
               type="button"
               id="guard-btn-login"

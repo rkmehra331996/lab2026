@@ -226,6 +226,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <>
                 <button
+                  onClick={() => onSelectView('vendor_dashboard')}
+                  className="text-xs font-bold text-slate-700 hover:text-[#123B6D] px-3 py-2 rounded-xl hover:bg-slate-100 transition flex items-center gap-1.5 cursor-pointer"
+                  id="navbar-btn-vendor-dashboard"
+                  title="Open Lab Owner & Admin Dashboard"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5 text-[#123B6D]" />
+                  <span>Lab Dashboard</span>
+                </button>
+
+                <button
                   onClick={() => openLoginModal(undefined, 'login')}
                   className="text-xs font-bold text-slate-700 hover:text-[#123B6D] px-3.5 py-2 rounded-xl hover:bg-slate-100 transition flex items-center gap-1.5 cursor-pointer"
                   id="navbar-btn-login"
@@ -367,27 +377,39 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    openLoginModal(undefined, 'login');
+                    onSelectView('vendor_dashboard');
                   }}
-                  className="w-full bg-[#123B6D] text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-[#123B6D] py-2.5 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 border border-slate-300 shadow-2xs"
                 >
-                  <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Login</span>
+                  <LayoutDashboard className="w-3.5 h-3.5 text-[#123B6D]" />
+                  <span>Lab Dashboard (Admin Workspace)</span>
                 </button>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    openRegisterLabModal();
-                  }}
-                  className="w-full bg-amber-400 text-slate-950 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
-                >
-                  <Building2 className="w-3.5 h-3.5 text-slate-950" />
-                  <span>Create Lab</span>
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      openLoginModal(undefined, 'login');
+                    }}
+                    className="w-full bg-[#123B6D] text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                  >
+                    <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Login</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      openRegisterLabModal();
+                    }}
+                    className="w-full bg-amber-400 text-slate-950 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-slate-950" />
+                    <span>Create Lab</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -30,13 +30,47 @@
             enumerable: true,
           });
 
-          // Check for Service Worker updates immediately on load to prevent serving stale hosted versions
+          // Unregister any active Service Workers to prevent caching / controllerchange reloads
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(regs) {
               for (var i = 0; i < regs.length; i++) {
-                regs[i].update().catch(function() {});
+                regs[i].unregister().catch(function() {});
               }
             }).catch(function() {});
+          }
+
+          // React preamble flag for dev mode
+          window.__vite_plugin_react_preamble_installed__ = true;
+
+          // Stub out any Vite HMR WebSockets to prevent unwanted full-reload signals
+          var RealWebSocket = window.WebSocket;
+          if (RealWebSocket) {
+            window.WebSocket = function(url, protocols) {
+              if (
+                protocols === 'vite-hmr' ||
+                (Array.isArray(protocols) && protocols.indexOf('vite-hmr') !== -1) ||
+                (typeof url === 'string' && (url.indexOf('vite-hmr') !== -1 || url.indexOf('/@vite') !== -1))
+              ) {
+                var stub = {
+                  readyState: 1,
+                  send: function() {},
+                  close: function() {},
+                  addEventListener: function(type, fn) {
+                    if (type === 'open') setTimeout(fn, 10);
+                  },
+                  removeEventListener: function() {},
+                  onopen: null,
+                  onclose: null,
+                  onerror: null,
+                  onmessage: null
+                };
+                setTimeout(function() {
+                  if (typeof stub.onopen === 'function') stub.onopen({ type: 'open' });
+                }, 10);
+                return stub;
+              }
+              return new RealWebSocket(url, protocols);
+            };
           }
         } catch (e) {}
       })();

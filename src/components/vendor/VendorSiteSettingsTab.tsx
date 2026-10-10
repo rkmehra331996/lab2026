@@ -262,6 +262,8 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
 
   // Handle Local Logo Upload with instant optimization & auto-save
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     const file = e.target.files?.[0];
     if (file) {
       try {
@@ -282,6 +284,8 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
 
   // Handle Feature Image Upload with instant optimization & auto-save
   const handleFeatureImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     const file = e.target.files?.[0];
     if (file) {
       try {
@@ -309,6 +313,8 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
 
   // Handle Payment QR Upload with instant optimization & auto-save
   const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>, qrSlot: 1 | 2) => {
+    e.preventDefault();
+    e.stopPropagation();
     const file = e.target.files?.[0];
     if (file) {
       try {

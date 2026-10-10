@@ -54,7 +54,26 @@ export default function App() {
         undefined,
         typeof window !== 'undefined' ? window.location.pathname : ''
       );
-      return resolution.view;
+      if (resolution.view && resolution.view !== 'website') {
+        return resolution.view;
+      }
+      // If URL did not specify an explicit view, restore saved dashboard view if present
+      const saved = typeof window !== 'undefined' ? (localStorage.getItem('cms_current_view') as AppView) : null;
+      if (
+        saved &&
+        [
+          'vendor_dashboard',
+          'admin_dashboard',
+          'reception_dashboard',
+          'technician_dashboard',
+          'branch_manager_dashboard',
+          'pathologist_dashboard',
+          'lab_app',
+        ].includes(saved)
+      ) {
+        return saved;
+      }
+      return resolution.view || 'website';
     } catch {
       return 'website';
     }
@@ -194,6 +213,21 @@ export default function App() {
   // Sync view and lab tenant from URL parameters, subdomains, /shop/ or /lab/ paths, or custom domains
   useEffect(() => {
     try {
+      // CRITICAL: Never reset or overwrite active dashboard workspaces
+      const isDashboardView = [
+        'vendor_dashboard',
+        'admin_dashboard',
+        'technician_dashboard',
+        'reception_dashboard',
+        'pathologist_dashboard',
+        'branch_manager_dashboard',
+        'lab_app',
+      ].includes(currentView);
+
+      if (isDashboardView) {
+        return;
+      }
+
       const resolution = resolveAppRoute(
         window.location.hostname,
         window.location.search,
@@ -252,7 +286,7 @@ export default function App() {
         setCurrentView(resolution.view);
       }
     } catch {}
-  }, [vendorLabsList]);
+  }, [vendorLabsList, currentView]);
 
   // Support browser Back/Forward navigation across /shop/, /lab/ paths and views
   useEffect(() => {
@@ -374,28 +408,6 @@ export default function App() {
       }
     }
   }, [currentView, currentUser, selectedVendorLabId, selectVendorLab, setSelectedVendorLabId]);
-
-  // When user logs out while on a protected dashboard, transition back to appropriate website
-  useEffect(() => {
-    if (!currentUser) {
-      const protectedViews: AppView[] = [
-        'admin_dashboard',
-        'vendor_dashboard',
-        'reception_dashboard',
-        'technician_dashboard',
-        'branch_manager_dashboard',
-        'pathologist_dashboard',
-      ];
-      if (protectedViews.includes(currentView)) {
-        const resolution = resolveAppRoute(
-          typeof window !== 'undefined' ? window.location.hostname : '',
-          typeof window !== 'undefined' ? window.location.search : ''
-        );
-        setCurrentView(resolution.targetLab ? 'vendor_website' : 'website');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-  }, [currentUser, currentView]);
 
   // Authorization check for protected dashboard workspaces using RBAC
   const isAuthorizedForView = (view: AppView): boolean => {
