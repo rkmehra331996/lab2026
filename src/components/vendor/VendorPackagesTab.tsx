@@ -192,10 +192,12 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
   const filteredPackages = useMemo(() => {
     return vendorPackages.filter((pkg) => {
       const pkgFeatures = Array.isArray(pkg.features) ? pkg.features : [];
+      const q = String(searchTerm || '').toLowerCase().trim();
       const matchesSearch =
-        (pkg.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (pkg.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pkgFeatures.some((f) => f.toLowerCase().includes(searchTerm.toLowerCase()));
+        !q ||
+        String(pkg.name || '').toLowerCase().includes(q) ||
+        String(pkg.description || '').toLowerCase().includes(q) ||
+        pkgFeatures.some((f) => String(f || '').toLowerCase().includes(q));
 
       let matchesFilter = true;
       if (filterType === 'popular') matchesFilter = !!pkg.isPopular;
@@ -577,7 +579,8 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                         {vendorTests.map((t) => {
-                          const isIncluded = formFeaturesText.toLowerCase().includes(t.name.toLowerCase());
+                          const tNameLower = String(t.name || '').toLowerCase().trim();
+                          const isIncluded = Boolean(tNameLower && String(formFeaturesText || '').toLowerCase().includes(tNameLower));
                           return (
                             <button
                               key={t.id}

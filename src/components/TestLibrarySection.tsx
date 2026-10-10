@@ -12,10 +12,12 @@ export const TestLibrarySection: React.FC = () => {
   const filteredTests = vendorTests.filter((t) => {
     const matchesCategory =
       selectedCategory === 'All Categories' || t.category === selectedCategory;
+    const q = String(searchQuery || '').trim().toLowerCase();
     const matchesQuery =
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.sampleType.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      String(t.name || '').toLowerCase().includes(q) ||
+      String(t.code || '').toLowerCase().includes(q) ||
+      String(t.sampleType || '').toLowerCase().includes(q);
     return matchesCategory && matchesQuery;
   });
 

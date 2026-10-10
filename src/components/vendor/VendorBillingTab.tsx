@@ -1185,10 +1185,13 @@ export const VendorBillingTab: React.FC = () => {
                 {/* Tests Checklist */}
                 <div className="max-h-40 overflow-y-auto p-2 border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-1.5 bg-slate-50/50">
                   {vendorTests
-                    .filter((t) =>
-                      t.name.toLowerCase().includes(testSearchInput.toLowerCase()) ||
-                      t.category.toLowerCase().includes(testSearchInput.toLowerCase())
-                    )
+                    .filter((t) => {
+                      const term = String(testSearchInput || '').trim().toLowerCase();
+                      if (!term) return true;
+                      const tn = String(t.name || '').toLowerCase();
+                      const tc = String(t.category || '').toLowerCase();
+                      return tn.includes(term) || tc.includes(term);
+                    })
                     .map((test) => {
                       const isSelected = newBillForm.selectedTests.includes(test.name);
                       return (

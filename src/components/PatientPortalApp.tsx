@@ -95,7 +95,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
       vendorLabsList.find((l) => cleanDigits.length >= 7 && (l.phone || '').replace(/\D/g, '').endsWith(cleanDigits)) ||
       vendorLabsList.find((l) => cleanDigits.length >= 7 && (l.id || '').replace(/\D/g, '').endsWith(cleanDigits)) ||
       vendorLabsList.find((l) => getTenantSubdomain(l.domainPreview || l.id).toLowerCase() === clean) ||
-      vendorLabsList.find((l) => l.name.toLowerCase().includes(clean)) ||
+      vendorLabsList.find((l) => String(l.name || '').toLowerCase().includes(clean)) ||
       null
     );
   }, [currentLabIdentifier, vendorLabsList]);

@@ -115,8 +115,8 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
       // Search match
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
-        const matchName = staff.name.toLowerCase().includes(query);
-        const matchUser = staff.username.toLowerCase().includes(query);
+        const matchName = String(staff.name || '').toLowerCase().includes(query);
+        const matchUser = String(staff.username || '').toLowerCase().includes(query);
         const matchPhone = (staff.phone || '').includes(query);
         return matchName || matchUser || matchPhone;
       }

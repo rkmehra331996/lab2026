@@ -150,9 +150,10 @@ export const DoctorCommissionModal: React.FC<DoctorCommissionModalProps> = ({
     ];
 
     knownExtraDoctors.forEach((ed) => {
-      if (!list.some((d) => d.name.toLowerCase().includes(ed.name.toLowerCase().slice(0, 8)))) {
+      const edNameLower = String(ed.name || '').toLowerCase().trim();
+      if (!list.some((d) => String(d.name || '').toLowerCase().includes(edNameLower.slice(0, 8)))) {
         list.push({
-          id: `doc-${ed.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+          id: `doc-${edNameLower.replace(/[^a-z0-9]/g, '-')}`,
           name: ed.name,
           clinic: ed.clinic,
           phone: ed.phone,
@@ -164,10 +165,11 @@ export const DoctorCommissionModal: React.FC<DoctorCommissionModalProps> = ({
     // Also scan receptionEntries for any new name
     receptionEntries.forEach((entry) => {
       const ref = entry.referringDoctor?.trim();
-      if (ref && !list.some((d) => d.name.toLowerCase().includes(ref.toLowerCase().slice(0, 8)))) {
-        const isSelf = ref.toLowerCase().includes('self') || ref.toLowerCase().includes('direct');
+      const refLower = String(ref || '').toLowerCase().trim();
+      if (ref && !list.some((d) => String(d.name || '').toLowerCase().includes(refLower.slice(0, 8)))) {
+        const isSelf = refLower.includes('self') || refLower.includes('direct');
         list.push({
-          id: `doc-${ref.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+          id: `doc-${refLower.replace(/[^a-z0-9]/g, '-')}`,
           name: ref,
           clinic: isSelf ? 'Walk-in / Direct' : 'Visiting Physician',
           phone: '—',
@@ -183,13 +185,13 @@ export const DoctorCommissionModal: React.FC<DoctorCommissionModalProps> = ({
   const doctorRows: DoctorReferralRow[] = useMemo(() => {
     return compiledDoctorList.map((doc) => {
       // Find matching patient entries
+      const docRef = String(doc.name || '').toLowerCase().trim();
       const matchedPatients = receptionEntries.filter((e) => {
         if (!e.referringDoctor) return false;
-        const entryRef = e.referringDoctor.toLowerCase();
-        const docRef = doc.name.toLowerCase();
+        const entryRef = String(e.referringDoctor || '').toLowerCase().trim();
         return (
-          entryRef.includes(docRef.slice(0, 10)) ||
-          docRef.includes(entryRef.slice(0, 10))
+          (docRef && entryRef.includes(docRef.slice(0, 10))) ||
+          (entryRef && docRef.includes(entryRef.slice(0, 10)))
         );
       });
 
@@ -204,7 +206,11 @@ export const DoctorCommissionModal: React.FC<DoctorCommissionModalProps> = ({
 
       // Payouts for this doctor
       const paid = payouts
-        .filter((p) => p.doctorId === doc.id || p.doctorName.toLowerCase().includes(doc.name.toLowerCase().slice(0, 8)))
+        .filter((p) => {
+          if (p.doctorId === doc.id) return true;
+          const pNameLower = String(p.doctorName || '').toLowerCase().trim();
+          return Boolean(docRef && pNameLower.includes(docRef.slice(0, 8)));
+        })
         .reduce((sum, p) => sum + p.amount, 0);
 
       const pending = Math.max(0, commissionEarned - paid);
@@ -228,12 +234,12 @@ export const DoctorCommissionModal: React.FC<DoctorCommissionModalProps> = ({
 
   // Filtered rows
   const filteredRows = useMemo(() => {
+    const q = String(searchTerm || '').toLowerCase().trim();
     return doctorRows.filter((r) => {
-      if (!searchTerm) return true;
-      const q = searchTerm.toLowerCase();
+      if (!q) return true;
       return (
-        r.name.toLowerCase().includes(q) ||
-        r.clinicOrSpec.toLowerCase().includes(q)
+        String(r.name || '').toLowerCase().includes(q) ||
+        String(r.clinicOrSpec || '').toLowerCase().includes(q)
       );
     });
   }, [doctorRows, searchTerm]);

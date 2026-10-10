@@ -157,14 +157,20 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   // Combined searchable test catalog
   const catalog = useMemo<TestOption[]>(() => {
     const map = new Map<string, TestOption>();
-    DEFAULT_POPULAR_TESTS.forEach((t) => map.set(t.name.toLowerCase().trim(), t));
+    DEFAULT_POPULAR_TESTS.forEach((t) => {
+      const k = String(t.name || '').toLowerCase().trim();
+      if (k) map.set(k, t);
+    });
     if (availableTests && availableTests.length > 0) {
-      availableTests.forEach((t) => map.set(t.name.toLowerCase().trim(), t));
+      availableTests.forEach((t) => {
+        const k = String(t.name || '').toLowerCase().trim();
+        if (k) map.set(k, t);
+      });
     }
     // Also include any tests currently on the patient entry so they have recognized metadata
     (entry.tests || []).forEach((tName) => {
-      const key = tName.toLowerCase().trim();
-      if (!map.has(key)) {
+      const key = String(tName || '').toLowerCase().trim();
+      if (key && !map.has(key)) {
         map.set(key, { name: tName, price: 300, category: 'Prescribed' });
       }
     });
@@ -173,19 +179,20 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
 
   // Lookup price of a test
   const getTestPrice = (testName: string): number => {
-    const found = catalog.find((c) => c.name.toLowerCase().trim() === testName.toLowerCase().trim());
+    const target = String(testName || '').toLowerCase().trim();
+    const found = catalog.find((c) => String(c.name || '').toLowerCase().trim() === target);
     return found ? found.price : 300;
   };
 
   // Filter catalog by search query
   const filteredCatalogTests = useMemo(() => {
-    if (!testSearch.trim()) return [];
-    const q = testSearch.toLowerCase().trim();
+    const q = String(testSearch || '').toLowerCase().trim();
+    if (!q) return [];
     return catalog.filter(
       (t) =>
-        t.name.toLowerCase().includes(q) ||
-        (t.category && t.category.toLowerCase().includes(q)) ||
-        (t.sample && t.sample.toLowerCase().includes(q))
+        String(t.name || '').toLowerCase().includes(q) ||
+        String(t.category || '').toLowerCase().includes(q) ||
+        String(t.sample || '').toLowerCase().includes(q)
     );
   }, [catalog, testSearch]);
 
@@ -228,7 +235,8 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   // Add test to list and increment total amount
   const handleAddTest = (test: TestOption) => {
     if (isLockedForEdit) return;
-    if (selectedTests.some((t) => t.toLowerCase().trim() === test.name.toLowerCase().trim())) {
+    const testNameLower = String(test.name || '').toLowerCase().trim();
+    if (selectedTests.some((t) => String(t || '').toLowerCase().trim() === testNameLower)) {
       return;
     }
     setSelectedTests((prev) => [...prev, test.name]);
@@ -729,8 +737,9 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                       </div>
                     ) : (
                       filteredCatalogTests.map((t) => {
+                        const tNameLower = String(t.name || '').toLowerCase().trim();
                         const isAlreadySelected = selectedTests.some(
-                          (st) => st.toLowerCase().trim() === t.name.toLowerCase().trim()
+                          (st) => String(st || '').toLowerCase().trim() === tNameLower
                         );
                         return (
                           <div
@@ -775,12 +784,13 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                   /* Popular Quick Pills */
                   <div>
                     <span className="text-[11px] font-bold text-slate-500 mb-1.5 block">
-                      Quick Popular Tests (Click to Add or Remove):
+                       Quick Popular Tests (Click to Add or Remove):
                     </span>
                     <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1.5 bg-white border border-slate-200 rounded-lg">
                       {popularTests.map((t) => {
+                        const tNameLower = String(t.name || '').toLowerCase().trim();
                         const isSelected = selectedTests.some(
-                          (st) => st.toLowerCase().trim() === t.name.toLowerCase().trim()
+                          (st) => String(st || '').toLowerCase().trim() === tNameLower
                         );
                         return (
                           <button

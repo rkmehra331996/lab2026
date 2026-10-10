@@ -103,12 +103,15 @@ export const VendorPatientsTab: React.FC<VendorPatientsTabProps> = ({ onOpenRepo
         const reportItems: ReportItem[] = [];
 
         tests.forEach((testName) => {
-          const lowerName = testName.toLowerCase();
-          const matchedTmpl = TEST_TEMPLATES.find((t) =>
-            t.name.toLowerCase() === lowerName ||
-            lowerName.includes(t.name.toLowerCase()) ||
-            t.name.toLowerCase().includes(lowerName)
-          );
+          const lowerName = String(testName || '').toLowerCase().trim();
+          const matchedTmpl = TEST_TEMPLATES.find((t) => {
+            const tn = String(t.name || '').toLowerCase().trim();
+            return (
+              (lowerName && tn && tn === lowerName) ||
+              (lowerName && tn && lowerName.includes(tn)) ||
+              (lowerName && tn && tn.includes(lowerName))
+            );
+          });
 
           if (matchedTmpl && matchedTmpl.parameters && matchedTmpl.parameters.length > 0) {
             matchedTmpl.parameters.forEach((p) => {

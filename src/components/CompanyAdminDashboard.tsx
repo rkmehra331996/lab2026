@@ -1212,7 +1212,7 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                               ₹{currentPrice.toLocaleString('en-IN')}
                             </span>
                             <span className="text-xs text-slate-500 ml-1 font-medium">
-                              / {plan.name.toLowerCase().includes('year') ? 'year' : plan.name.toLowerCase().includes('3 month') ? '3 months' : 'month'}
+                              / {String(plan.name || '').toLowerCase().includes('year') ? 'year' : String(plan.name || '').toLowerCase().includes('3 month') ? '3 months' : 'month'}
                             </span>
                           </div>
                           <button
@@ -1279,7 +1279,8 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
           const effectiveSuperAdminUpi = superAdminUpiVpa.trim() || companySettings.upiId || '7087033009@okbizaxis';
           const effectivePayeeName = superAdminPayeeName.trim() || companySettings.upiMerchantName || 'INDIANLALAJI.COM LAB OS';
           const getPlanPrice = (planKeyword: string, fallback: number) => {
-            const match = pricingPlans.find((p) => p.name.toLowerCase().includes(planKeyword.toLowerCase()));
+            const kwLower = String(planKeyword || '').toLowerCase();
+            const match = pricingPlans.find((p) => String(p.name || '').toLowerCase().includes(kwLower));
             return match ? (match.priceINR ?? match.monthlyPriceINR) : fallback;
           };
 

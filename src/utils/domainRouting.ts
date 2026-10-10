@@ -48,7 +48,7 @@ const RESERVED_PATH_SEGMENTS = [
 
 function findMatchingLabId(
   rawTarget: string,
-  vendorLabsList?: Array<{ id: string; domainPreview?: string; phone?: string; slug?: string; name?: string }>
+  vendorLabsList?: Array<{ id: string; domainPreview?: string; phone?: string; slug?: string; name?: string; status?: string }>
 ): string {
   if (!rawTarget) return '';
   const cleanTarget = rawTarget.toLowerCase().trim().replace(/^https?:\/\//, '');
@@ -99,7 +99,7 @@ function findMatchingLabId(
 export function resolveAppRoute(
   hostname: string,
   search: string,
-  vendorLabsList?: Array<{ id: string; domainPreview?: string; phone?: string; slug?: string; name?: string }>,
+  vendorLabsList?: Array<{ id: string; domainPreview?: string; phone?: string; slug?: string; name?: string; status?: string }>,
   pathname?: string,
   hash?: string
 ): DomainRouteResolution {

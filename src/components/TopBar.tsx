@@ -155,8 +155,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                 )}
               </div>
 
-              {/* Quick Workspace Switchers for Admin / Vendor */}
-              {(currentUser.role === 'admin' || currentUser.role === 'vendor') && (
+              {/* Quick Workspace Switchers for Lab Vendor / Owner */}
+              {currentUser.role === 'vendor' && (
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => onSelectView('vendor_dashboard')}

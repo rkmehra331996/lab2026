@@ -350,7 +350,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
     // 1. Add quick pills first
     quickTestPills.forEach((p) => {
-      seen.add(p.name.toLowerCase());
+      const pNameLower = String(p.name || '').toLowerCase().trim();
+      if (pNameLower) seen.add(pNameLower);
       list.push({
         name: p.name,
         price: p.price,
@@ -361,8 +362,9 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
     // 2. Add vendor catalog tests
     vendorTests.forEach((t) => {
-      if (!seen.has(t.name.toLowerCase())) {
-        seen.add(t.name.toLowerCase());
+      const tNameLower = String(t.name || '').toLowerCase().trim();
+      if (tNameLower && !seen.has(tNameLower)) {
+        seen.add(tNameLower);
         list.push({
           name: t.name,
           price: t.priceINR,
@@ -377,13 +379,13 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   // Filter tests by search query
   const filteredAvailableTests = useMemo(() => {
-    if (!testSearch.trim()) return allAvailableTests;
-    const q = testSearch.toLowerCase().trim();
+    const q = String(testSearch || '').toLowerCase().trim();
+    if (!q) return allAvailableTests;
     return allAvailableTests.filter(
       (t) =>
-        t.name.toLowerCase().includes(q) ||
-        (t.category && t.category.toLowerCase().includes(q)) ||
-        (t.sample && t.sample.toLowerCase().includes(q))
+        String(t.name || '').toLowerCase().includes(q) ||
+        String(t.category || '').toLowerCase().includes(q) ||
+        String(t.sample || '').toLowerCase().includes(q)
     );
   }, [allAvailableTests, testSearch]);
 

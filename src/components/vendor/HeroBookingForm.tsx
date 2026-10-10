@@ -158,8 +158,11 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
     if (cartItems && cartItems.length > 0 && selectedTestIds.length === 0) {
       const ids: string[] = [];
       cartItems.forEach((ci) => {
+        const ciNameLower = String(ci.name || '').toLowerCase().trim();
         const found = activeTests.find(
-          (t) => t.id === ci.id || t.name.toLowerCase() === ci.name.toLowerCase()
+          (t) =>
+            t.id === ci.id ||
+            (ciNameLower && String(t.name || '').toLowerCase().trim() === ciNameLower)
         );
         if (found) {
           ids.push(found.id);
@@ -187,12 +190,15 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
         selectedCategoryFilter === 'All' || t.category === selectedCategoryFilter;
       if (!matchesCategory) return false;
 
-      if (!testSearchTerm.trim()) return true;
-      const term = testSearchTerm.toLowerCase();
+      const term = String(testSearchTerm || '').trim().toLowerCase();
+      if (!term) return true;
+      const tName = String(t.name || '').toLowerCase();
+      const tCode = String(t.code || '').toLowerCase();
+      const tCategory = String(t.category || '').toLowerCase();
       return (
-        t.name.toLowerCase().includes(term) ||
-        (t.code && t.code.toLowerCase().includes(term)) ||
-        (t.category && t.category.toLowerCase().includes(term))
+        tName.includes(term) ||
+        tCode.includes(term) ||
+        tCategory.includes(term)
       );
     });
   }, [activeTests, selectedCategoryFilter, testSearchTerm]);
@@ -368,12 +374,10 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
         price: t.priceINR,
       }));
 
-      const isPackage = selectedTestsList.some(
-        (t) =>
-          t.name.toLowerCase().includes('package') ||
-          t.name.toLowerCase().includes('profile') ||
-          t.name.toLowerCase().includes('checkup')
-      );
+      const isPackage = selectedTestsList.some((t) => {
+        const tn = String(t.name || '').toLowerCase();
+        return tn.includes('package') || tn.includes('profile') || tn.includes('checkup');
+      });
       const sourceLabel = isPackage ? 'Website Package Booking' : 'Website Booking Form';
 
       // Construct address string
@@ -533,12 +537,10 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
         price: t.priceINR,
       }));
 
-      const isPackage = selectedTestsList.some(
-        (t) =>
-          t.name.toLowerCase().includes('package') ||
-          t.name.toLowerCase().includes('profile') ||
-          t.name.toLowerCase().includes('checkup')
-      );
+      const isPackage = selectedTestsList.some((t) => {
+        const tn = String(t.name || '').toLowerCase();
+        return tn.includes('package') || tn.includes('profile') || tn.includes('checkup');
+      });
       const sourceLabel = isPackage ? 'Website Package Booking' : 'Website Booking Form';
       const assembledAddress =
         collectionType === 'Home'

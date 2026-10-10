@@ -274,10 +274,12 @@ export const VendorTestsTab: React.FC<VendorTestsTabProps> = ({
 
   const filteredTests = useMemo(() => {
     return vendorTests.filter((test) => {
+      const q = String(searchTerm || '').trim().toLowerCase();
       const matchesSearch =
-        test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        test.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (test.sampleType && test.sampleType.toLowerCase().includes(searchTerm.toLowerCase()));
+        !q ||
+        String(test.name || '').toLowerCase().includes(q) ||
+        String(test.code || '').toLowerCase().includes(q) ||
+        String(test.sampleType || '').toLowerCase().includes(q);
 
       let matchesStatus = true;
       if (statusFilter === 'Active') {

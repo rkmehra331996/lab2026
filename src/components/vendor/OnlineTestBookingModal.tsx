@@ -137,23 +137,28 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
     }
 
     if (initialSelection) {
+      const initLower = String(initialSelection || '').toLowerCase().trim();
       // Check if it matches a package
-      const matchedPkg = vendorPackages.find(
-        (p) =>
-          initialSelection.toLowerCase().includes(p.name.toLowerCase()) ||
-          p.name.toLowerCase().includes(initialSelection.toLowerCase())
-      );
+      const matchedPkg = vendorPackages.find((p) => {
+        const pNameLower = String(p.name || '').toLowerCase().trim();
+        return (
+          (initLower && pNameLower && initLower.includes(pNameLower)) ||
+          (pNameLower && initLower && pNameLower.includes(initLower))
+        );
+      });
       if (matchedPkg) {
         setSelectedTests([{ name: matchedPkg.name, price: matchedPkg.priceINR, type: 'package' }]);
         return;
       }
 
       // Check if it matches a test
-      const matchedTest = vendorTests.find(
-        (t) =>
-          initialSelection.toLowerCase().includes(t.name.toLowerCase()) ||
-          t.name.toLowerCase().includes(initialSelection.toLowerCase())
-      );
+      const matchedTest = vendorTests.find((t) => {
+        const tNameLower = String(t.name || '').toLowerCase().trim();
+        return (
+          (initLower && tNameLower && initLower.includes(tNameLower)) ||
+          (tNameLower && initLower && tNameLower.includes(initLower))
+        );
+      });
       if (matchedTest) {
         setSelectedTests([{ name: matchedTest.name, price: matchedTest.priceINR, type: 'test' }]);
         return;
@@ -182,19 +187,26 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
   const totalAmount = selectedTests.reduce((sum, item) => sum + item.price, 0);
 
   // Search filtered tests and packages
-  const filteredCatalogTests = vendorTests.filter(
-    (t) =>
-      !selectedTests.some((st) => st.name === t.name) &&
-      (t.name.toLowerCase().includes(testSearch.toLowerCase()) ||
-        t.code.toLowerCase().includes(testSearch.toLowerCase()) ||
-        t.category.toLowerCase().includes(testSearch.toLowerCase()))
-  );
+  const searchLower = String(testSearch || '').trim().toLowerCase();
+  const filteredCatalogTests = vendorTests.filter((t) => {
+    if (selectedTests.some((st) => st.name === t.name)) return false;
+    if (!searchLower) return true;
+    const tName = String(t.name || '').toLowerCase();
+    const tCode = String(t.code || '').toLowerCase();
+    const tCategory = String(t.category || '').toLowerCase();
+    return (
+      tName.includes(searchLower) ||
+      tCode.includes(searchLower) ||
+      tCategory.includes(searchLower)
+    );
+  });
 
-  const filteredCatalogPackages = vendorPackages.filter(
-    (p) =>
-      !selectedTests.some((st) => st.name === p.name) &&
-      p.name.toLowerCase().includes(testSearch.toLowerCase())
-  );
+  const filteredCatalogPackages = vendorPackages.filter((p) => {
+    if (selectedTests.some((st) => st.name === p.name)) return false;
+    if (!searchLower) return true;
+    const pName = String(p.name || '').toLowerCase();
+    return pName.includes(searchLower);
+  });
 
   const handleAddTest = (name: string, price: number, type: 'test' | 'package') => {
     setSelectedTests((prev) => [...prev, { name, price, type }]);
@@ -268,12 +280,16 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
     const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     const isCartBooking = Boolean(initialTests && initialTests.length > 1) || selectedTests.length > 1;
     const isPackageBooking = selectedTests.some(
-      (t) =>
-        t.type === 'package' ||
-        (t as any).isPackage ||
-        t.name.toLowerCase().includes('package') ||
-        t.name.toLowerCase().includes('profile') ||
-        t.name.toLowerCase().includes('checkup')
+      (t) => {
+        const tn = String(t.name || '').toLowerCase();
+        return (
+          t.type === 'package' ||
+          (t as any).isPackage ||
+          tn.includes('package') ||
+          tn.includes('profile') ||
+          tn.includes('checkup')
+        );
+      }
     );
     const bookingChannelSource = isCartBooking
       ? 'Website Cart Booking'
@@ -296,7 +312,7 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
       mobile: mobile.replace(/\D/g, ''),
       referringDoctor: referringDoctor.trim() || 'Self / Direct Walk-in',
       tests: selectedTests.map((t) => t.name),
-      sampleType: selectedTests.some((t) => t.name.toLowerCase().includes('urine'))
+      sampleType: selectedTests.some((t) => String(t.name || '').toLowerCase().includes('urine'))
         ? 'Urine + Whole Blood'
         : 'EDTA Blood / Serum',
       totalAmount,

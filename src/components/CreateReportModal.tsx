@@ -259,7 +259,7 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
           const tmpl = TEST_TEMPLATES.find((t) => t.id === tId);
           if (tmpl && Array.isArray(tmpl.parameters)) {
             tmpl.parameters.forEach((p, idx) => {
-              const key = `${tId}-${p.name.toLowerCase()}`;
+              const key = `${tId}-${String(p?.name || '').toLowerCase()}`;
               if (!addedParamKeys.has(key)) {
                 addedParamKeys.add(key);
                 newParams.push({

@@ -1459,33 +1459,35 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
   const handleToggleCartItem = (test: any, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const testId = String(test.id || test.code || test.name);
-    const testPrice = test.priceINR || 350;
+    const testId = String(test?.id || test?.code || test?.name || '');
+    const testNameLower = String(test?.name || '').trim().toLowerCase();
+    const testPrice = test?.priceINR || 350;
     const exists = cartItems.some(
-      (item) => item.id === testId || item.name.toLowerCase() === test.name.toLowerCase()
+      (item) => item.id === testId || (testNameLower && String(item.name || '').trim().toLowerCase() === testNameLower)
     );
 
     if (exists) {
       setCartItems((prev) =>
-        prev.filter((item) => item.id !== testId && item.name.toLowerCase() !== test.name.toLowerCase())
+        prev.filter((item) => item.id !== testId && String(item.name || '').trim().toLowerCase() !== testNameLower)
       );
     } else {
       const newItem = {
         id: testId,
-        name: test.name,
+        name: test?.name || 'Diagnostic Test',
         price: testPrice,
-        code: test.code,
-        category: test.category,
-        sampleType: test.sampleType,
-        turnaroundTime: test.turnaroundTime,
+        code: test?.code || '',
+        category: test?.category || '',
+        sampleType: test?.sampleType || '',
+        turnaroundTime: test?.turnaroundTime || '',
       };
       setCartItems((prev) => [...prev, newItem]);
     }
   };
 
   const handleRemoveFromCart = (testId: string, testName: string) => {
+    const cleanTestName = String(testName || '').trim().toLowerCase();
     setCartItems((prev) =>
-      prev.filter((item) => item.id !== testId && item.name.toLowerCase() !== testName.toLowerCase())
+      prev.filter((item) => item.id !== testId && String(item.name || '').trim().toLowerCase() !== cleanTestName)
     );
   };
 
@@ -1500,7 +1502,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     setIsBookingModalOpen(true);
   };
 
-  const cartTotalPrice = cartItems.reduce((acc, item) => acc + item.price, 0);
+  const cartTotalPrice = cartItems.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
 
   const handleBookTestClick = (e: React.MouseEvent, test: any) => {
     e.stopPropagation();
@@ -1508,12 +1510,15 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   };
 
   const filteredTests = vendorTests.filter((test) => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = String(searchTerm || '').trim().toLowerCase();
+    const tName = String(test?.name || '').toLowerCase();
+    const tCode = String(test?.code || '').toLowerCase();
+    const tCat = String(test?.category || '').toLowerCase();
     const matchesSearch =
       !term ||
-      test.name.toLowerCase().includes(term) ||
-      (test.code && test.code.toLowerCase().includes(term)) ||
-      (test.category && test.category.toLowerCase().includes(term));
+      tName.includes(term) ||
+      tCode.includes(term) ||
+      tCat.includes(term);
     const matchesCategory =
       selectedBookTestCategory === 'All' || isTestInBookCategory(test, selectedBookTestCategory);
     return matchesSearch && matchesCategory;
@@ -3545,11 +3550,12 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
               {displayedTests.map((test, idx) => {
                 const details = getTestDetails(test);
-                const testIdentifier = String(test.id || test.code || test.name);
+                const testIdentifier = String(test?.id || test?.code || test?.name || '');
+                const tNameLower = String(test?.name || '').trim().toLowerCase();
                 const isItemInCart = cartItems.some(
                   (ci) =>
                     ci.id === testIdentifier ||
-                    ci.name.toLowerCase() === test.name.toLowerCase()
+                    (tNameLower && String(ci.name || '').trim().toLowerCase() === tNameLower)
                 );
                 return (
                   <div
@@ -5116,12 +5122,13 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       {selectedTestInfoModal && (() => {
         const details = getTestDetails(selectedTestInfoModal);
         const testIdentifier = String(
-          selectedTestInfoModal.id || selectedTestInfoModal.code || selectedTestInfoModal.name
+          selectedTestInfoModal?.id || selectedTestInfoModal?.code || selectedTestInfoModal?.name || ''
         );
+        const modalNameLower = String(selectedTestInfoModal?.name || '').trim().toLowerCase();
         const isItemInCart = cartItems.some(
           (ci) =>
             ci.id === testIdentifier ||
-            ci.name.toLowerCase() === selectedTestInfoModal.name.toLowerCase()
+            (modalNameLower && String(ci.name || '').trim().toLowerCase() === modalNameLower)
         );
 
         return (

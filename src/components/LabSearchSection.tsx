@@ -72,10 +72,10 @@ export const LabSearchSection: React.FC<LabSearchSectionProps> = ({
     // Otherwise search by name, city, or ID
     const queryLower = trimmed.toLowerCase();
     const matchedByName = vendorLabsList.find((lab) => {
-      const nameMatch = lab.name.toLowerCase().includes(queryLower);
-      const cityMatch = lab.city.toLowerCase().includes(queryLower);
-      const idMatch = lab.id.toLowerCase().includes(queryLower);
-      const ownerMatch = (lab.ownerName || '').toLowerCase().includes(queryLower);
+      const nameMatch = String(lab.name || '').toLowerCase().includes(queryLower);
+      const cityMatch = String(lab.city || '').toLowerCase().includes(queryLower);
+      const idMatch = String(lab.id || '').toLowerCase().includes(queryLower);
+      const ownerMatch = String(lab.ownerName || '').toLowerCase().includes(queryLower);
       return nameMatch || cityMatch || idMatch || ownerMatch;
     });
 

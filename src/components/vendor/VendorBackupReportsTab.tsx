@@ -601,13 +601,13 @@ export const VendorBackupReportsTab: React.FC<VendorBackupReportsTabProps> = ({
 
   // Filtered reports for the interactive table below
   const filteredReports = reports.filter((r) => {
-    const q = reportSearch.toLowerCase().trim();
+    const q = String(reportSearch || '').toLowerCase().trim();
     const matchesSearch =
       !q ||
-      r.patientName.toLowerCase().includes(q) ||
-      r.reportId.toLowerCase().includes(q) ||
-      (r.mobile && r.mobile.includes(q)) ||
-      (r.tokenNumber && r.tokenNumber.toLowerCase().includes(q));
+      String(r.patientName || '').toLowerCase().includes(q) ||
+      String(r.reportId || '').toLowerCase().includes(q) ||
+      (r.mobile && String(r.mobile).includes(q)) ||
+      (r.tokenNumber && String(r.tokenNumber).toLowerCase().includes(q));
 
     if (!matchesSearch) return false;
 

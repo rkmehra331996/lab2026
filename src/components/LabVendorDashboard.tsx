@@ -725,9 +725,11 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const categories = ['All', ...Array.from(new Set(vendorTests.map((t) => t.category)))];
   const filteredTests = vendorTests.filter((t) => {
     const matchesCategory = testCategoryFilter === 'All' || t.category === testCategoryFilter;
+    const term = String(testSearch || '').trim().toLowerCase();
     const matchesSearch =
-      t.name.toLowerCase().includes(testSearch.toLowerCase()) ||
-      t.code.toLowerCase().includes(testSearch.toLowerCase());
+      !term ||
+      String(t.name || '').toLowerCase().includes(term) ||
+      String(t.code || '').toLowerCase().includes(term);
     return matchesCategory && matchesSearch;
   });
 

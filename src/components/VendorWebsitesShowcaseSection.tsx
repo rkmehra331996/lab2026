@@ -93,12 +93,12 @@ export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSecti
       // Search term
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase().trim();
-        const matchesName = lab.name.toLowerCase().includes(query);
-        const matchesCity = lab.city.toLowerCase().includes(query);
-        const matchesTagline = lab.tagline.toLowerCase().includes(query);
-        const matchesBadge = lab.badge.toLowerCase().includes(query);
+        const matchesName = String(lab.name || '').toLowerCase().includes(query);
+        const matchesCity = String(lab.city || '').toLowerCase().includes(query);
+        const matchesTagline = String(lab.tagline || '').toLowerCase().includes(query);
+        const matchesBadge = String(lab.badge || '').toLowerCase().includes(query);
         const matchesPhone = (lab.phone || '').replace(/\s+/g, '').includes(query.replace(/\s+/g, ''));
-        const matchesFeatures = lab.features?.some((f) => f.toLowerCase().includes(query));
+        const matchesFeatures = lab.features?.some((f) => String(f || '').toLowerCase().includes(query));
         return matchesName || matchesCity || matchesTagline || matchesBadge || matchesPhone || matchesFeatures;
       }
 
