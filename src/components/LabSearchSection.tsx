@@ -210,26 +210,6 @@ export const LabSearchSection: React.FC<LabSearchSectionProps> = ({
             </div>
           </form>
 
-          {/* Quick Partner Labs Direct Access */}
-          {vendorLabsList && vendorLabsList.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs">
-              <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Partner Labs:</span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {vendorLabsList.slice(0, 6).map((lab) => (
-                  <button
-                    key={lab.id}
-                    type="button"
-                    onClick={() => handleVisitWebsite(lab)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-[#123B6D] text-slate-700 hover:text-white border border-slate-200 hover:border-[#123B6D] font-bold text-[11px] transition cursor-pointer shadow-2xs active:scale-95"
-                    title={`Visit ${lab.name} website`}
-                  >
-                    <Globe className="w-3 h-3 shrink-0 text-teal-600 group-hover:text-white" />
-                    <span>{lab.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Search Result Card (Shows if Searched) */}
           {hasSearched && (
