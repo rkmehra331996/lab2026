@@ -897,7 +897,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                       <span className="flex items-center gap-1">
                         <Hash className="w-3 h-3 text-[#123B6D]" />
-                        <span>6-Digit Security PIN (Default: 123456)</span>
+                        <span>6-Digit Security PIN</span>
                       </span>
                       <span className="text-[10px] text-slate-400">Optional</span>
                     </label>
@@ -906,7 +906,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       maxLength={6}
                       value={pinCode}
                       onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
-                      placeholder="6 numeric digits (default: 123456)"
+                      placeholder="Enter 6-digit security PIN"
                       className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono tracking-widest placeholder:text-slate-400"
                     />
                   </div>
@@ -1110,7 +1110,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                   <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                     <span className="flex items-center gap-1">
                       <Hash className="w-3 h-3 text-[#123B6D]" />
-                      <span>6-Digit Security PIN (Default: 123456)</span>
+                      <span>6-Digit Security PIN</span>
                     </span>
                     <span className="text-[10px] text-slate-400 font-mono">
                       Optional
@@ -1122,7 +1122,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     autoComplete="off"
                     value={pinCode}
                     onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="6-digit security PIN (default: 123456)"
+                    placeholder="Enter 6-digit security PIN"
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono tracking-widest placeholder:text-slate-400"
                   />
                 </div>

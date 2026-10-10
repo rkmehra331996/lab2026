@@ -1210,7 +1210,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                           required
                           value={formState.password || ''}
                           onChange={(e) => setFormState({ ...formState, password: e.target.value })}
-                          placeholder="e.g. owner123"
+                          placeholder="Enter vendor password"
                           className="w-full pl-3 pr-10 py-2 bg-white border border-purple-300 rounded-xl font-mono text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 shadow-2xs"
                         />
                         <button
@@ -1221,19 +1221,6 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                         >
                           {editShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        <span className="text-[10px] text-purple-700 font-semibold">Presets:</span>
-                        {['owner123', 'Apex@2026#', 'LabOwner@123', 'Admin@2026'].map((p) => (
-                          <button
-                            type="button"
-                            key={p}
-                            onClick={() => setFormState({ ...formState, password: p })}
-                            className="text-[10px] font-bold bg-white text-purple-700 px-1.5 py-0.5 rounded-md border border-purple-200 hover:bg-purple-100 transition shadow-2xs"
-                          >
-                            {p}
-                          </button>
-                        ))}
                       </div>
                     </div>
 
@@ -1246,11 +1233,11 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                         maxLength={6}
                         value={formState.pin || ''}
                         onChange={(e) => setFormState({ ...formState, pin: e.target.value.replace(/\D/g, '') })}
-                        placeholder="e.g. 123456"
+                        placeholder="6-digit PIN"
                         className="w-full px-3 py-2 bg-white border border-purple-300 rounded-xl font-mono text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 tracking-wider shadow-2xs"
                       />
                       <span className="text-[10px] text-purple-700 mt-1 block">
-                        Default PIN is 123456 (used for quick authorization)
+                        6-digit security PIN set by the lab vendor
                       </span>
                     </div>
                   </div>

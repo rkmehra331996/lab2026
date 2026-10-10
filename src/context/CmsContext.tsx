@@ -5118,20 +5118,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
       }
 
-      // 2. Verify Password against laboratory's current updated password, settings & defaults
+      // 2. Verify Password strictly against laboratory's set password or lab settings
       const labSettings: Partial<VendorLabSettings> = vendorLabSettingsMap[currentLab?.id || ''] || {};
       const candidatePasswords: string[] = [
         currentLab?.password,
         labSettings?.ownerPassword,
-        'owner123',
-        'LabOwner@2026#',
-        'labowner@2026#',
-        'admin123',
-        'admin@123',
-        'owner@123',
-        '123456',
-        currentLab?.pin,
-        labSettings?.ownerPin,
       ].filter(Boolean) as string[];
 
       // Include staff accounts for this lab with role 'admin' or 'vendor'
@@ -5152,28 +5143,26 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return {
           success: false,
           targetView: 'website',
-          error: `Incorrect password for Lab Admin / Owner (${currentLab?.ownerName || currentLab?.name || 'Lab Admin'}). Please check your password (गलत पासवर्ड दर्ज किया गया है). Default password is: owner123 or your registered password.`,
+          error: `Incorrect password for Lab Admin / Owner (${currentLab?.ownerName || currentLab?.name || 'Lab Admin'}). Please enter the password you set during registration or in Lab Settings.`,
         };
       }
 
-      // 3. Verify PIN if provided
+      // 3. Verify PIN if provided (strictly against vendor's set PIN)
       if (inputPin) {
         const candidatePins = [
           currentLab?.pin,
           labSettings?.ownerPin,
-          '123456',
-          '331996',
-          '112233',
-          '000000',
         ].filter(Boolean) as string[];
 
-        const isPinMatch = candidatePins.some((p) => p?.trim() === inputPin);
+        const isPinMatch = candidatePins.length > 0
+          ? candidatePins.some((p) => p?.trim() === inputPin)
+          : true;
 
-        if (!isPinMatch && !isPassValid) {
+        if (!isPinMatch) {
           return {
             success: false,
             targetView: 'website',
-            error: 'Invalid 6-digit security PIN for Lab Owner (गलत 6-डिजिट पिन). Default PIN is 123456.',
+            error: 'Invalid 6-digit security PIN for Lab Owner (गलत 6-डिजिट पिन). Please enter the PIN you set.',
           };
         }
       }
