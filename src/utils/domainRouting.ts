@@ -271,26 +271,42 @@ export function resolveAppRoute(
     };
   }
 
-  // 6. Custom Domain Mapping check (e.g. citycarelabs.com or apexpathology.in)
+  // 6. Custom Domain Mapping check (e.g. Hostinger custom domains, citycarelabs.com or apexpathology.in)
   if (
     !isMainRootDomain &&
     cleanHost !== 'localhost' &&
     cleanHost !== '127.0.0.1' &&
     !cleanHost.includes('.run.app') &&
-    !cleanHost.includes('.aistudio-preview.com') &&
-    vendorLabsList &&
-    vendorLabsList.length > 0
+    !cleanHost.includes('.aistudio-preview.com')
   ) {
-    const matchedLab = vendorLabsList.find((l) => {
-      const dp = (l.domainPreview || '').toLowerCase().trim();
-      return dp === cleanHost || dp.replace(/^www\./, '') === cleanHost.replace(/^www\./, '');
-    });
-    if (matchedLab) {
-      return {
-        view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
-        targetLab: matchedLab.id,
-      };
+    if (vendorLabsList && vendorLabsList.length > 0) {
+      const matchedLab = vendorLabsList.find((l) => {
+        const dp = (l.domainPreview || '').toLowerCase().trim();
+        return dp === cleanHost || dp.replace(/^www\./, '') === cleanHost.replace(/^www\./, '');
+      });
+      if (matchedLab) {
+        return {
+          view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
+          targetLab: matchedLab.id,
+        };
+      }
+
+      // If hosted on a custom domain (e.g. on Hostinger) and no specific domain mapping was set,
+      // default directly to the active laboratory portal so the user's lab website opens automatically!
+      const activeLab = vendorLabsList.find((l) => (l.status || '').toLowerCase() === 'active') || vendorLabsList[0];
+      if (activeLab) {
+        return {
+          view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
+          targetLab: labParam || activeLab.id,
+        };
+      }
     }
+
+    // Default for custom domains on Hostinger before lab list finishes loading
+    return {
+      view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
+      targetLab: labParam || 'lab-apex',
+    };
   }
 
   // 7. Explicit ?view= parameter in URL
