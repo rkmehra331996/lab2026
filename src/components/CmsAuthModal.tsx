@@ -387,8 +387,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
       });
 
       const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://indianlalaji.com';
-      const cleanSlug = lab.slug || lab.id.replace(/^lab-/, '') || createLabName.trim().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'newlab';
-      const domainUrl = `${currentOrigin}/shop/${cleanSlug}`;
+      const domainUrl = `${currentOrigin}/shop/${lab.id}`;
 
       setCreatedLabData({
         labName: lab.name,
@@ -1312,6 +1311,9 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                         onClick={() => {
                           onClose();
                           selectVendorLab(createdLabData.labId);
+                          try {
+                            window.history.pushState({}, '', `/shop/${createdLabData.labId}`);
+                          } catch {}
                           onNavigateView('vendor_website');
                         }}
                         className="px-3 py-1.5 bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold rounded-lg shrink-0 flex items-center gap-1 cursor-pointer"

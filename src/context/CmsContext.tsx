@@ -3372,11 +3372,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 11. Subscribe to Vendor Labs Directory (Updates instantly across all devices)
     const unsubscribeVendorLabs = subscribeToVendorLabs((cloudLabs) => {
       if (Array.isArray(cloudLabs) && cloudLabs.length > 0) {
-        // Case-insensitive active check to verify at least one shop is active
+        // Preserve actual lab status ('Draft' | 'Active' | 'Pending') and isWebsiteApproved flag
         const normalizedLabs = cloudLabs.map((l) => ({
           ...l,
-          status: l.status || 'Active',
-          isWebsiteApproved: l.isWebsiteApproved ?? true,
+          status: l.status || (l.isWebsiteApproved ? 'Active' : 'Draft'),
+          isWebsiteApproved: Boolean(l.isWebsiteApproved ?? (l.status === 'Active')),
           domainPreview: (l.domainPreview && !l.domainPreview.includes('.indianlalaji.com') && !l.domainPreview.includes('.indianalala.com'))
             ? l.domainPreview
             : `indianlalaji.com/shop/${l.slug || l.id.replace(/^lab-/, '')}`,
@@ -5179,15 +5179,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-        if (!isPinMatch) {
-          return {
-            success: false,
-            targetView: 'website',
-            error: 'Invalid 6-digit security PIN for Lab Owner (गलत 6-डिजिट पिन). Please enter the PIN you set.',
-          };
-        }
-      }
-
       const activeLabId = currentLab?.id || chosenLabId || 'lab-apex';
       let ownerName = currentLab?.ownerName || 'Dr. Rajesh Sharma (Lab Owner)';
       let defaultEmail = currentLab?.email || currentLab?.phone || '9876543210';
@@ -6663,8 +6654,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       state: payload.state || 'Punjab',
       address: payload.address || `${payload.state || 'Punjab'}, India`,
       phone: cleanPhone,
-      password: payload.password || 'owner123',
-      pin: payload.pin || '123456',
+      password: payload.password?.trim() || '',
+      pin: payload.pin?.trim() || '',
       nablCode: payload.nablCode || `NABL-${Math.floor(1000 + Math.random() * 9000)}`,
       badge: 'Draft - Pending Admin Approval',
       rating: 5.0,
@@ -6817,6 +6808,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       },
     ];
     setAllVendorTests((prev) => [...starterTests, ...prev]);
+
+    // Store vendor's exact credentials in credential vault (no auto-default)
+    if (cleanPhone) {
+      storeInVault({
+        labId: newLabId,
+        labName: payload.labName,
+        phone: cleanPhone,
+        password: payload.password?.trim() || '',
+        pin: payload.pin?.trim() || '',
+        email: payload.email || `${cleanPhone}@indianlalaji.com`,
+        slug: cleanSlug,
+        ownerName: payload.ownerName || `${payload.labName} Owner`,
+      }, true);
+    }
 
     // Sync newly registered lab and all its starter entities to Hostinger for live cross-device sync
     syncVendorLabToCloud(newLab);
