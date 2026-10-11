@@ -91,6 +91,7 @@ import {
   getPendingOfflineCount,
   subscribeOfflineQueueCount,
 } from '../lib/cloudSync';
+import { storeInVault, findCredentialInVault } from '../utils/credentialVault';
 import {
   getStorageMetrics,
   cleanSaaSCache,
@@ -1220,6 +1221,8 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
     refundPolicy: DEFAULT_VENDOR_LAB_SETTINGS.refundPolicy,
     isWebsiteApproved: Boolean(dirItem.isWebsiteApproved ?? (dirItem.status === 'Active')),
     status: dirItem.status || 'Draft',
+    ownerPassword: dirItem.password || undefined,
+    ownerPin: dirItem.pin || undefined,
   };
 }
 
@@ -4773,8 +4776,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         'admin@123',
         'admin',
         'superadmin',
-        '123456',
-        'owner123',
         'password',
         'admin@336699',
         'admin336699',
@@ -5126,11 +5127,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
       }
 
-      // 2. Verify Password strictly against laboratory's set password or lab settings
+      // 2. Verify Password strictly against laboratory's set password, lab settings, or vault
       const labSettings: Partial<VendorLabSettings> = vendorLabSettingsMap[currentLab?.id || ''] || {};
+      const vaultCred = findCredentialInVault(inputIdentifier) || findCredentialInVault(currentLab?.id || '') || findCredentialInVault(currentLab?.phone || '');
       const candidatePasswords: string[] = [
         currentLab?.password,
         labSettings?.ownerPassword,
+        vaultCred?.password,
       ].filter(Boolean) as string[];
 
       // Include staff accounts for this lab with role 'admin' or 'vendor'
@@ -5160,11 +5163,21 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const candidatePins = [
           currentLab?.pin,
           labSettings?.ownerPin,
+          vaultCred?.pin,
         ].filter(Boolean) as string[];
 
         const isPinMatch = candidatePins.length > 0
           ? candidatePins.some((p) => p?.trim() === inputPin)
           : true;
+
+        if (!isPinMatch) {
+          return {
+            success: false,
+            targetView: 'website',
+            error: 'Invalid 6-digit security PIN for Lab Owner (गलत 6-डिजिट पिन). Please enter the PIN you set.',
+          };
+        }
+      }
 
         if (!isPinMatch) {
           return {
