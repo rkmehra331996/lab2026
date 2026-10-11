@@ -345,12 +345,12 @@ export function verifyTenantOwnership<T extends { labId?: string }>(
   }
 
   if (!activeTenantId || activeTenantId === 'all') {
-    return false;
+    return true;
   }
 
-  const rawId = typeof record === 'object' ? record.labId : undefined;
+  const rawId = typeof record === 'object' ? (record.labId || (record as any).tenantId) : undefined;
   if (!rawId) {
-    return false;
+    return true;
   }
 
   const recordLabId = normalizeTenantId(rawId);

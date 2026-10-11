@@ -3859,7 +3859,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllReports((prev) =>
       prev.filter((r) => {
         if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant report deletion for reportId: ${reportId}`);
             return true;
           }
@@ -3890,7 +3890,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllReports((prev) =>
       prev.map((r) => {
         if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant report cancellation for reportId: ${reportId}`);
             return r;
           }
@@ -3918,7 +3918,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllReports((prev) =>
       prev.map((r) => {
         if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant uncancel for reportId: ${reportId}`);
             return r;
           }
@@ -4049,12 +4049,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteReceptionEntry = (id: string) => {
+    let deletedReportId: string | undefined;
     setAllReceptionEntries((prev) =>
       prev.filter((e) => {
-        if (e.id === id) {
+        if (e.id === id || (e.reportId && e.reportId.toLowerCase() === id.toLowerCase())) {
           if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(e, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant patient deletion`);
             return true;
+          }
+          if (e.reportId) {
+            deletedReportId = e.reportId;
           }
           return false;
         }
@@ -4062,6 +4066,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
     deleteReceptionEntryFromCloud(id);
+    if (deletedReportId) {
+      setAllReports((prev) => prev.filter((r) => r.reportId.toLowerCase() !== deletedReportId!.toLowerCase()));
+      deleteLabReportFromCloud(deletedReportId);
+    }
   };
 
   const clearReceptionEntries = () => {
@@ -5528,7 +5536,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllVendorPackages((prev) =>
       prev.filter((p) => {
         if (p.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(p, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(p, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant package deletion for ${id}`);
             return true;
           }
@@ -5556,7 +5564,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllVendorTests((prev) =>
       prev.map((t) => {
         if (t.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(t, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(t, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant test update for ${id}`);
             return t;
           }
@@ -5575,7 +5583,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllVendorTests((prev) =>
       prev.filter((t) => {
         if (t.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(t, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(t, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant test deletion for ${id}`);
             return true;
           }
@@ -5603,7 +5611,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllVendorDoctors((prev) =>
       prev.map((d) => {
         if (d.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(d, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(d, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant doctor update for ${id}`);
             return d;
           }
@@ -5622,7 +5630,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllVendorDoctors((prev) =>
       prev.filter((d) => {
         if (d.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(d, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(d, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant doctor deletion for ${id}`);
             return true;
           }
@@ -5650,7 +5658,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllVendorBranches((prev) =>
       prev.map((b) => {
         if (b.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant branch update for ${id}`);
             return b;
           }
@@ -5670,7 +5678,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllVendorBranches((prev) =>
       prev.filter((b) => {
         if (b.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant branch deletion for ${id}`);
             return true;
           }
@@ -5704,7 +5712,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllVendorBookings((prev) =>
       prev.map((b) => {
         if (b.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant booking status update for ${id}`);
             return b;
           }
@@ -5724,7 +5732,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllVendorBookings((prev) =>
       prev.filter((b) => {
         if (b.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId)) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant booking deletion for ${id}`);
             return true;
           }

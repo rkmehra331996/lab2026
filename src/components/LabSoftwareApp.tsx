@@ -1453,6 +1453,17 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
                                 </button>
                               </>
                             )}
+
+                            {/* Delete Option */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePatient(p)}
+                              className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
+                              title="Delete Patient Record"
+                              aria-label="Delete Patient"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1710,6 +1721,17 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
                                       </button>
                                     </>
                                   )}
+
+                                  {/* Delete Option */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeletePatient(p)}
+                                    className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer border border-rose-200 transition"
+                                    title="Delete Patient Record"
+                                    aria-label="Delete Patient"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
                               </td>
                             </tr>

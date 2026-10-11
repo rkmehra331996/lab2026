@@ -1049,7 +1049,13 @@ async function deleteDocumentFromHostinger(collection: string, id: string): Prom
   // 1. Update local cache immediately
   let currentList = getCachedCollection(collection);
   if (Array.isArray(currentList)) {
-    const filtered = currentList.filter((it: any) => (it.id || it.reportId || it.labId) !== id);
+    const targetIdLower = String(id).toLowerCase();
+    const filtered = currentList.filter((it: any) => {
+      const itId = it.id ? String(it.id).toLowerCase() : '';
+      const itReportId = it.reportId ? String(it.reportId).toLowerCase() : '';
+      const itLabId = it.labId ? String(it.labId).toLowerCase() : '';
+      return itId !== targetIdLower && itReportId !== targetIdLower && itLabId !== targetIdLower;
+    });
     setCachedCollection(collection, filtered);
     notifySubscribers(collection, filtered);
     try {

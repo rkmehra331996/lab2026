@@ -38,6 +38,25 @@ function readDevDb(): Record<string, any> {
           store.vendor_labs = labs;
         }
       }
+
+      // Mutual alias synchronization
+      if (store.reception_entries && !store.receptionEntries) store.receptionEntries = store.reception_entries;
+      else if (store.receptionEntries && !store.reception_entries) store.reception_entries = store.receptionEntries;
+      if (store.lab_reports && !store.reports) store.reports = store.lab_reports;
+      else if (store.reports && !store.lab_reports) store.lab_reports = store.reports;
+      if (store.vendor_bookings && !store.bookings) store.bookings = store.vendor_bookings;
+      else if (store.bookings && !store.vendor_bookings) store.vendor_bookings = store.bookings;
+      if (store.lab_staff && !store.staff) store.staff = store.lab_staff;
+      else if (store.staff && !store.lab_staff) store.lab_staff = store.staff;
+      if (store.lab_tests && !store.tests) store.tests = store.lab_tests;
+      else if (store.tests && !store.lab_tests) store.lab_tests = store.tests;
+      if (store.lab_packages && !store.packages) store.packages = store.lab_packages;
+      else if (store.packages && !store.lab_packages) store.lab_packages = store.packages;
+      if (store.lab_doctors && !store.doctors) store.doctors = store.lab_doctors;
+      else if (store.doctors && !store.lab_doctors) store.lab_doctors = store.doctors;
+      if (store.vendor_branches && !store.branches) store.branches = store.vendor_branches;
+      else if (store.branches && !store.vendor_branches) store.vendor_branches = store.branches;
+
       return store;
     }
   } catch (err) {
@@ -627,9 +646,42 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
       store.seo_settings = data;
       store.seoSettings = data;
     } else {
+      const ALIAS_MAP: Record<string, string[]> = {
+        reception_entries: ['reception_entries', 'receptionEntries'],
+        receptionEntries: ['reception_entries', 'receptionEntries'],
+        lab_reports: ['lab_reports', 'reports'],
+        reports: ['lab_reports', 'reports'],
+        vendor_bookings: ['vendor_bookings', 'bookings'],
+        bookings: ['vendor_bookings', 'bookings'],
+        lab_staff: ['lab_staff', 'staff'],
+        staff: ['lab_staff', 'staff'],
+        lab_tests: ['lab_tests', 'tests'],
+        tests: ['lab_tests', 'tests'],
+        lab_packages: ['lab_packages', 'packages'],
+        packages: ['lab_packages', 'packages'],
+        lab_doctors: ['lab_doctors', 'doctors'],
+        doctors: ['lab_doctors', 'doctors'],
+        vendor_branches: ['vendor_branches', 'branches'],
+        branches: ['vendor_branches', 'branches'],
+        vendor_labs: ['vendor_labs', 'vendorLabs'],
+        vendorLabs: ['vendor_labs', 'vendorLabs'],
+        domain_requests: ['domain_requests', 'domainRequests'],
+        domainRequests: ['domain_requests', 'domainRequests'],
+        contact_submissions: ['contact_submissions', 'contactSubmissions'],
+        contactSubmissions: ['contact_submissions', 'contactSubmissions'],
+        pricing_plans: ['pricing_plans', 'pricingPlans'],
+        pricingPlans: ['pricing_plans', 'pricingPlans'],
+        plan_requests: ['plan_requests', 'planRequests'],
+        planRequests: ['plan_requests', 'planRequests'],
+      };
+
+      const targetKeys = ALIAS_MAP[collection] || [collection];
       const key = collection;
-      if (!Array.isArray(store[key])) {
-        store[key] = [];
+
+      for (const k of targetKeys) {
+        if (!Array.isArray(store[k])) {
+          store[k] = Array.isArray(store[key]) ? [...store[key]] : [];
+        }
       }
 
       if (action === 'batch_save') {
@@ -647,20 +699,36 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
             map.set(itId, { ...existing, ...it });
           }
         }
-        store[key] = Array.from(map.values());
+        const updatedList = Array.from(map.values());
+        for (const k of targetKeys) {
+          store[k] = updatedList;
+        }
       } else if (action === 'seed_all') {
         const allCols = body.collections || {};
         for (const [colName, colItems] of Object.entries(allCols)) {
           if (!store[colName] || (Array.isArray(store[colName]) && store[colName].length === 0)) {
             if (Array.isArray(colItems)) {
               store[colName] = colItems;
+              const mapped = ALIAS_MAP[colName] || [];
+              for (const m of mapped) {
+                store[m] = colItems;
+              }
             }
           }
         }
       } else if (action === 'delete') {
         const targetId = id || data?.id || data?.reportId;
         if (targetId) {
-          store[key] = store[key].filter((item: any) => (item.id || item.reportId || item.labId) !== targetId);
+          const targetLower = String(targetId).toLowerCase();
+          for (const k of targetKeys) {
+            const currentArr = Array.isArray(store[k]) ? store[k] : [];
+            store[k] = currentArr.filter((item: any) => {
+              const itId = item.id ? String(item.id).toLowerCase() : '';
+              const itReportId = item.reportId ? String(item.reportId).toLowerCase() : '';
+              const itLabId = item.labId ? String(item.labId).toLowerCase() : '';
+              return itId !== targetLower && itReportId !== targetLower && itLabId !== targetLower;
+            });
+          }
         }
       } else {
         const targetId = id || data?.id || data?.reportId;
@@ -676,11 +744,9 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
         } else if (data) {
           store[key].unshift(data);
         }
-      }
-
-      if (collection === 'lab_staff' || collection === 'staff') {
-        store.lab_staff = store[key];
-        store.staff = store[key];
+        for (const k of targetKeys) {
+          store[k] = store[key];
+        }
       }
     }
 
