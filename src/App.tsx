@@ -87,6 +87,8 @@ export default function App() {
   // Loading & error state when resolving lab directly from the URL
   const [isFetchingUrlLab, setIsFetchingUrlLab] = useState(false);
   const [urlLabError, setUrlLabError] = useState<{ identifier: string; message: string } | null>(null);
+  const isFetchingLabRef = React.useRef(false);
+  const attemptedLabFetchesRef = React.useRef<Set<string>>(new Set());
 
   const {
     currentUser,
@@ -110,93 +112,103 @@ export default function App() {
   ) => {
     if (!targetIdentifier) return;
     const cleanId = targetIdentifier.trim();
+    const cleanIdLower = cleanId.toLowerCase();
+
+    // Guard against duplicate or infinite re-fetch loop
+    if (isFetchingLabRef.current || attemptedLabFetchesRef.current.has(cleanIdLower)) {
+      return;
+    }
+    isFetchingLabRef.current = true;
+    attemptedLabFetchesRef.current.add(cleanIdLower);
+
     setIsFetchingUrlLab(true);
     setUrlLabError(null);
 
-    const targetLower = cleanId.toLowerCase();
-    const cleanDigits = cleanId.replace(/\D/g, '');
-    const clean10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : '';
-
-    // Step 1: Check existing local lab list
-    const existing = currentLabs.find((l) => {
-      const id = (l.id || '').toLowerCase();
-      const slug = (l.slug || '').toLowerCase();
-      const labPhoneDigits = (l.phone || '').replace(/\D/g, '');
-      const labPhone10 = labPhoneDigits.length >= 10 ? labPhoneDigits.slice(-10) : '';
-
-      return (
-        id === targetLower ||
-        id === `lab-${targetLower}` ||
-        id.replace(/^lab-/, '') === targetLower.replace(/^lab-/, '') ||
-        slug === targetLower ||
-        (clean10 && labPhone10 === clean10) ||
-        (l.domainPreview && l.domainPreview.toLowerCase().includes(targetLower)) ||
-        (l.domainPreview && l.domainPreview.toLowerCase().split('.')[0] === targetLower) ||
-        (l.name && l.name.toLowerCase().replace(/[^a-z0-9]/g, '') === targetLower.replace(/[^a-z0-9]/g, ''))
-      );
-    });
-
-    if (existing) {
-      selectVendorLab(existing.id);
-      setSelectedVendorLabId(existing.id);
-      setCurrentView('vendor_website');
-      setIsFetchingUrlLab(false);
-      return;
-    }
-
-    // Step 2: Fetch specific lab directly from backend /api/lab/:identifier
     try {
-      const res = await fetch(`/api/lab/${encodeURIComponent(cleanId)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.found && data.lab) {
-          injectCloudLab(data.lab, data.settings);
-          selectVendorLab(data.lab.id);
-          setSelectedVendorLabId(data.lab.id);
-          setCurrentView('vendor_website');
-          setIsFetchingUrlLab(false);
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn('Direct lab API fetch failed, checking sync fallback:', err);
-    }
+      const targetLower = cleanId.toLowerCase();
+      const cleanDigits = cleanId.replace(/\D/g, '');
+      const clean10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : '';
 
-    // Step 3: Trigger cloud sync refresh as a fallback
-    try {
-      await refreshCloudData();
-    } catch {}
+      // Step 1: Check existing local lab list
+      const existing = currentLabs.find((l) => {
+        const id = (l.id || '').toLowerCase();
+        const slug = (l.slug || '').toLowerCase();
+        const labPhoneDigits = (l.phone || '').replace(/\D/g, '');
+        const labPhone10 = labPhoneDigits.length >= 10 ? labPhoneDigits.slice(-10) : '';
 
-    // Check again after refresh
-    const matchAfterSync = vendorLabsList.find((l) => {
-      const id = (l.id || '').toLowerCase();
-      const slug = (l.slug || '').toLowerCase();
-      const labPhoneDigits = (l.phone || '').replace(/\D/g, '');
-      const labPhone10 = labPhoneDigits.length >= 10 ? labPhoneDigits.slice(-10) : '';
-
-      return (
-        id === targetLower ||
-        id === `lab-${targetLower}` ||
-        id.replace(/^lab-/, '') === targetLower.replace(/^lab-/, '') ||
-        slug === targetLower ||
-        (clean10 && labPhone10 === clean10) ||
-        (l.domainPreview && l.domainPreview.toLowerCase().includes(targetLower)) ||
-        (l.name && l.name.toLowerCase().replace(/[^a-z0-9]/g, '') === targetLower.replace(/[^a-z0-9]/g, ''))
-      );
-    });
-
-    if (matchAfterSync) {
-      selectVendorLab(matchAfterSync.id);
-      setSelectedVendorLabId(matchAfterSync.id);
-      setCurrentView('vendor_website');
-    } else {
-      setUrlLabError({
-        identifier: cleanId,
-        message: `Laboratory '${cleanId}' could not be located in our directory.`,
+        return (
+          id === targetLower ||
+          id === `lab-${targetLower}` ||
+          id.replace(/^lab-/, '') === targetLower.replace(/^lab-/, '') ||
+          slug === targetLower ||
+          (clean10 && labPhone10 === clean10) ||
+          (l.domainPreview && l.domainPreview.toLowerCase().includes(targetLower)) ||
+          (l.domainPreview && l.domainPreview.toLowerCase().split('.')[0] === targetLower) ||
+          (l.name && l.name.toLowerCase().replace(/[^a-z0-9]/g, '') === targetLower.replace(/[^a-z0-9]/g, ''))
+        );
       });
-    }
 
-    setIsFetchingUrlLab(false);
+      if (existing) {
+        selectVendorLab(existing.id);
+        setSelectedVendorLabId(existing.id);
+        setCurrentView('vendor_website');
+        return;
+      }
+
+      // Step 2: Fetch specific lab directly from backend /api/lab/:identifier
+      try {
+        const res = await fetch(`/api/lab/${encodeURIComponent(cleanId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.found && data.lab) {
+            injectCloudLab(data.lab, data.settings);
+            selectVendorLab(data.lab.id);
+            setSelectedVendorLabId(data.lab.id);
+            setCurrentView('vendor_website');
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Direct lab API fetch failed, checking sync fallback:', err);
+      }
+
+      // Step 3: Trigger cloud sync refresh as a fallback (safely without re-triggering loops)
+      try {
+        await refreshCloudData();
+      } catch {}
+
+      // Check again after refresh
+      const matchAfterSync = vendorLabsList.find((l) => {
+        const id = (l.id || '').toLowerCase();
+        const slug = (l.slug || '').toLowerCase();
+        const labPhoneDigits = (l.phone || '').replace(/\D/g, '');
+        const labPhone10 = labPhoneDigits.length >= 10 ? labPhoneDigits.slice(-10) : '';
+
+        return (
+          id === targetLower ||
+          id === `lab-${targetLower}` ||
+          id.replace(/^lab-/, '') === targetLower.replace(/^lab-/, '') ||
+          slug === targetLower ||
+          (clean10 && labPhone10 === clean10) ||
+          (l.domainPreview && l.domainPreview.toLowerCase().includes(targetLower)) ||
+          (l.name && l.name.toLowerCase().replace(/[^a-z0-9]/g, '') === targetLower.replace(/[^a-z0-9]/g, ''))
+        );
+      });
+
+      if (matchAfterSync) {
+        selectVendorLab(matchAfterSync.id);
+        setSelectedVendorLabId(matchAfterSync.id);
+        setCurrentView('vendor_website');
+      } else {
+        setUrlLabError({
+          identifier: cleanId,
+          message: `Laboratory '${cleanId}' could not be located in our directory.`,
+        });
+      }
+    } finally {
+      isFetchingLabRef.current = false;
+      setIsFetchingUrlLab(false);
+    }
   };
 
   // Persist currentView to localStorage whenever it changes (only for authenticated or dashboard views, avoid trapping homepage)
@@ -265,7 +277,7 @@ export default function App() {
           setSelectedVendorLabId(directMatch.id);
           setCurrentView(resolution.view === 'patient_portal' ? 'patient_portal' : 'vendor_website');
           setUrlLabError(null);
-        } else {
+        } else if (!isFetchingLabRef.current && !attemptedLabFetchesRef.current.has(cleanId.toLowerCase())) {
           fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList);
         }
       } else if (!selectedVendorLabId || selectedVendorLabId === 'all') {
@@ -449,8 +461,8 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Dedicated Loading Experience when fetching a specific lab from URL
-  if (isFetchingUrlLab) {
+  // Dedicated Loading Experience when fetching a specific lab from URL (Only for vendor_website, never during lab creation modal)
+  if (isFetchingUrlLab && currentView === 'vendor_website' && !isAuthModalOpen) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center font-sans">
         <div className="w-16 h-16 rounded-2xl bg-[#123B6D] text-amber-300 flex items-center justify-center shadow-lg mb-4 animate-pulse">

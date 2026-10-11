@@ -6410,10 +6410,33 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setVendorLabsList((prev) => {
       const updated = prev.map((lab) => {
         if (lab.id === id) {
+          const publishedAtVal = isApproved
+            ? (lab.publishedAt || nowIso.slice(0, 10))
+            : lab.publishedAt;
+
+          let newPlanExpiresAt = lab.planExpiresAt;
+          let newRemainingVisibilityDays = lab.remainingVisibilityDays;
+
+          // When website is published, package renewal countdown starts from Publish Date!
+          if (isApproved && !lab.publishedAt) {
+            const planDuration = lab.subscriptionPlan?.includes('1 Year')
+              ? 365
+              : lab.subscriptionPlan?.includes('3 Month')
+              ? 90
+              : 30;
+            const exp = new Date();
+            exp.setDate(exp.getDate() + planDuration);
+            newPlanExpiresAt = exp.toISOString().slice(0, 10);
+            newRemainingVisibilityDays = planDuration;
+          }
+
           syncedLab = {
             ...lab,
             status,
             isWebsiteApproved: isApproved,
+            publishedAt: publishedAtVal,
+            planExpiresAt: newPlanExpiresAt,
+            remainingVisibilityDays: newRemainingVisibilityDays,
             _updatedAt: nowIso,
             ...(isApproved
               ? {
@@ -6445,10 +6468,30 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Sync with vendorLabSettingsMap - ensure lab settings exist and are fully synced
     setVendorLabSettingsMap((prev) => {
       const existing = prev[id] || (syncedLab ? buildDefaultSettingsForLab(syncedLab) : DEFAULT_VENDOR_LAB_SETTINGS);
+      const publishedAtVal = isApproved
+        ? (existing.publishedAt || (syncedLab as any)?.publishedAt || nowIso.slice(0, 10))
+        : existing.publishedAt;
+
+      let newPlanExpiresAt = (syncedLab as any)?.planExpiresAt || existing.planExpiresAt;
+      let newRemainingDays = (syncedLab as any)?.remainingVisibilityDays ?? existing.remainingVisibilityDays;
+
+      if (isApproved && !existing.publishedAt) {
+        const planDuration = existing.planDurationDays || (
+          existing.purchasedPlan === '1 Year' ? 365 : existing.purchasedPlan === '3 Months' ? 90 : 30
+        );
+        const exp = new Date();
+        exp.setDate(exp.getDate() + planDuration);
+        newPlanExpiresAt = exp.toISOString().slice(0, 10);
+        newRemainingDays = planDuration;
+      }
+
       const updatedSetting: VendorLabSettings = {
         ...existing,
         status,
         isWebsiteApproved: isApproved,
+        publishedAt: publishedAtVal,
+        planExpiresAt: newPlanExpiresAt,
+        remainingVisibilityDays: newRemainingDays,
         _updatedAt: nowIso,
       };
       syncLabSettingsToCloud(id, updatedSetting);

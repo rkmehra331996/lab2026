@@ -91,7 +91,7 @@ export const VendorPlanRenewTab: React.FC<VendorPlanRenewTabProps> = ({
     const labSettings = vendorLabSettingsMap[vendor.id];
     const expiryStr = vendor.planExpiresAt || labSettings?.planExpiresAt;
     const currentPlan = vendor.purchasedPlan || vendor.subscriptionPlan || labSettings?.purchasedPlan || '1 Month';
-    const purchasedAtStr = vendor.planPurchasedAt || labSettings?.planPurchasedAt || '15 Feb 2026';
+    const purchasedAtStr = vendor.publishedAt || labSettings?.publishedAt || vendor.planPurchasedAt || labSettings?.planPurchasedAt || '15 Feb 2026';
 
     const expiryDate = parseDateSafe(expiryStr);
     let remainingDays = 0;

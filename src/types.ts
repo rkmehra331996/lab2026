@@ -368,6 +368,7 @@ export interface VendorLabSettings {
   purchasedPlan?: '1 Month' | '3 Months' | '1 Year' | string;
   planPurchasedAt?: string;
   planExpiresAt?: string;
+  publishedAt?: string;
   planDurationDays?: number;
   remainingVisibilityDays?: number;
   // Booking Form Settings
@@ -654,6 +655,7 @@ export interface VendorLabDirectoryItem {
   purchasedPlan?: string;
   planPurchasedAt?: string;
   planExpiresAt?: string;
+  publishedAt?: string;
   remainingVisibilityDays?: number;
   planStatusReason?: string;
   paymentMode?: string;

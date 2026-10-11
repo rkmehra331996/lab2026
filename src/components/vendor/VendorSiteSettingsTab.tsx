@@ -168,6 +168,7 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
     planDurationDays: vendorLabSettings.planDurationDays || 30,
     remainingVisibilityDays: vendorLabSettings.remainingVisibilityDays ?? 24,
     planPurchasedAt: vendorLabSettings.planPurchasedAt || '2026-02-15',
+    publishedAt: vendorLabSettings.publishedAt || (vendorLabsList.find(l => l.id === (activeTenantId || vendorLabSettings.labId))?.publishedAt) || '',
     planExpiresAt: vendorLabSettings.planExpiresAt || '2026-03-17',
     socialMedia: vendorLabSettings.socialMedia || {
       enabled: true,
@@ -232,6 +233,7 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
         planDurationDays: vendorLabSettings.planDurationDays || 30,
         remainingVisibilityDays: vendorLabSettings.remainingVisibilityDays ?? 24,
         planPurchasedAt: vendorLabSettings.planPurchasedAt || '2026-02-15',
+        publishedAt: vendorLabSettings.publishedAt || (vendorLabsList.find(l => l.id === vendorLabSettings.labId)?.publishedAt) || '',
         planExpiresAt: vendorLabSettings.planExpiresAt || '2026-03-17',
         socialMedia: vendorLabSettings.socialMedia || {
           enabled: true,
@@ -2078,9 +2080,11 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
               <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
                 <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Start Date</span>
                 <strong className="text-sm sm:text-base font-black text-slate-800 font-mono block">
-                  {formData.planPurchasedAt || '15 Feb 2026'}
+                  {formData.publishedAt || formData.planPurchasedAt || '15 Feb 2026'}
                 </strong>
-                <span className="text-[11px] text-slate-500 font-semibold">Plan Activation</span>
+                <span className="text-[11px] text-slate-500 font-semibold">
+                  {formData.publishedAt ? 'Website Published' : 'Plan Activation'}
+                </span>
               </div>
 
               <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
