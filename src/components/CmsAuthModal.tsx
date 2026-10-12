@@ -434,20 +434,14 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
 
       // Auto-detect Super Admin credentials entered in Lab login modal
       const isSuperAdminEmail =
+        cleanInput === 'pageguru1@gmail.com' ||
         cleanInput === 'therkmehra331996@gmail.com' ||
-        cleanInput === 'rkmehra331996@gmail.com' ||
-        cleanInput === 'admin@indianlalaji.com' ||
         cleanInput === 'superadmin@indianlalaji.com' ||
-        cleanInput === 'admin' ||
         cleanInput === 'superadmin' ||
         cleanInput === 'super_admin' ||
         cleanInput === 'super-admin' ||
         cleanInput === 'super admin' ||
         cleanInput === 'therkmehra331996' ||
-        cleanInput === 'rkmehra331996' ||
-        cleanInput === 'mehra' ||
-        cleanInput.includes('rkmehra') ||
-        cleanInput === 'admin@gmail.com' ||
         cleanInput === 'superadmin@gmail.com' ||
         cleanInput === 'root';
 
@@ -534,20 +528,14 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
       const last10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : cleanDigits;
 
       const isSuperAdminEmail =
+        cleanInput === 'pageguru1@gmail.com' ||
         cleanInput === 'therkmehra331996@gmail.com' ||
-        cleanInput === 'rkmehra331996@gmail.com' ||
-        cleanInput === 'admin@indianlalaji.com' ||
         cleanInput === 'superadmin@indianlalaji.com' ||
-        cleanInput === 'admin' ||
         cleanInput === 'superadmin' ||
         cleanInput === 'super_admin' ||
         cleanInput === 'super-admin' ||
         cleanInput === 'super admin' ||
         cleanInput === 'therkmehra331996' ||
-        cleanInput === 'rkmehra331996' ||
-        cleanInput === 'mehra' ||
-        cleanInput.includes('rkmehra') ||
-        cleanInput === 'admin@gmail.com' ||
         cleanInput === 'superadmin@gmail.com' ||
         cleanInput === 'root';
 
@@ -1125,27 +1113,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono tracking-widest placeholder:text-slate-400"
                   />
                 </div>
-
-                {mainRole === 'super_admin' && (
-                  <div className="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200/80 text-[11px] text-slate-700 flex items-center justify-between">
-                    <div className="truncate">
-                      <span className="font-bold text-rose-900">Master Admin: </span>
-                      <span className="font-mono text-slate-800">therkmehra331996@gmail.com</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEmailOrPhone('therkmehra331996@gmail.com');
-                        setPassword('Asdfzxcv@336699');
-                        setPinCode('331996');
-                        setLoginError('');
-                      }}
-                      className="text-rose-700 hover:text-rose-900 font-bold underline cursor-pointer shrink-0 ml-2"
-                    >
-                      Fill 1-Click
-                    </button>
-                  </div>
-                )}
 
                 {loginError && (
                   <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">

@@ -4735,20 +4735,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 1. SUPER ADMIN: Check if user is Super Admin by role, email, or username
     const isSuperAdminEmail =
+      inputIdentifier === 'pageguru1@gmail.com' ||
       inputIdentifier === 'therkmehra331996@gmail.com' ||
-      inputIdentifier === 'rkmehra331996@gmail.com' ||
-      inputIdentifier === 'admin@indianlalaji.com' ||
       inputIdentifier === 'superadmin@indianlalaji.com' ||
-      inputIdentifier === 'admin' ||
       inputIdentifier === 'superadmin' ||
       inputIdentifier === 'super_admin' ||
       inputIdentifier === 'super-admin' ||
       inputIdentifier === 'super admin' ||
       inputIdentifier === 'therkmehra331996' ||
-      inputIdentifier === 'rkmehra331996' ||
-      inputIdentifier === 'mehra' ||
-      inputIdentifier.includes('rkmehra') ||
-      inputIdentifier === 'admin@gmail.com' ||
       inputIdentifier === 'superadmin@gmail.com' ||
       inputIdentifier === 'root';
 
@@ -4772,40 +4766,34 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         'asdfzxcv@336699',
         'Asdfzxcv@331996@#',
         'asdfzxcv@331996@#',
-        'admin123',
-        'admin@123',
-        'admin',
-        'superadmin',
-        'password',
         'admin@336699',
         'admin336699',
-        'asdfzxcv',
       ];
       const isPassValid = validAdminPasswords.some((p) => p.toLowerCase() === inputPassword.toLowerCase());
       if (!isPassValid) {
         return {
           success: false,
           targetView: 'website',
-          error: 'Incorrect Super Admin password. Please check your credentials (default: Asdfzxcv@336699 or admin123).',
+          error: 'Incorrect Super Admin password. Please check your credentials.',
         };
       }
 
       // Validate Super Admin PIN if provided
       if (inputPin) {
-        const validAdminPins = ['331996', '199633', '123456', '000000', '112233'];
+        const validAdminPins = ['331996', '199633'];
         if (!validAdminPins.includes(inputPin)) {
           return {
             success: false,
             targetView: 'website',
-            error: 'Invalid 6-digit Super Admin security PIN (default: 331996 or 123456).',
+            error: 'Invalid 6-digit Super Admin security PIN.',
           };
         }
       }
 
       user = {
         id: 'usr-admin-super',
-        name: 'R. K. Mehra (Super Admin)',
-        email: email || 'therkmehra331996@gmail.com',
+        name: 'Super Admin',
+        email: email || 'pageguru1@gmail.com',
         role: 'admin',
         entityName: 'Diagnostic SaaS Portal Central System',
         labId: 'all',
