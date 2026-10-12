@@ -318,7 +318,14 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({
 
   useEffect(() => {
     if (vendorLabSettings.heroBanners && vendorLabSettings.heroBanners.length > 0) {
-      setHeroBanners(vendorLabSettings.heroBanners);
+      setHeroBanners((cur) => {
+        const hasLocalInFlight = cur.some((b) => b.startsWith('data:') || b.startsWith('blob:'));
+        const hasIncomingUploads = vendorLabSettings.heroBanners!.some((b) => b.startsWith('data:') || b.includes('/uploads/'));
+        if (hasLocalInFlight && !hasIncomingUploads) {
+          return cur;
+        }
+        return vendorLabSettings.heroBanners!;
+      });
     }
   }, [vendorLabSettings.heroBanners]);
 
@@ -405,15 +412,21 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({
   });
 
   useEffect(() => {
-    setFounderForm({
-      founderName: vendorLabSettings.founderName || '',
-      founderDesignation: vendorLabSettings.founderDesignation || '',
-      founderDegrees: vendorLabSettings.founderDegrees || '',
-      founderExperience: vendorLabSettings.founderExperience || '',
-      founderBadge: vendorLabSettings.founderBadge || '',
-      founderPhotoUrl: vendorLabSettings.founderPhotoUrl || '',
-      founderMessage: vendorLabSettings.founderMessage || '',
-      founderCredentials: vendorLabSettings.founderCredentials || [],
+    setFounderForm((prev) => {
+      const curPhoto = prev.founderPhotoUrl;
+      const incPhoto = vendorLabSettings.founderPhotoUrl || '';
+      const keepLocal = (curPhoto.startsWith('data:') || curPhoto.startsWith('blob:')) &&
+                        (!incPhoto.startsWith('data:') && !incPhoto.includes('/uploads/'));
+      return {
+        founderName: vendorLabSettings.founderName || '',
+        founderDesignation: vendorLabSettings.founderDesignation || '',
+        founderDegrees: vendorLabSettings.founderDegrees || '',
+        founderExperience: vendorLabSettings.founderExperience || '',
+        founderBadge: vendorLabSettings.founderBadge || '',
+        founderPhotoUrl: keepLocal ? curPhoto : incPhoto,
+        founderMessage: vendorLabSettings.founderMessage || '',
+        founderCredentials: vendorLabSettings.founderCredentials || [],
+      };
     });
   }, [vendorLabSettings.founderPhotoUrl, vendorLabSettings.founderName, vendorLabSettings.labId]);
 

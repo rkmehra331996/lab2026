@@ -90,6 +90,9 @@ import {
   syncAllWithHostinger,
   getPendingOfflineCount,
   subscribeOfflineQueueCount,
+  pickBestMediaUrl,
+  pickBestHeroBanners,
+  isUploadMediaStr,
 } from '../lib/cloudSync';
 import { storeInVault, findCredentialInVault } from '../utils/credentialVault';
 import {
@@ -3216,16 +3219,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 ...prevItem,
                 ...cloudSettings,
                 socialMedia: mergedSocial,
-                logoUrl: cloudSettings.logoUrl || prevItem.logoUrl || '',
-                featureImageUrl: cloudSettings.featureImageUrl || prevItem.featureImageUrl || '',
-                ogImageUrl: cloudSettings.ogImageUrl || prevItem.ogImageUrl || '',
-                qrCode1Url: cloudSettings.qrCode1Url || prevItem.qrCode1Url || '',
-                qrCode2Url: cloudSettings.qrCode2Url || prevItem.qrCode2Url || '',
-                founderPhotoUrl: cloudSettings.founderPhotoUrl || prevItem.founderPhotoUrl || '',
-                teamGroupPhotoUrl: cloudSettings.teamGroupPhotoUrl || prevItem.teamGroupPhotoUrl || '',
-                heroBanners: (Array.isArray(cloudSettings.heroBanners) && cloudSettings.heroBanners.length > 0)
-                  ? cloudSettings.heroBanners
-                  : (prevItem.heroBanners || []),
+                logoUrl: pickBestMediaUrl(prevItem.logoUrl, cloudSettings.logoUrl),
+                featureImageUrl: pickBestMediaUrl(prevItem.featureImageUrl, cloudSettings.featureImageUrl),
+                ogImageUrl: pickBestMediaUrl(prevItem.ogImageUrl || prevItem.featureImageUrl, cloudSettings.ogImageUrl || cloudSettings.featureImageUrl),
+                qrCode1Url: pickBestMediaUrl(prevItem.qrCode1Url, cloudSettings.qrCode1Url),
+                qrCode2Url: pickBestMediaUrl(prevItem.qrCode2Url, cloudSettings.qrCode2Url),
+                founderPhotoUrl: pickBestMediaUrl(prevItem.founderPhotoUrl, cloudSettings.founderPhotoUrl),
+                teamGroupPhotoUrl: pickBestMediaUrl(prevItem.teamGroupPhotoUrl, cloudSettings.teamGroupPhotoUrl),
+                heroBanners: pickBestHeroBanners(prevItem.heroBanners, cloudSettings.heroBanners),
+                banners: (Array.isArray(prevItem.banners) && prevItem.banners.some((b: any) => isUploadMediaStr(b?.imageUrl) || (typeof b?.imageUrl === 'string' && b.imageUrl.startsWith('data:'))))
+                  ? prevItem.banners
+                  : (Array.isArray(cloudSettings.banners) && cloudSettings.banners.length > 0 ? cloudSettings.banners : (prevItem.banners || [])),
               } as VendorLabSettings;
             }
             try {
@@ -3286,9 +3290,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const prevMap = new Map(prev.map((d) => [d.id, d]));
             const merged = cloudDoctors.map((cd) => {
               const localDoc = prevMap.get(cd.id);
+              const bestDocImg = pickBestMediaUrl(localDoc?.imageUrl || (localDoc as any)?.signatureUrl, cd.imageUrl || (cd as any)?.signatureUrl);
               return {
                 ...cd,
-                imageUrl: cd.imageUrl || (cd as any).signatureUrl || localDoc?.imageUrl || (localDoc as any)?.signatureUrl || '',
+                imageUrl: bestDocImg,
+                signatureUrl: bestDocImg,
               };
             });
             try {
@@ -3372,22 +3378,28 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 11. Subscribe to Vendor Labs Directory (Updates instantly across all devices)
     const unsubscribeVendorLabs = subscribeToVendorLabs((cloudLabs) => {
       if (Array.isArray(cloudLabs) && cloudLabs.length > 0) {
-        // Preserve actual lab status ('Draft' | 'Active' | 'Pending') and isWebsiteApproved flag
-        const normalizedLabs = cloudLabs.map((l) => ({
-          ...l,
-          status: l.status || (l.isWebsiteApproved ? 'Active' : 'Draft'),
-          isWebsiteApproved: Boolean(l.isWebsiteApproved ?? (l.status === 'Active')),
-          domainPreview: (l.domainPreview && !l.domainPreview.includes('.indianlalaji.com') && !l.domainPreview.includes('.indianalala.com'))
-            ? l.domainPreview
-            : `indianlalaji.com/shop/${l.slug || l.id.replace(/^lab-/, '')}`,
-          websiteUrl: (l.websiteUrl && !l.websiteUrl.includes('.indianlalaji.com') && !l.websiteUrl.includes('.indianalala.com'))
-            ? l.websiteUrl
-            : `https://indianlalaji.com/shop/${l.slug || l.id.replace(/^lab-/, '')}`,
-        }));
-        setVendorLabsList(normalizedLabs);
-        try {
-          localStorage.setItem('cms_vendor_labs_list', JSON.stringify(normalizedLabs));
-        } catch {}
+        setVendorLabsList((prev) => {
+          const prevMap = new Map((prev || []).map((l) => [l.id, l]));
+          const normalizedLabs = cloudLabs.map((l) => {
+            const prevLab = prevMap.get(l.id);
+            return {
+              ...l,
+              logoUrl: pickBestMediaUrl(prevLab?.logoUrl, l.logoUrl),
+              status: l.status || (l.isWebsiteApproved ? 'Active' : 'Draft'),
+              isWebsiteApproved: Boolean(l.isWebsiteApproved ?? (l.status === 'Active')),
+              domainPreview: (l.domainPreview && !l.domainPreview.includes('.indianlalaji.com') && !l.domainPreview.includes('.indianalala.com'))
+                ? l.domainPreview
+                : `indianlalaji.com/shop/${l.slug || l.id.replace(/^lab-/, '')}`,
+              websiteUrl: (l.websiteUrl && !l.websiteUrl.includes('.indianlalaji.com') && !l.websiteUrl.includes('.indianalala.com'))
+                ? l.websiteUrl
+                : `https://indianlalaji.com/shop/${l.slug || l.id.replace(/^lab-/, '')}`,
+            };
+          });
+          try {
+            localStorage.setItem('cms_vendor_labs_list', JSON.stringify(normalizedLabs));
+          } catch {}
+          return normalizedLabs;
+        });
       } else {
         // If server returns empty list, ensure the 6 initial shops are preserved!
         setVendorLabsList((prev) => (prev && prev.length > 0 ? prev : VENDOR_LABS_DIRECTORY));

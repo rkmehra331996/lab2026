@@ -248,19 +248,61 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
     }
   }, [vendorLabSettings.labId]);
 
-  // Also keep formData images synced if cloud resolves them
+  // Also keep formData images synced when cloud resolves them to server URLs
   useEffect(() => {
-    if (vendorLabSettings.logoUrl && !formData.logoUrl) {
-      setFormData((prev) => ({ ...prev, logoUrl: vendorLabSettings.logoUrl || '' }));
+    if (vendorLabSettings.logoUrl) {
+      setFormData((prev) => {
+        if (prev.logoUrl && (prev.logoUrl.startsWith('data:') || prev.logoUrl.startsWith('blob:')) && vendorLabSettings.logoUrl.includes('/uploads/')) {
+          return { ...prev, logoUrl: vendorLabSettings.logoUrl };
+        }
+        if (!prev.logoUrl) {
+          return { ...prev, logoUrl: vendorLabSettings.logoUrl };
+        }
+        return prev;
+      });
     }
-    if (vendorLabSettings.featureImageUrl && !formData.featureImageUrl) {
-      setFormData((prev) => ({
-        ...prev,
-        featureImageUrl: vendorLabSettings.featureImageUrl || '',
-        ogImageUrl: vendorLabSettings.ogImageUrl || vendorLabSettings.featureImageUrl || '',
-      }));
+    if (vendorLabSettings.featureImageUrl) {
+      setFormData((prev) => {
+        if (prev.featureImageUrl && (prev.featureImageUrl.startsWith('data:') || prev.featureImageUrl.startsWith('blob:')) && vendorLabSettings.featureImageUrl.includes('/uploads/')) {
+          return {
+            ...prev,
+            featureImageUrl: vendorLabSettings.featureImageUrl,
+            ogImageUrl: vendorLabSettings.ogImageUrl || vendorLabSettings.featureImageUrl,
+          };
+        }
+        if (!prev.featureImageUrl) {
+          return {
+            ...prev,
+            featureImageUrl: vendorLabSettings.featureImageUrl,
+            ogImageUrl: vendorLabSettings.ogImageUrl || vendorLabSettings.featureImageUrl,
+          };
+        }
+        return prev;
+      });
     }
-  }, [vendorLabSettings.logoUrl, vendorLabSettings.featureImageUrl]);
+    if (vendorLabSettings.qrCode1Url) {
+      setFormData((prev) => {
+        if (prev.qrCode1Url && (prev.qrCode1Url.startsWith('data:') || prev.qrCode1Url.startsWith('blob:')) && vendorLabSettings.qrCode1Url.includes('/uploads/')) {
+          return { ...prev, qrCode1Url: vendorLabSettings.qrCode1Url };
+        }
+        if (!prev.qrCode1Url) {
+          return { ...prev, qrCode1Url: vendorLabSettings.qrCode1Url };
+        }
+        return prev;
+      });
+    }
+    if (vendorLabSettings.qrCode2Url) {
+      setFormData((prev) => {
+        if (prev.qrCode2Url && (prev.qrCode2Url.startsWith('data:') || prev.qrCode2Url.startsWith('blob:')) && vendorLabSettings.qrCode2Url.includes('/uploads/')) {
+          return { ...prev, qrCode2Url: vendorLabSettings.qrCode2Url };
+        }
+        if (!prev.qrCode2Url) {
+          return { ...prev, qrCode2Url: vendorLabSettings.qrCode2Url };
+        }
+        return prev;
+      });
+    }
+  }, [vendorLabSettings.logoUrl, vendorLabSettings.featureImageUrl, vendorLabSettings.ogImageUrl, vendorLabSettings.qrCode1Url, vendorLabSettings.qrCode2Url]);
 
   // Handle Local Logo Upload with instant optimization & auto-save
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

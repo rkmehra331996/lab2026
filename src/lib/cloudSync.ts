@@ -588,11 +588,190 @@ export function normalizeCollectionData(collection: string, rawData: any): any {
   return rawData;
 }
 
+let activeUploadsInProgress = 0;
+let lastUploadCompletedTime = 0;
+
+export function isUploadActive(): boolean {
+  return activeUploadsInProgress > 0;
+}
+
+export function isUploadMediaStr(url: any): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const s = url.trim();
+  return (
+    s.startsWith('data:') ||
+    s.startsWith('blob:') ||
+    s.includes('/uploads/') ||
+    s.includes('indianlalaji.com/uploads') ||
+    s.includes('indianalala.com/uploads')
+  );
+}
+
+export function pickBestMediaUrl(currentLocal?: string | null, incomingCloud?: string | null): string {
+  const localStr = (currentLocal || '').trim();
+  const cloudStr = (incomingCloud || '').trim();
+
+  // 1. If local is a fresh data URL or blob URL (user upload in progress or fresh UI preview), ALWAYS keep local
+  if (localStr.startsWith('data:') || localStr.startsWith('blob:')) {
+    // If incoming cloud has completed processing and returned the uploaded server file URL (/uploads/), accept the server URL
+    if (cloudStr.includes('/uploads/')) {
+      return cloudStr;
+    }
+    return localStr;
+  }
+
+  // 2. If incoming is empty or null, preserve local
+  if (!cloudStr) {
+    return localStr;
+  }
+
+  // 3. If local has a verified uploaded image (/uploads/) and cloud returns empty or placeholder
+  const isLocalUploaded = isUploadMediaStr(localStr);
+  const isCloudUploaded = isUploadMediaStr(cloudStr);
+
+  if (isLocalUploaded && !isCloudUploaded) {
+    return localStr;
+  }
+
+  // 4. If cloud has an uploaded image, accept it
+  if (isCloudUploaded) {
+    return cloudStr;
+  }
+
+  // 5. Default fallback
+  return cloudStr || localStr;
+}
+
+export function pickBestHeroBanners(currentLocal?: string[] | null, incomingCloud?: string[] | null): string[] {
+  const localList = Array.isArray(currentLocal) ? currentLocal.filter(Boolean) : [];
+  const cloudList = Array.isArray(incomingCloud) ? incomingCloud.filter(Boolean) : [];
+
+  // 1. If local list has any in-flight data: or blob: banners, ALWAYS preserve local
+  const hasInFlight = localList.some((b) => typeof b === 'string' && (b.startsWith('data:') || b.startsWith('blob:')));
+  if (hasInFlight) {
+    const cloudHasUploads = cloudList.some((b) => typeof b === 'string' && b.includes('/uploads/'));
+    if (cloudHasUploads) {
+      return cloudList;
+    }
+    return localList;
+  }
+
+  // 2. If local has custom uploaded banners (/uploads/) and cloud only has stock unsplash or is empty
+  const hasLocalUploads = localList.some((b) => typeof b === 'string' && (b.includes('/uploads/') || b.includes('indianlalaji.com/uploads')));
+  const hasCloudUploads = cloudList.some((b) => typeof b === 'string' && (b.includes('/uploads/') || b.includes('indianlalaji.com/uploads')));
+  if (hasLocalUploads && !hasCloudUploads) {
+    return localList;
+  }
+
+  // 3. If local has banners and cloud is empty
+  if (localList.length > 0 && cloudList.length === 0) {
+    return localList;
+  }
+
+  // 4. If local has non-default custom banners and cloud only has default unsplash stock photos
+  const isLocalDefaultStock = localList.length === 0 || localList.every((b) => typeof b === 'string' && b.includes('unsplash.com'));
+  const isCloudDefaultStock = cloudList.length === 0 || cloudList.every((b) => typeof b === 'string' && b.includes('unsplash.com'));
+  if (!isLocalDefaultStock && isCloudDefaultStock) {
+    return localList;
+  }
+
+  // 5. If cloud has valid banners, use cloud
+  if (cloudList.length > 0) {
+    return cloudList;
+  }
+
+  return localList;
+}
+
+function mergeSmartLabSettingsMap(
+  currentCache: Record<string, any>,
+  incoming: Record<string, any>
+): Record<string, any> {
+  if (!currentCache || typeof currentCache !== 'object') return incoming;
+  if (!incoming || typeof incoming !== 'object') return currentCache;
+  const result: Record<string, any> = { ...incoming };
+
+  for (const [labId, curLab] of Object.entries(currentCache)) {
+    if (!curLab || typeof curLab !== 'object') continue;
+    const incLab = result[labId] || {};
+
+    const bestLogo = pickBestMediaUrl(curLab.logoUrl, incLab.logoUrl);
+    const bestFounder = pickBestMediaUrl(curLab.founderPhotoUrl, incLab.founderPhotoUrl);
+    const bestTeam = pickBestMediaUrl(curLab.teamGroupPhotoUrl, incLab.teamGroupPhotoUrl);
+    const bestFeature = pickBestMediaUrl(curLab.featureImageUrl, incLab.featureImageUrl);
+    const bestQr1 = pickBestMediaUrl(curLab.qrCode1Url, incLab.qrCode1Url);
+    const bestQr2 = pickBestMediaUrl(curLab.qrCode2Url, incLab.qrCode2Url);
+    const bestHero = pickBestHeroBanners(curLab.heroBanners, incLab.heroBanners);
+
+    const curBanners: any[] = Array.isArray(curLab.banners) ? curLab.banners : [];
+    const incBanners: any[] = Array.isArray(incLab.banners) ? incLab.banners : [];
+    let bestBanners = incBanners;
+    if (curBanners.some((b: any) => isUploadMediaStr(b?.imageUrl) || (typeof b?.imageUrl === 'string' && b.imageUrl.startsWith('data:')))) {
+      bestBanners = curBanners;
+    } else if (curBanners.length > 0 && incBanners.length === 0) {
+      bestBanners = curBanners;
+    }
+
+    result[labId] = {
+      ...curLab,
+      ...incLab,
+      logoUrl: bestLogo,
+      heroBanners: bestHero,
+      banners: bestBanners,
+      founderPhotoUrl: bestFounder,
+      teamGroupPhotoUrl: bestTeam,
+      featureImageUrl: bestFeature,
+      qrCode1Url: bestQr1,
+      qrCode2Url: bestQr2,
+    };
+  }
+
+  return result;
+}
+
+function applyNormalizedCloudCollection(colName: string, normalized: any) {
+  if (normalized === undefined || normalized === null) return;
+  let finalData = normalized;
+
+  // 1. LAB_SETTINGS: Never wipe out local uploaded images
+  if (colName === COLLECTIONS.LAB_SETTINGS) {
+    const existing = localCache[COLLECTIONS.LAB_SETTINGS] || {};
+    finalData = mergeSmartLabSettingsMap(existing, normalized);
+  } else if (colName === COLLECTIONS.DOCTORS && Array.isArray(normalized)) {
+    const existing = localCache[COLLECTIONS.DOCTORS];
+    if (Array.isArray(existing) && existing.length > 0) {
+      const existingMap = new Map(existing.map((d: any) => [d.id, d]));
+      finalData = normalized.map((cd: any) => {
+        const localDoc = existingMap.get(cd.id);
+        const bestImg = pickBestMediaUrl(localDoc?.imageUrl || (localDoc as any)?.signatureUrl, cd.imageUrl || (cd as any)?.signatureUrl);
+        return { ...cd, imageUrl: bestImg, signatureUrl: bestImg };
+      });
+    }
+  } else if (colName === COLLECTIONS.VENDOR_LABS && Array.isArray(normalized)) {
+    const existing = localCache[COLLECTIONS.VENDOR_LABS];
+    if (Array.isArray(existing) && existing.length > 0) {
+      const existingMap = new Map(existing.map((l: any) => [l.id, l]));
+      finalData = normalized.map((cl: any) => {
+        const localLab = existingMap.get(cl.id);
+        const bestLogo = pickBestMediaUrl(localLab?.logoUrl, cl.logoUrl);
+        return { ...cl, logoUrl: bestLogo };
+      });
+    }
+  }
+
+  setCachedCollection(colName, finalData);
+  notifySubscribers(colName, finalData);
+}
+
 /**
  * Checks Hostinger server for any updates made by other devices and synchronizes automatically
  */
 export async function pollHostingerServerUpdates(force: boolean = false): Promise<void> {
   if (isPollingInProgress) return;
+  // If an image upload is currently in progress or finished in the last 5 seconds, pause polling to prevent race conditions
+  if (isUploadActive() || (Date.now() - lastUploadCompletedTime < 5000)) {
+    return;
+  }
   isPollingInProgress = true;
   try {
     // 1. On initial load or explicit force refresh: fetch all collections in one fast unified request
@@ -602,8 +781,7 @@ export async function pollHostingerServerUpdates(force: boolean = false): Promis
         for (const [colName, colData] of Object.entries(fullRes.data)) {
           const normalized = normalizeCollectionData(colName, colData);
           if (normalized !== undefined && normalized !== null) {
-            setCachedCollection(colName, normalized);
-            notifySubscribers(colName, normalized);
+            applyNormalizedCloudCollection(colName, normalized);
           }
         }
         isInitialSyncDone = true;
@@ -623,8 +801,7 @@ export async function pollHostingerServerUpdates(force: boolean = false): Promis
           for (const [colName, colData] of Object.entries(fullRes.data)) {
             const normalized = normalizeCollectionData(colName, colData);
             if (normalized !== undefined && normalized !== null) {
-              setCachedCollection(colName, normalized);
-              notifySubscribers(colName, normalized);
+              applyNormalizedCloudCollection(colName, normalized);
             }
           }
         }
@@ -917,9 +1094,10 @@ export async function uploadImageToHostinger(
   labId: string = 'all',
   imageType: string = 'other'
 ): Promise<string> {
-  if (!dataUrl || !dataUrl.startsWith('data:image')) {
+  if (!dataUrl || !dataUrl.startsWith('data:')) {
     return dataUrl;
   }
+  activeUploadsInProgress++;
   try {
     // 1. Optimize image before upload to keep uploads lightweight (20KB - 80KB)
     const optimized = await optimizeDataUrl(dataUrl, {
@@ -953,6 +1131,9 @@ export async function uploadImageToHostinger(
     return finalDataUrl;
   } catch (err) {
     return dataUrl;
+  } finally {
+    activeUploadsInProgress = Math.max(0, activeUploadsInProgress - 1);
+    lastUploadCompletedTime = Date.now();
   }
 }
 
@@ -1106,6 +1287,9 @@ export async function syncLabSettingsToCloud(
 ): Promise<void> {
   try {
     let settingsMap = getCachedCollection(COLLECTIONS.LAB_SETTINGS) || {};
+    // Immediately persist optimistic local state into cache so no other read or merge sees stale media
+    settingsMap[labId] = { ...(settingsMap[labId] || {}), ...settings, labId };
+    setCachedCollection(COLLECTIONS.LAB_SETTINGS, settingsMap);
     const prev = settingsMap[labId] || {};
 
     // 1. Logo Management (Replace & Clean)
@@ -1315,8 +1499,19 @@ export function subscribeToPackages(callback: (packages: VendorPackage[]) => voi
 // -----------------------------------------------------------------------------
 export async function syncDoctorToCloud(docItem: VendorDoctor): Promise<void> {
   try {
+    const existingList = getCachedCollection(COLLECTIONS.DOCTORS) || [];
+    if (Array.isArray(existingList)) {
+      const idx = existingList.findIndex((d: any) => d.id === docItem.id);
+      if (idx !== -1) {
+        existingList[idx] = { ...existingList[idx], ...docItem };
+      } else {
+        existingList.push(docItem);
+      }
+      setCachedCollection(COLLECTIONS.DOCTORS, existingList);
+    }
+
     let cleanImage = docItem.imageUrl || (docItem as any).signatureUrl;
-    if (cleanImage && cleanImage.startsWith('data:image')) {
+    if (cleanImage && cleanImage.startsWith('data:')) {
       cleanImage = await uploadImageToHostinger(cleanImage, `doc_${docItem.id}`);
     }
 
@@ -1594,9 +1789,18 @@ export function subscribeToPortalSections(
 export async function syncVendorLabToCloud(lab: VendorLabDirectoryItem): Promise<void> {
   try {
     let cachedLabs: VendorLabDirectoryItem[] = getCachedCollection(COLLECTIONS.VENDOR_LABS) || [];
+    if (Array.isArray(cachedLabs)) {
+      const idx = cachedLabs.findIndex((l) => l.id === lab.id);
+      if (idx !== -1) {
+        cachedLabs[idx] = { ...cachedLabs[idx], ...lab };
+      } else {
+        cachedLabs.push(lab);
+      }
+      setCachedCollection(COLLECTIONS.VENDOR_LABS, cachedLabs);
+    }
     const prev = Array.isArray(cachedLabs) ? cachedLabs.find((l) => l.id === lab.id) : null;
     let cleanLogo = lab.logoUrl;
-    if (cleanLogo && cleanLogo.startsWith('data:image')) {
+    if (cleanLogo && cleanLogo.startsWith('data:')) {
       cleanLogo = await uploadImageToHostinger(cleanLogo, `lablogo_${lab.id}`, prev?.logoUrl, lab.id, 'logo');
     } else if (cleanLogo === '' && prev?.logoUrl) {
       await deleteImageFromHostinger(prev.logoUrl);
