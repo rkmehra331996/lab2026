@@ -1110,12 +1110,17 @@ export const SAMPLE_REPORT: LabReport = {
   labName: 'APEX DIAGNOSTICS & PATHOLOGY LABORATORY',
   labAddress: 'SCO 42, Green Park Avenue, Near Civil Hospital, Ludhiana, Punjab - 141001',
   labPhone: '+91 7087033009',
+  labEmail: 'care@apexdiagnostics.com',
+  labDomain: '7087033009.indianlalaji.com',
+  labTimings: 'Mon - Sun: 07:00 AM - 09:00 PM',
   nablAccreditationNo: 'MC-2849',
   pathologist: 'Dr. Rohit Sharma, MD (Pathology)',
   pathologistDegrees: 'Consultant Pathologist • Reg No: PMC-48192',
   barcode: '||||| | |||| ||| |||||| ||||| |||',
   verified: true,
   verificationHash: 'SHA256: 9b2d8e41a94f6c8d37e1b52c009a24ec',
+  clinicalImpression: 'Please correlate clinically with patient symptoms. In case of unexpected discordance, repeat testing is advised.',
+  clinicNote: 'Please correlate clinically with patient symptoms. In case of unexpected discordance, repeat testing is advised.',
   items: [
     {
       testName: 'Complete Blood Count (CBC)',

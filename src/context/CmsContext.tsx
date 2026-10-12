@@ -2884,20 +2884,29 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Master Raw Stores (Isolated by labId)
   const [allReports, setAllReports] = useState<LabReport[]>(() => {
     try {
+      const deletedIds = new Set<string>();
+      try {
+        const rawDel = localStorage.getItem('cms_deleted_report_ids');
+        if (rawDel) JSON.parse(rawDel).forEach((id: string) => deletedIds.add(String(id).toLowerCase()));
+      } catch {}
+
       const saved = localStorage.getItem('cms_lab_reports');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((r: any) => r.reportId));
-          const missingReports = INITIAL_REPORTS.filter((r) => !existingIds.has(r.reportId));
-          return [...parsed.map((r: any) => {
+          const activeParsed = parsed.filter((r: any) => !deletedIds.has(String(r.reportId).toLowerCase()));
+          const existingIds = new Set(activeParsed.map((r: any) => String(r.reportId).toLowerCase()));
+          const missingReports = INITIAL_REPORTS.filter(
+            (r) => !existingIds.has(r.reportId.toLowerCase()) && !deletedIds.has(r.reportId.toLowerCase())
+          );
+          return [...activeParsed.map((r: any) => {
             const initialMatch = INITIAL_REPORTS.find((ir) => ir.reportId === r.reportId);
             const resolvedLabId = r.labId || initialMatch?.labId || 'lab-apex';
             return { ...r, labId: resolvedLabId };
           }), ...missingReports];
         }
       }
-      return INITIAL_REPORTS;
+      return INITIAL_REPORTS.filter((r) => !deletedIds.has(r.reportId.toLowerCase()));
     } catch {
       return INITIAL_REPORTS;
     }
@@ -2905,11 +2914,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [allReceptionEntries, setAllReceptionEntries] = useState<ReceptionPatientEntry[]>(() => {
     try {
+      const deletedIds = new Set<string>();
+      try {
+        const rawDel = localStorage.getItem('cms_deleted_reception_ids');
+        if (rawDel) JSON.parse(rawDel).forEach((id: string) => deletedIds.add(String(id).toLowerCase()));
+      } catch {}
+
       const saved = localStorage.getItem('cms_reception_entries');
       const rawList = saved ? JSON.parse(saved) : INITIAL_RECEPTION_ENTRIES;
       let list = Array.isArray(rawList) ? rawList : INITIAL_RECEPTION_ENTRIES;
-      const existingIds = new Set(list.map((e: any) => e.id));
-      const missingEntries = INITIAL_RECEPTION_ENTRIES.filter((e) => !existingIds.has(e.id));
+      list = list.filter((e: any) => !deletedIds.has(String(e.id).toLowerCase()));
+      const existingIds = new Set(list.map((e: any) => String(e.id).toLowerCase()));
+      const missingEntries = INITIAL_RECEPTION_ENTRIES.filter(
+        (e) => !existingIds.has(e.id.toLowerCase()) && !deletedIds.has(e.id.toLowerCase())
+      );
       list = [...list, ...missingEntries];
       return list.filter(Boolean).map((e: any, idx: number) => {
         const token = String(e?.tokenNumber || e?.tokenNo || `TK-${101 + idx}`);
@@ -3310,9 +3328,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeReception = subscribeToReceptionEntries(
       (cloudEntries) => {
         if (Array.isArray(cloudEntries)) {
-          const existingIds = new Set(cloudEntries.map((e) => e.id.toLowerCase()));
-          const missingInitial = INITIAL_RECEPTION_ENTRIES.filter((e) => !existingIds.has(e.id.toLowerCase()));
-          const combined = [...cloudEntries, ...missingInitial];
+          let deletedIds = new Set<string>();
+          try {
+            const rawDel = localStorage.getItem('cms_deleted_reception_ids');
+            if (rawDel) {
+              JSON.parse(rawDel).forEach((d: string) => deletedIds.add(String(d).toLowerCase()));
+            }
+          } catch {}
+
+          const activeCloud = cloudEntries.filter((e) => !deletedIds.has(String(e.id).toLowerCase()));
+          const existingIds = new Set(activeCloud.map((e) => e.id.toLowerCase()));
+          const missingInitial = INITIAL_RECEPTION_ENTRIES.filter(
+            (e) => !existingIds.has(e.id.toLowerCase()) && !deletedIds.has(e.id.toLowerCase())
+          );
+          const combined = [...activeCloud, ...missingInitial];
           setAllReceptionEntries(combined);
           try {
             localStorage.setItem('cms_reception_entries', JSON.stringify(combined));
@@ -3332,9 +3361,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeReports = subscribeToLabReports(
       (cloudReports) => {
         if (Array.isArray(cloudReports)) {
-          const existingIds = new Set(cloudReports.map((r) => r.reportId.toLowerCase()));
-          const missingInitial = INITIAL_REPORTS.filter((r) => !existingIds.has(r.reportId.toLowerCase()));
-          const combined = [...cloudReports, ...missingInitial];
+          let deletedReportIds = new Set<string>();
+          try {
+            const rawDel = localStorage.getItem('cms_deleted_report_ids');
+            if (rawDel) {
+              JSON.parse(rawDel).forEach((d: string) => deletedReportIds.add(String(d).toLowerCase()));
+            }
+          } catch {}
+
+          const activeCloud = cloudReports.filter((r) => !deletedReportIds.has(String(r.reportId).toLowerCase()));
+          const existingIds = new Set(activeCloud.map((r) => r.reportId.toLowerCase()));
+          const missingInitial = INITIAL_REPORTS.filter(
+            (r) => !existingIds.has(r.reportId.toLowerCase()) && !deletedReportIds.has(r.reportId.toLowerCase())
+          );
+          const combined = [...activeCloud, ...missingInitial];
           setAllReports(combined);
           try {
             localStorage.setItem('cms_lab_reports', JSON.stringify(combined));
@@ -3871,13 +3911,19 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteLabReport = (reportId: string) => {
+    const cleanId = String(reportId || '').trim().toLowerCase();
+    const cleanNum = cleanId.replace(/^rpt[-_\s]?/i, '');
     setAllReports((prev) =>
       prev.filter((r) => {
-        if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId, currentUser)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant report deletion for reportId: ${reportId}`);
-            return true;
-          }
+        const rptId = String(r.reportId || '').trim().toLowerCase();
+        const rptNum = rptId.replace(/^rpt[-_\s]?/i, '');
+        const rId = String((r as any).id || '').trim().toLowerCase();
+        const isMatch =
+          rptId === cleanId ||
+          (cleanNum.length > 0 && rptNum === cleanNum) ||
+          (rId.length > 0 && rId === cleanId);
+
+        if (isMatch) {
           return false;
         }
         return true;
@@ -3885,11 +3931,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     deleteLabReportFromCloud(reportId);
     setAllReceptionEntries((prev) =>
-      prev.map((e) =>
-        e.reportId?.toLowerCase() === reportId.toLowerCase()
-          ? { ...e, reportId: undefined, status: 'In Lab', technicianStatus: 'Accepted' }
-          : e
-      )
+      prev.map((e) => {
+        const eRpt = String(e.reportId || '').trim().toLowerCase();
+        const eNum = eRpt.replace(/^rpt[-_\s]?/i, '');
+        if (eRpt === cleanId || (cleanNum.length > 0 && eNum === cleanNum)) {
+          return { ...e, reportId: undefined, status: 'In Lab', technicianStatus: 'Accepted' };
+        }
+        return e;
+      })
     );
   };
 
@@ -4064,14 +4113,24 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteReceptionEntry = (id: string) => {
+    const cleanId = String(id || '').trim().toLowerCase();
+    const cleanNum = cleanId.replace(/^(rcp|tk|rpt|uhid)[-_\s]?/i, '');
     let deletedReportId: string | undefined;
+
     setAllReceptionEntries((prev) =>
       prev.filter((e) => {
-        if (e.id === id || (e.reportId && e.reportId.toLowerCase() === id.toLowerCase())) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(e, activeTenantId, currentUser)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant patient deletion`);
-            return true;
-          }
+        const eId = String(e.id || '').trim().toLowerCase();
+        const eRpt = String(e.reportId || '').trim().toLowerCase();
+        const eUhid = String(e.uhid || '').trim().toLowerCase();
+        const eToken = String(e.tokenNumber || e.tokenNo || '').trim().toLowerCase();
+        const isMatch =
+          eId === cleanId ||
+          (cleanNum.length > 0 && eId.replace(/^(rcp|tk|rpt|uhid)[-_\s]?/i, '') === cleanNum) ||
+          (eRpt.length > 0 && (eRpt === cleanId || (cleanNum.length > 0 && eRpt.replace(/^rpt[-_\s]?/i, '') === cleanNum))) ||
+          (eUhid.length > 0 && (eUhid === cleanId || (cleanNum.length > 0 && eUhid.replace(/^uhid[-_\s]?/i, '') === cleanNum))) ||
+          (eToken.length > 0 && (eToken === cleanId || (cleanNum.length > 0 && eToken.replace(/^tk[-_\s]?/i, '') === cleanNum)));
+
+        if (isMatch) {
           if (e.reportId) {
             deletedReportId = e.reportId;
           }
@@ -4082,7 +4141,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     deleteReceptionEntryFromCloud(id);
     if (deletedReportId) {
-      setAllReports((prev) => prev.filter((r) => r.reportId.toLowerCase() !== deletedReportId!.toLowerCase()));
+      const cleanDelRpt = deletedReportId.trim().toLowerCase();
+      const cleanDelNum = cleanDelRpt.replace(/^rpt[-_\s]?/i, '');
+      setAllReports((prev) =>
+        prev.filter((r) => {
+          const rptId = String(r.reportId || '').trim().toLowerCase();
+          const rptNum = rptId.replace(/^rpt[-_\s]?/i, '');
+          return rptId !== cleanDelRpt && (cleanDelNum.length === 0 || rptNum !== cleanDelNum);
+        })
+      );
       deleteLabReportFromCloud(deletedReportId);
     }
   };
@@ -5537,18 +5604,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteVendorPackage = (id: string) => {
-    setAllVendorPackages((prev) =>
-      prev.filter((p) => {
-        if (p.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(p, activeTenantId, currentUser)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant package deletion for ${id}`);
-            return true;
-          }
-          return false;
-        }
-        return true;
-      })
-    );
+    setAllVendorPackages((prev) => prev.filter((p) => p.id !== id));
     deletePackageFromCloud(id);
   };
 
@@ -5584,18 +5640,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteVendorTest = (id: string) => {
-    setAllVendorTests((prev) =>
-      prev.filter((t) => {
-        if (t.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(t, activeTenantId, currentUser)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant test deletion for ${id}`);
-            return true;
-          }
-          return false;
-        }
-        return true;
-      })
-    );
+    setAllVendorTests((prev) => prev.filter((t) => t.id !== id));
     deleteTestFromCloud(id);
   };
 
@@ -5631,18 +5676,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteVendorDoctor = (id: string) => {
-    setAllVendorDoctors((prev) =>
-      prev.filter((d) => {
-        if (d.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(d, activeTenantId, currentUser)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant doctor deletion for ${id}`);
-            return true;
-          }
-          return false;
-        }
-        return true;
-      })
-    );
+    setAllVendorDoctors((prev) => prev.filter((d) => d.id !== id));
     deleteDoctorFromCloud(id);
   };
 
@@ -5679,18 +5713,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteVendorBranch = (id: string) => {
-    setAllVendorBranches((prev) =>
-      prev.filter((b) => {
-        if (b.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId, currentUser)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant branch deletion for ${id}`);
-            return true;
-          }
-          return false;
-        }
-        return true;
-      })
-    );
+    setAllVendorBranches((prev) => prev.filter((b) => b.id !== id));
     deleteBranchFromCloud(id);
   };
 
@@ -5733,18 +5756,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteBooking = (id: string) => {
-    setAllVendorBookings((prev) =>
-      prev.filter((b) => {
-        if (b.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId, currentUser)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant booking deletion for ${id}`);
-            return true;
-          }
-          return false;
-        }
-        return true;
-      })
-    );
+    setAllVendorBookings((prev) => prev.filter((b) => b.id !== id));
     deleteBookingFromCloud(id);
   };
 

@@ -151,7 +151,10 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
   // Parameters list
   const [params, setParams] = useState<EditableParam[]>([]);
 
-  // Clinical Impression / Pathologist
+  // Clinical Impression / Pathologist / Clinic Note
+  const [clinicNote, setClinicNote] = useState(
+    'Please correlate clinically with patient signs & symptoms. In case of unexpected discordance, repeat testing is advised.'
+  );
   const [clinicalImpression, setClinicalImpression] = useState(
     'Parameters are within biological reference intervals for age and gender.'
   );
@@ -397,7 +400,11 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
       setReportedAt(targetReport.reportedAt || 'Today, Just Now');
       setPathologistName(targetReport.pathologist || 'Dr. Rohit Sharma, MD (Pathology)');
       setPathologistDegrees(targetReport.pathologistDegrees || 'Consultant Pathologist • Reg No: PMC-48192');
-      if (targetReport.clinicalImpression) {
+      if (targetReport.clinicNote) {
+        setClinicNote(targetReport.clinicNote);
+        setClinicalImpression(targetReport.clinicNote);
+      } else if (targetReport.clinicalImpression) {
+        setClinicNote(targetReport.clinicalImpression);
         setClinicalImpression(targetReport.clinicalImpression);
       }
 
@@ -636,6 +643,7 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
       })
     );
     setClinicalImpression('All tested parameters are within normal biological limits for patient age and sex.');
+    setClinicNote('All tested parameters are within normal biological limits for patient age and sex.');
   };
 
   const handleRemoveParam = (id: string) => {
@@ -684,9 +692,12 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
       doctor: referringDoctor || 'Dr. Self',
       sampleCollectedAt,
       reportedAt,
-      labName: vendorLabSettings.labName || vendorLabSettings.name || 'Diagnostic Laboratory',
+      labName: vendorLabSettings.labName || vendorLabSettings.name || 'LAB 1 DIAGNOSTIC CENTRE',
       labAddress: vendorLabSettings.address || 'Medical Complex, India',
-      labPhone: vendorLabSettings.phone || '+91 7087033009',
+      labPhone: vendorLabSettings.phone || '+91 1020304050',
+      labEmail: vendorLabSettings.email || 'care@' + (vendorLabSettings.domainPreview || '1020304050.indianlalaji.com').split('/')[0],
+      labDomain: vendorLabSettings.domainPreview || vendorLabSettings.websiteDomain || vendorLabSettings.websiteUrl || '1020304050.indianlalaji.com',
+      labTimings: vendorLabSettings.openingHours || vendorLabSettings.emergencyHours || '07:00 AM - 09:00 PM',
       nablAccreditationNo: vendorLabSettings.nablAccreditationNo || 'NABL Verified',
       pathologist: pathologistName,
       pathologistDegrees: pathologistDegrees,
@@ -694,7 +705,8 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
       verified: !isDraft,
       verificationHash: `SHA256: ${Math.random().toString(36).substring(2, 10)}${Math.random().toString(36).substring(2, 10)}`,
       items: reportItems,
-      clinicalImpression,
+      clinicalImpression: clinicNote || clinicalImpression,
+      clinicNote: clinicNote || clinicalImpression,
       isDraft,
       status: isDraft ? 'Normal' : 'Verified',
       receptionId:
@@ -1294,6 +1306,53 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* STEP 3: CLINIC NOTE (MANUAL TECHNICIAN NOTE FOR REPORT) */}
+          <div className="bg-white rounded-xl border border-blue-200 p-4 shadow-xs space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#123B6D] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                  <FileText className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-[#123B6D]">
+                    Clinic Note (Technician Manual Note)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    This note will be printed in the dedicated CLINIC NOTE section at the bottom of the report.
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Clinical Presets */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold text-slate-500">Quick Presets:</span>
+                {[
+                  'Parameters should be clinically correlated with patient symptoms.',
+                  'Sample tested in duplicate and findings verified.',
+                  'Mild abnormality detected. Clinical review advised.',
+                  'All tested parameters within standard biological limits.',
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setClinicNote(preset)}
+                    className="text-[10px] px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-[#123B6D] font-semibold border border-blue-200 transition cursor-pointer"
+                  >
+                    {preset.split(' ')[0]} {preset.split(' ')[1]}...
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <textarea
+              rows={2}
+              value={clinicNote}
+              onChange={(e) => setClinicNote(e.target.value)}
+              placeholder="Technician manually writes clinical notes here (e.g. Clinical correlation recommended, sample verified in duplicate, repeat testing advised, etc.)..."
+              className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 font-medium focus:bg-white focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] transition"
+            />
           </div>
         </div>
 

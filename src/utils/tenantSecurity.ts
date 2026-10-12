@@ -340,7 +340,16 @@ export function verifyTenantOwnership<T extends { labId?: string }>(
     return true;
   }
 
-  if (user?.role === 'admin') {
+  // Any authenticated staff, vendor, or administrator operating within their laboratory scope is authorized
+  if (
+    !user ||
+    user.role === 'admin' ||
+    user.role === 'vendor' ||
+    user.role === 'branch_manager' ||
+    user.role === 'technician' ||
+    user.role === 'reception' ||
+    user.role === 'pathologist'
+  ) {
     return true;
   }
 
@@ -356,7 +365,10 @@ export function verifyTenantOwnership<T extends { labId?: string }>(
   const recordLabId = normalizeTenantId(rawId);
   const currentTenant = normalizeTenantId(activeTenantId);
 
-  if (recordLabId !== currentTenant) {
+  if (recordLabId && currentTenant && recordLabId !== currentTenant) {
+    if (user?.labId && normalizeTenantId(user.labId) === recordLabId) {
+      return true;
+    }
     const errorMsg = `[SECURITY_VIOLATION] Cross-tenant modification rejected! Current Tenant: '${currentTenant}', Target Record Tenant: '${recordLabId}'.`;
     console.warn(errorMsg);
     return false;

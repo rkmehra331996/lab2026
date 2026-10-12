@@ -1234,8 +1234,7 @@ async function deleteDocumentFromHostinger(collection: string, id: string): Prom
     const filtered = currentList.filter((it: any) => {
       const itId = it.id ? String(it.id).toLowerCase() : '';
       const itReportId = it.reportId ? String(it.reportId).toLowerCase() : '';
-      const itLabId = it.labId ? String(it.labId).toLowerCase() : '';
-      return itId !== targetIdLower && itReportId !== targetIdLower && itLabId !== targetIdLower;
+      return itId !== targetIdLower && itReportId !== targetIdLower;
     });
     setCachedCollection(collection, filtered);
     notifySubscribers(collection, filtered);

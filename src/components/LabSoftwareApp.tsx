@@ -881,9 +881,12 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
       doctor: pat.referringDoctor,
       sampleCollectedAt: 'Today, 08:30 AM',
       reportedAt: 'Today, ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      labName: vendorLabSettings.labName || vendorLabSettings.name || 'Diagnostic Laboratory',
+      labName: vendorLabSettings.labName || vendorLabSettings.name || 'LAB 1 DIAGNOSTIC CENTRE',
       labAddress: vendorLabSettings.address || 'Medical Complex, India',
-      labPhone: vendorLabSettings.phone || '+91 7087033009',
+      labPhone: vendorLabSettings.phone || '+91 1020304050',
+      labEmail: vendorLabSettings.email || 'care@' + (vendorLabSettings.domainPreview || '1020304050.indianlalaji.com').split('/')[0],
+      labDomain: vendorLabSettings.domainPreview || vendorLabSettings.websiteDomain || vendorLabSettings.websiteUrl || '1020304050.indianlalaji.com',
+      labTimings: vendorLabSettings.openingHours || vendorLabSettings.emergencyHours || '07:00 AM - 09:00 PM',
       nablAccreditationNo: vendorLabSettings.nablAccreditationNo || 'NABL Accredited',
       pathologist: 'Dr. Rohit Sharma, MD (Pathology)',
       pathologistDegrees: 'Consultant Pathologist • Reg No: PMC-48192',
@@ -891,6 +894,8 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
       verified: true,
       verificationHash: `SHA256: ${Math.random().toString(36).substring(2, 10)}${Math.random().toString(36).substring(2, 10)}`,
       items,
+      clinicalImpression: workstationImpression,
+      clinicNote: workstationImpression,
       labId: pat.labId || vendorLabSettings.labId || (activeTenantId !== 'all' ? activeTenantId : 'lab'),
     };
 
@@ -2153,41 +2158,45 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
                   </table>
                 </div>
 
-                {/* Doctor Clinical Impression */}
+                {/* Clinic Note (Technician Manual Note) */}
                 <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-800">
-                      Pathologist Clinical Interpretation & Notes:
-                    </label>
-                    <div className="flex items-center gap-1.5 text-[11px]">
-                      <span className="text-slate-500">Quick Presets:</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-wider text-[#123B6D] flex items-center gap-1.5">
+                        <span>Clinic Note (Technician Manual Note):</span>
+                      </label>
+                      <p className="text-[11px] text-slate-500">
+                        Technician manually writes Clinic Note here. This will be printed in the dedicated CLINIC NOTE section above the footer.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
+                      <span className="text-slate-500 font-bold">Quick Presets:</span>
                       <button
+                        type="button"
                         onClick={() =>
-                          setWorkstationImpression('Parameters are within biological reference intervals for age and gender.')
+                          setWorkstationImpression('Please correlate clinically with patient symptoms. In case of unexpected discordance, repeat testing is advised.')
                         }
-                        className="px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-100 font-semibold text-[10px]"
+                        className="px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-100 font-semibold text-[10px] cursor-pointer"
+                      >
+                        Clinical Correlation
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setWorkstationImpression('Sample tested in duplicate and findings verified. Routine clinical review advised.')
+                        }
+                        className="px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-100 font-semibold text-[10px] cursor-pointer"
+                      >
+                        Duplicate Verified
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setWorkstationImpression('Parameters are within standard biological reference intervals for age and gender.')
+                        }
+                        className="px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-100 font-semibold text-[10px] cursor-pointer"
                       >
                         All Normal
-                      </button>
-                      <button
-                        onClick={() =>
-                          setWorkstationImpression(
-                            'Microcytic hypochromic red blood cell picture. Suggestive of Iron Deficiency Anemia. Clinical correlation recommended.'
-                          )
-                        }
-                        className="px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-100 font-semibold text-[10px]"
-                      >
-                        Anemia
-                      </button>
-                      <button
-                        onClick={() =>
-                          setWorkstationImpression(
-                            'Impaired fasting plasma glucose / elevated HbA1c observed. Lifestyle modification and physician consult recommended.'
-                          )
-                        }
-                        className="px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-100 font-semibold text-[10px]"
-                      >
-                        Diabetes Flag
                       </button>
                     </div>
                   </div>
@@ -2196,7 +2205,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
                     value={workstationImpression}
                     onChange={(e) => setWorkstationImpression(e.target.value)}
                     className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
-                    placeholder="Enter clinical impression and doctor comments..."
+                    placeholder="Technician manually writes Clinic Note here (e.g. Please correlate clinically with patient symptoms, sample tested in duplicate, etc.)..."
                   />
                 </div>
 
@@ -2876,14 +2885,14 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
         />
       </ErrorBoundary>
 
-      {/* MODAL: NABL Report Detail & Print/WhatsApp Preview - View Report Only (No Edit, No Delete) */}
+      {/* MODAL: NABL Report Detail & Print/WhatsApp Preview */}
       {previewReport && (
         <ReportDetailModal
           report={previewReport}
           isOpen={isPreviewModalOpen}
           onClose={() => setIsPreviewModalOpen(false)}
-          onEditReport={undefined}
-          onDeleteReport={undefined}
+          onEditReport={handleEditReport}
+          onDeleteReport={handleDeleteReport}
           onOpenPatientPortal={(rptId, mob) => onViewReport(rptId, mob)}
         />
       )}

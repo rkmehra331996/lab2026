@@ -556,6 +556,9 @@ export interface LabReport {
   labName: string;
   labAddress: string;
   labPhone: string;
+  labEmail?: string;
+  labDomain?: string;
+  labTimings?: string;
   nablAccreditationNo: string;
   pathologist: string;
   pathologistDegrees: string;
@@ -568,6 +571,7 @@ export interface LabReport {
   verificationHash: string;
   isDraft?: boolean;
   clinicalImpression?: string;
+  clinicNote?: string;
   status?: 'Normal' | 'Verified' | 'Cancelled';
   cancelled?: boolean;
   cancelReason?: string;

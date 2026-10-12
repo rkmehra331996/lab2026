@@ -7,20 +7,93 @@ import {
   generateLaboratoryLogoWatermark,
 } from './reportAssets';
 
+// Helper to clean phone number digits
+function cleanPhoneNumber(raw: string): string {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (digits.length >= 10) return digits.slice(-10);
+  return raw || '1020304050';
+}
+
+// Dynamically resolve lab details from report and vendor dashboard settings
+function resolveLabDetails(report: LabReport) {
+  let email = (report.labEmail || '').trim();
+  let domain = (report.labDomain || '').trim();
+  let timings = (report.labTimings || '').trim();
+  let phone = (report.labPhone || '').trim();
+  let address = (report.labAddress || '').trim();
+  let labName = (report.labName || '').trim();
+
+  if (typeof window !== 'undefined') {
+    try {
+      const activeTenant = report.labId || (localStorage.getItem('cms_active_tenant_id') || '');
+      const rawSettingsMap = localStorage.getItem('cms_vendor_lab_settings_map');
+      const settingsMap = rawSettingsMap ? JSON.parse(rawSettingsMap) : {};
+      const activeSettings =
+        (activeTenant && settingsMap[activeTenant]) ||
+        settingsMap[report.labId || ''] ||
+        (localStorage.getItem('cms_vendor_lab_settings')
+          ? JSON.parse(localStorage.getItem('cms_vendor_lab_settings')!)
+          : null);
+
+      if (activeSettings) {
+        if (!email && activeSettings.email) email = activeSettings.email;
+        if (!domain) domain = activeSettings.domainPreview || activeSettings.websiteDomain || activeSettings.websiteUrl || '';
+        if (!timings) timings = activeSettings.openingHours || activeSettings.timings || activeSettings.bookingTiming || '';
+        if (!phone && activeSettings.phone) phone = activeSettings.phone;
+        if (!address && activeSettings.address) address = activeSettings.address;
+        if (!labName && (activeSettings.labName || activeSettings.name)) labName = activeSettings.labName || activeSettings.name;
+      }
+
+      // Check vendor labs list
+      const rawLabs = localStorage.getItem('cms_vendor_labs');
+      if (rawLabs) {
+        const labs = JSON.parse(rawLabs);
+        if (Array.isArray(labs)) {
+          const matchedLab = labs.find(
+            (l: any) =>
+              (report.labId && l.id === report.labId) ||
+              (l.name && report.labName && l.name.toLowerCase() === report.labName.toLowerCase())
+          );
+          if (matchedLab) {
+            if (!domain) domain = matchedLab.domainPreview || `${matchedLab.slug || matchedLab.id}.indianlalaji.com`;
+            if (!phone && matchedLab.phone) phone = matchedLab.phone;
+            if (!address && matchedLab.address) address = matchedLab.address;
+            if (!labName && matchedLab.name) labName = matchedLab.name;
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // Fallbacks if still blank
+  if (!labName) {
+    labName = 'LAB 1 DIAGNOSTIC CENTRE';
+  }
+  if (!email) {
+    const slug = labName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    email = `care@${slug || 'lab1diagnostics'}.com`;
+  }
+  if (!domain) {
+    domain = '1020304050.indianlalaji.com';
+  }
+  if (!timings) {
+    timings = 'Mon - Sun: 07:00 AM - 09:00 PM';
+  }
+  if (!phone) {
+    phone = '1020304050';
+  }
+  if (!address) {
+    address = 'SCO 101, Medical Enclave, Civil Road, Ludhiana - 141001';
+  }
+
+  return { email, domain, timings, phone, address, labName };
+}
+
 /**
  * Builds the canonical A4 Portrait medical diagnostic lab report PDF document
- * in strict accordance with the Labname.com Diagnostic Report A4 Portrait specification:
- *
- * 1. Top Header (15–17% Height) with Lab details, Official Booking Receipt number, and ONE QR Code ONLY.
- * 2. Clean bordered Patient Information Box (Patient Details + Report Details).
- * 3. Department / Test Sections (e.g. DEPARTMENT OF BIOCHEMISTRY & PATHOLOGY • COMPLETE BLOOD COUNT).
- * 4. Main Test Table (Investigation/Parameter, Observed Value, Unit, Bio Reference Interval, Status).
- *    - Automatic Status Logic: NORMAL, LOW, HIGH, CRITICAL, ABNORMAL, PENDING.
- * 5. Critical / Panic Lab Value Alert Box (when configured panic values occur).
- * 6. Report End Separator: — END OF REPORT —
- * 7. Signature Section (Prepared/Verified By on Left, Authorized Signatory on Right).
- * 8. Dynamic Laboratory Logo Watermark (center-aligned, very light/faded, zero impact on readability).
- * 9. Fixed Clinical Center-Aligned Footer with Lab Name and dynamic Page X of Y.
+ * with solid Navy Blue Header & Footer bars, clean white typography,
+ * right-side Report ID/UHID/QR code, unchanged patient & table sections,
+ * and a dedicated CLINIC NOTE section replacing the critical alert box.
  */
 export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF> {
   const doc = new jsPDF({
@@ -34,6 +107,9 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   const marginX = 12;
   const contentWidth = pageWidth - marginX * 2; // 186 mm
 
+  // Dynamically resolve vendor details
+  const resolved = resolveLabDetails(report);
+
   // 1. Prepare Verification URL (Single Canonical QR Code destination)
   const currentOrigin =
     typeof window !== 'undefined' && window.location.origin
@@ -45,20 +121,15 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     (report.verificationHash || 'VERIFIED').slice(0, 16)
   )}`;
 
-  // 2. Official Booking Receipt Number: e.g. "Official Booking Receipt LAB-2026-824476"
-  const rawIdDigits = (report.reportId || '').replace(/\D/g, '');
-  const receiptNumberSuffix = rawIdDigits ? rawIdDigits.slice(-6) : '824476';
-  const bookingReceiptText = `Official Booking Receipt LAB-2026-${receiptNumberSuffix}`;
-
-  // 3. Generate Assets in Parallel:
+  // 2. Generate Assets in Parallel:
   // - ONE QR Code ONLY (top header)
   // - Dynamic Diagonal Laboratory Watermark (center of page, 45° rotation, light/faded opacity)
   const [headerQrDataUrl, watermarkDataUrl] = await Promise.all([
     generateQrDataUrl(verifyUrl, { size: 320, darkColor: '#0F2744' }),
-    generateLaboratoryLogoWatermark(report.labName, report.labPhone),
+    generateLaboratoryLogoWatermark(resolved.labName, resolved.phone),
   ]);
 
-  // 4. Automatically Evaluate Parameters & Determine Exact Statuses
+  // 3. Automatically Evaluate Parameters & Determine Exact Statuses
   const evaluatedItems = (report.items || []).map((item) => {
     const evaluation = determineParameterStatus(
       item.parameter,
@@ -72,8 +143,6 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
       evaluation,
     };
   });
-
-  const criticalItems = evaluatedItems.filter((i) => i.evaluation.isCritical);
 
   // Group items by Department / Test
   interface DepartmentGroup {
@@ -127,111 +196,84 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   // (Repeated on Every Page for Multi-page Reports)
   // ==========================================
   const drawCanonicalReportHeader = (targetDoc: jsPDF): number => {
-    // --- 1. TOP HEADER (70% Left Area | 30% Right Area - Clean Letterhead - No Top Bar / No Header Logo) ---
-    const headerY = 8;
-    const leftAreaWidth = contentWidth * 0.70; // 130.2 mm
-    const rightAreaWidth = contentWidth * 0.30; // 55.8 mm
-    const rightRightEdge = pageWidth - marginX;
+    // Top Header Bar: Solid Navy Blue / Dark Blue with Clean White Text
+    const headerBarHeight = 35; // mm
+    const leftAreaWidth = contentWidth * 0.68; // ~126 mm
+    const rightRightEdge = pageWidth - marginX; // 198 mm
 
-    // Left 70% Area (Starts directly at marginX - logo removed from header):
-    let leftY = headerY;
+    // Solid Navy Blue Top Bar (Full edge-to-edge background)
+    targetDoc.setFillColor(18, 59, 109); // Solid Navy Blue
+    targetDoc.rect(0, 0, pageWidth, headerBarHeight, 'F');
 
-    // Lab Name Title (Bold, Multi-line wrapping if name is long)
-    targetDoc.setTextColor(18, 59, 109);
+    // Left Side: Lab Name, Address, Contact Details, Email (All Clean White Text)
+    let curLeftY = 7.5;
+
+    // Lab Name: Bold White
+    targetDoc.setTextColor(255, 255, 255);
     targetDoc.setFont('helvetica', 'bold');
     targetDoc.setFontSize(12.5);
-    const labDisplayName = (report.labName || 'APEX DIAGNOSTIC & CLINICAL PATHOLOGY LABORATORY').toUpperCase();
-    const labTitleLines = targetDoc.splitTextToSize(labDisplayName, leftAreaWidth - 4);
-    targetDoc.text(labTitleLines, marginX, leftY);
-    leftY += labTitleLines.length * 4.8 + 1.2;
+    const labDisplayName = (resolved.labName || report.labName || 'LAB 1 DIAGNOSTIC CENTRE').toUpperCase();
+    const labTitleLines = targetDoc.splitTextToSize(labDisplayName, leftAreaWidth);
+    targetDoc.text(labTitleLines, marginX, curLeftY);
+    curLeftY += labTitleLines.length * 4.8 + 1.2;
 
-    // Address (Wrapped cleanly within left 70% area)
+    // Address: Clean White
     targetDoc.setFont('helvetica', 'normal');
-    targetDoc.setFontSize(7.5);
-    targetDoc.setTextColor(51, 65, 85);
-    const addressText = report.labAddress || 'SCF 42-43, Sector 18-C, Central Healthcare Complex, Ludhiana';
-    const addressLines = targetDoc.splitTextToSize(addressText, leftAreaWidth - 4);
-    targetDoc.text(addressLines, marginX, leftY);
-    leftY += addressLines.length * 3.6 + 0.8;
+    targetDoc.setFontSize(7.3);
+    targetDoc.setTextColor(241, 245, 249);
+    const addressText = resolved.address || report.labAddress || 'SCO 101, Medical Enclave, Civil Road, Ludhiana - 141001';
+    const addressLines = targetDoc.splitTextToSize(addressText, leftAreaWidth);
+    targetDoc.text(addressLines, marginX, curLeftY);
+    curLeftY += addressLines.length * 3.4 + 0.8;
 
-    // Phone & WhatsApp
-    targetDoc.text(`Phone: +91 ${report.labPhone || '7087033009'} | WhatsApp: +91 7087033009`, marginX, leftY);
-    leftY += 3.8;
-
-    // Email & Website
-    targetDoc.text('Email: care@apexdiagnostics.in | Website: www.apexdiagnostics.in', marginX, leftY);
-    leftY += 3.8;
-
-    // Registration / License details (NABL / ISO / Reg)
-    targetDoc.setTextColor(15, 118, 110); // Medical Teal
-    targetDoc.setFont('helvetica', 'bold');
+    // Contact Details: Clean White
+    targetDoc.setFont('helvetica', 'normal');
     targetDoc.setFontSize(7.2);
+    targetDoc.setTextColor(255, 255, 255);
+    targetDoc.text(`Contact: +91 ${cleanPhoneNumber(resolved.phone || report.labPhone)}`, marginX, curLeftY);
+    curLeftY += 3.6;
 
-    const rawNabl = (report.nablAccreditationNo || 'MC-4821').trim();
-    const cleanedNabl = rawNabl
-      .replace(/\s*\([^)]*iso[^)]*\)/gi, '')
-      .replace(/\s*\([^)]*nabl[^)]*\)/gi, '')
-      .replace(/\s*-\s*iso.*$/i, '')
-      .trim() || 'MC-4821';
+    // Email: Clean White
+    targetDoc.text(`Email: ${resolved.email || report.labEmail || 'care@indianlalaji.com'}`, marginX, curLeftY);
+    curLeftY += 3.6;
 
-    const licenseText = `NABL Accredited: ${cleanedNabl} • ISO 15189:2022 Certified • Reg No: LAB-2026-PB84`;
-    const licenseLines = targetDoc.splitTextToSize(licenseText, leftAreaWidth - 4);
-    targetDoc.text(licenseLines, marginX, leftY);
-    leftY += licenseLines.length * 3.5;
+    // Right Side: Report ID, UHID, and QR Code only
+    let curRightY = 8.5;
 
-    // Right 30% Area:
-    // Official Booking Receipt Number + ONE QR CODE ONLY + Verification caption
-    let rightY = headerY;
+    // Report ID: Bold Clean White Text
+    targetDoc.setFont('helvetica', 'bold');
+    targetDoc.setFontSize(8.0);
+    targetDoc.setTextColor(255, 255, 255);
+    targetDoc.text(`Report ID: ${report.reportId}`, rightRightEdge, curRightY, { align: 'right' });
+    curRightY += 4.0;
 
-    // Official Booking Receipt Number (Prominent & bold)
-    targetDoc.setTextColor(18, 59, 109);
+    // UHID: Clean White Text
     targetDoc.setFont('helvetica', 'bold');
     targetDoc.setFontSize(7.5);
-    targetDoc.text(bookingReceiptText, rightRightEdge, rightY, { align: 'right' });
-    rightY += 4.2;
+    targetDoc.setTextColor(241, 245, 249);
+    targetDoc.text(`UHID: ${report.uhid || 'UHID-824476'}`, rightRightEdge, curRightY, { align: 'right' });
+    curRightY += 3.8;
 
-    // Report ID & UHID
-    targetDoc.setFont('helvetica', 'normal');
-    targetDoc.setFontSize(6.8);
-    targetDoc.setTextColor(100, 116, 139);
-    targetDoc.text(`Report ID: ${report.reportId}`, rightRightEdge, rightY, { align: 'right' });
-    rightY += 3.6;
-    targetDoc.text(`UHID: ${report.uhid || 'UHID-824476'}`, rightRightEdge, rightY, { align: 'right' });
-    rightY += 3.6;
-
-    // ONE QR Code ONLY in entire report (Right side)
-    const qrSize = 20;
-    const qrX = rightRightEdge - qrSize;
-    const qrY = rightY + 1;
+    // QR Code Container: Clean White Square with QR Code inside
+    const qrSize = 15;
+    const qrBoxW = 17;
+    const qrBoxH = 17;
+    const qrBoxX = rightRightEdge - qrBoxW;
+    const qrBoxY = curRightY + 0.5;
 
     if (headerQrDataUrl) {
       try {
         targetDoc.setFillColor(255, 255, 255);
-        targetDoc.setDrawColor(203, 213, 225);
-        targetDoc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 5.5, 1.5, 1.5, 'FD');
-        targetDoc.addImage(headerQrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize, undefined, 'FAST');
-
-        // Caption below QR: Verification prompt
-        targetDoc.setFontSize(4.6);
-        targetDoc.setFont('helvetica', 'bold');
-        targetDoc.setTextColor(15, 118, 110);
-        targetDoc.text('SCAN TO VERIFY REPORT', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+        targetDoc.roundedRect(qrBoxX, qrBoxY, qrBoxW, qrBoxH, 1.2, 1.2, 'F');
+        targetDoc.addImage(headerQrDataUrl, 'PNG', qrBoxX + 1, qrBoxY + 1, qrSize, qrSize, undefined, 'FAST');
       } catch (err) {
         console.warn('Could not render header QR code:', err);
       }
     }
 
-    const rightBottomY = qrY + qrSize + 6;
-
-    // Dynamic header bottom dividing line that accommodates whatever height is required
-    const headerBottomY = Math.max(leftY, rightBottomY) + 2.5;
-    targetDoc.setDrawColor(203, 213, 225);
-    targetDoc.setLineWidth(0.4);
-    targetDoc.line(marginX, headerBottomY, pageWidth - marginX, headerBottomY);
-
-    // --- 2. PATIENT INFORMATION BOX ---
+    // --- 2. PATIENT INFORMATION SECTION (Keep unchanged) ---
     // Clean bordered box with two columns (Patient Details | Report Details)
-    const pBoxY = headerBottomY + 3.8;
+    const pBoxY = headerBarHeight + 3.5;
     const pBoxH = 26;
     const pBoxW = contentWidth;
 
@@ -279,7 +321,7 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     targetDoc.setFont('helvetica', 'bold');
     targetDoc.setTextColor(15, 23, 42);
     targetDoc.text(report.doctor || 'Self / Dr. O. P. Sharma (MD)', c2ValX, pBoxY + 6);
-    targetDoc.text('EDTA Whole Blood / Serum', c2ValX, pBoxY + 12);
+    targetDoc.text(report.sampleType || 'EDTA Whole Blood / Serum', c2ValX, pBoxY + 12);
     targetDoc.text(report.sampleCollectedAt || report.reportedAt, c2ValX, pBoxY + 18);
     targetDoc.text(report.reportedAt, c2ValX, pBoxY + 23.5);
 
@@ -290,7 +332,7 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   const headerTotalHeight = drawCanonicalReportHeader(doc);
   let cursorY = headerTotalHeight;
 
-  // --- 3 & 4. DEPARTMENT SECTIONS & MAIN TEST TABLES (REPORT BODY) ---
+  // --- 3 & 4. DEPARTMENT SECTIONS & MAIN TEST TABLES (REPORT BODY - Keep unchanged) ---
   departmentGroups.forEach((group, gIdx) => {
     // If remaining space on current page is not enough for section header + 2 rows, break to new page
     if (cursorY > pageHeight - 50) {
@@ -329,7 +371,7 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
       startY: cursorY,
       margin: {
         top: headerTotalHeight, // Ensures subsequent pages start below the repeated header
-        bottom: 24,            // Ensures table stops before the footer
+        bottom: 22,            // Ensures table stops before the solid footer
         left: marginX,
         right: marginX,
       },
@@ -400,38 +442,42 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     cursorY = (doc.lastAutoTable?.finalY || cursorY + 20) + 4;
   });
 
-  // --- 5. CRITICAL / ABNORMAL ALERT BOX (REPORT BODY) ---
-  if (criticalItems.length > 0) {
-    if (cursorY > pageHeight - 65) {
-      doc.addPage();
-      cursorY = headerTotalHeight + 2;
-    }
+  // --- 5. CLINIC NOTE SECTION (Replaces Critical / Panic lab area) ---
+  const rawClinicNote = (report.clinicNote || report.clinicalImpression || '').trim();
+  const clinicNoteText = rawClinicNote || 'Please correlate clinically with patient symptoms. In case of unexpected discordance, repeat testing is advised.';
 
-    const alertH = 15;
-    doc.setFillColor(255, 241, 242); // Rose-50
-    doc.setDrawColor(225, 29, 72); // Rose-600
-    doc.setLineWidth(0.4);
-    doc.roundedRect(marginX, cursorY, contentWidth, alertH, 1.5, 1.5, 'FD');
-
-    // Warning Header
-    doc.setTextColor(190, 18, 60);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.text('CRITICAL / PANIC LAB VALUE ALERT:', marginX + 4, cursorY + 5);
-
-    // Standard clinical wording
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.8);
-    doc.setTextColor(136, 19, 55);
-    const alertMsg =
-      'One or more reported values require immediate clinical attention. Please correlate with clinical findings and contact the laboratory/ordering clinician as appropriate.';
-    const splitAlert = doc.splitTextToSize(alertMsg, contentWidth - 8);
-    doc.text(splitAlert, marginX + 4, cursorY + 9.5);
-
-    cursorY += alertH + 4;
+  if (cursorY > pageHeight - 65) {
+    doc.addPage();
+    cursorY = headerTotalHeight + 2;
   }
 
-  // --- 6. REPORT END SEPARATOR (REPORT BODY) ---
+  const noteLines = doc.splitTextToSize(clinicNoteText, contentWidth - 10);
+  const noteBoxHeight = Math.max(13, 8 + noteLines.length * 3.4 + 2);
+
+  doc.setFillColor(248, 250, 252); // Soft clinical slate-50
+  doc.setDrawColor(18, 59, 109); // Solid Navy Blue border
+  doc.setLineWidth(0.35);
+  doc.roundedRect(marginX, cursorY, contentWidth, noteBoxHeight, 1.2, 1.2, 'FD');
+
+  // Left Navy Blue accent indicator bar
+  doc.setFillColor(18, 59, 109);
+  doc.rect(marginX, cursorY, 2.5, noteBoxHeight, 'F');
+
+  // Header: CLINIC NOTE:
+  doc.setTextColor(18, 59, 109);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text('CLINIC NOTE:', marginX + 5, cursorY + 4.8);
+
+  // Clinic Note Content
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.8);
+  doc.setTextColor(30, 41, 59);
+  doc.text(noteLines, marginX + 5, cursorY + 8.8);
+
+  cursorY += noteBoxHeight + 3.5;
+
+  // --- 6. REPORT END SEPARATOR (Keep unchanged) ---
   if (cursorY > pageHeight - 50) {
     doc.addPage();
     cursorY = headerTotalHeight + 2;
@@ -449,13 +495,13 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
 
   cursorY += 8;
 
-  // --- 7. SIGNATURE SECTION (REPORT BODY - Lower Portion of Final Page) ---
+  // --- 7. SIGNATURE SECTION (REPORT BODY - Lower Portion of Final Page - Keep unchanged) ---
   const requiredSignHeight = 35;
-  if (cursorY > pageHeight - requiredSignHeight - 12) {
+  if (cursorY > pageHeight - requiredSignHeight - 14) {
     doc.addPage();
     cursorY = headerTotalHeight + 2;
   }
-  const signatureY = Math.max(cursorY, pageHeight - 42);
+  const signatureY = Math.max(cursorY, pageHeight - 44);
 
   // Left Signature: Prepared / Verified By
   const leftSignX = marginX + 6;
@@ -535,21 +581,38 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
       drawCanonicalReportHeader(doc);
     }
 
-    // Repeat Exact Footer on EVERY Page
-    const footerLineY = pageHeight - 9;
-    doc.setDrawColor(203, 213, 225);
-    doc.setLineWidth(0.3);
-    doc.line(marginX, footerLineY, pageWidth - marginX, footerLineY);
+    // Solid Navy Blue Footer Bar on EVERY Page
+    const footerH = 11;
+    const footerY = pageHeight - footerH;
 
-    // Footer Text: Electronic Generation Notice (Center-Aligned with Page X of Y)
-    doc.setFont('helvetica', 'normal');
+    // Background: Solid Navy Blue / Dark Blue
+    doc.setFillColor(18, 59, 109);
+    doc.rect(0, footerY, pageWidth, footerH, 'F');
+
+    // Font Color: Clean White text
+    doc.setTextColor(255, 255, 255);
+
+    // Left: Lab Operating Timings (Dynamic)
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.8);
-    doc.setTextColor(100, 116, 139);
+    const timingsText = `Timings: ${resolved.timings || 'Mon - Sun: 07:00 AM - 09:00 PM'}`;
+    doc.text(timingsText, marginX, footerY + 6.8);
 
-    const footerCenterText = totalPages > 1
-      ? `Report electronically generated by ${report.labName || 'Apex Diagnostic Laboratory'} (Page ${pageNum} of ${totalPages})`
-      : `Report electronically generated by ${report.labName || 'Apex Diagnostic Laboratory'}`;
-    doc.text(footerCenterText, pageWidth / 2, pageHeight - 4.5, { align: 'center' });
+    // Center: Page count
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(241, 245, 249);
+    const pageCenterText = totalPages > 1
+      ? `Page ${pageNum} of ${totalPages}`
+      : `Electronically Verified`;
+    doc.text(pageCenterText, pageWidth / 2, footerY + 6.8, { align: 'center' });
+
+    // Right: Lab Domain Name / Website URL (Dynamic)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.8);
+    doc.setTextColor(255, 255, 255);
+    const websiteUrl = resolved.domain || 'www.indianlalaji.com';
+    doc.text(`Website: ${websiteUrl}`, pageWidth - marginX, footerY + 6.8, { align: 'right' });
   }
 
   return doc;

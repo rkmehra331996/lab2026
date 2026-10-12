@@ -147,6 +147,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     updateReceptionStatus,
     updateReceptionEntry,
     deleteReceptionEntry,
+    deleteLabReport,
     sendEntryToTechnician,
     publishReport,
     unpublishReport,
@@ -2782,6 +2783,12 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
           onClose={() => {
             setIsViewingReportModalOpen(false);
             setViewingReport(null);
+          }}
+          onDeleteReport={(rpt) => {
+            deleteLabReport(rpt.reportId);
+            setIsViewingReportModalOpen(false);
+            setViewingReport(null);
+            showToast('🗑️ Report deleted successfully');
           }}
           onOpenPatientPortal={(reportId, mobile) => {
             if (onOpenReportPortal) {

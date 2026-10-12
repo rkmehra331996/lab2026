@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Edit3,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { LabReport } from '../types';
 import { CanonicalPdfViewer } from './CanonicalPdfViewer';
+import { useCms } from '../context/CmsContext';
 
 interface ReportDetailModalProps {
   report: LabReport | null;
@@ -25,6 +26,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   onDeleteReport,
   onOpenPatientPortal: _onOpenPatientPortal,
 }) => {
+  const { deleteLabReport } = useCms();
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
   if (!isOpen || !report) return null;
 
   const handleEdit = () => {
@@ -37,7 +41,15 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   const handleDelete = () => {
     if (onDeleteReport) {
       onDeleteReport(report);
+    } else {
+      setShowConfirmDelete(true);
     }
+  };
+
+  const handleConfirmDirectDelete = () => {
+    deleteLabReport(report.reportId);
+    setShowConfirmDelete(false);
+    onClose();
   };
 
   return (
@@ -75,17 +87,15 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               )
             )}
 
-            {onDeleteReport && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                title="Delete this report"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                <span className="hidden sm:inline">Delete</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+              title="Delete this report"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+              <span className="hidden sm:inline">Delete</span>
+            </button>
 
             <button
               type="button"
@@ -128,6 +138,44 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* CONFIRM DELETE MODAL IF DIRECTLY DELETING */}
+      {showConfirmDelete && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-rose-100 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900">Are you sure you want to delete this?</h3>
+                <p className="text-xs text-slate-500 font-medium">Diagnostic Report {report.reportId} will be permanently deleted.</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              Report for patient <strong>{report.patientName}</strong> will be permanently removed. This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmDelete(false)}
+                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
+              >
+                No
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDirectDelete}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
