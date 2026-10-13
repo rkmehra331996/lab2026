@@ -2856,14 +2856,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const savedDeleted = localStorage.getItem('cms_deleted_vendor_package_ids');
       const delSet = new Set(savedDeleted ? JSON.parse(savedDeleted) : []);
-      const saved = localStorage.getItem('cms_all_vendor_packages');
-      if (saved) {
+      const saved = localStorage.getItem('cms_all_vendor_packages') || localStorage.getItem('cms_vendor_packages');
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const existingIds = new Set(parsed.map((p: any) => p.id));
-          const missingPkgs = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => !existingIds.has(p.id) && !delSet.has(p.id));
-          return [
-            ...parsed.filter((p: any) => !delSet.has(p.id)).map((p: any) => ({
+          return parsed
+            .filter((p: any) => !delSet.has(p.id))
+            .map((p: any) => ({
               ...p,
               labId: p.labId || 'lab-apex',
               features: Array.isArray(p.features)
@@ -2872,9 +2871,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 ? p.testsIncluded
                 : [],
               testsCount: p.testsCount || p.testCount || (Array.isArray(p.features) ? p.features.length : 0),
-            })),
-            ...missingPkgs,
-          ];
+            }));
         }
       }
       return DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => !delSet.has(p.id));
@@ -2883,16 +2880,29 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
+  const [deletedDoctorIds, setDeletedDoctorIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_deleted_vendor_doctor_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [allVendorDoctors, setAllVendorDoctors] = useState<VendorDoctor[]>(() => {
     try {
+      const savedDeleted = localStorage.getItem('cms_deleted_vendor_doctor_ids');
+      const delSet = new Set(savedDeleted ? JSON.parse(savedDeleted) : []);
       const saved = localStorage.getItem('cms_all_vendor_doctors') || localStorage.getItem('cms_vendor_doctors');
       if (saved !== null) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.map((d: any) => ({ ...d, labId: d.labId || 'lab-apex' }));
+          return parsed
+            .filter((d: any) => !delSet.has(d.id))
+            .map((d: any) => ({ ...d, labId: d.labId || 'lab-apex' }));
         }
       }
-      return DEFAULT_ALL_VENDOR_DOCTORS;
+      return DEFAULT_ALL_VENDOR_DOCTORS.filter((d: any) => !delSet.has(d.id));
     } catch {
       return DEFAULT_ALL_VENDOR_DOCTORS;
     }
@@ -2917,27 +2927,32 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const matched = allVendorPackages.filter((p) => isTenantMatch(p, targetLab) && !deletedSet.has(p.id));
-    const hadDeletionsForThisLab = allVendorPackages.some((p) => isTenantMatch(p, targetLab) && deletedSet.has(p.id)) ||
-      DEFAULT_ALL_VENDOR_PACKAGES.some((p) => isTenantMatch(p, targetLab) && deletedSet.has(p.id));
+    const hadDeletionsForThisLab =
+      allVendorPackages.some((p) => isTenantMatch(p, targetLab) && deletedSet.has(p.id)) ||
+      DEFAULT_ALL_VENDOR_PACKAGES.some((p) => isTenantMatch(p, targetLab) && deletedSet.has(p.id)) ||
+      Array.from(deletedSet).some((delId) => delId.includes(targetLab));
 
     let finalPkgs: VendorPackage[] = [];
     if (matched.length > 0) {
       finalPkgs = matched;
-    } else if (hadDeletionsForThisLab) {
-      // User explicitly deleted package(s) for this lab; respect deletion and do not resurrect!
-      finalPkgs = [];
     } else {
-      const defaults = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => isTenantMatch(p, targetLab) && !deletedSet.has(p.id));
-      if (defaults.length > 0) {
-        finalPkgs = defaults;
-      } else {
-        finalPkgs = DEFAULT_ALL_VENDOR_PACKAGES.slice(0, 4)
-          .filter((p) => !deletedSet.has(`pkg-${targetLab}-${p.id}`))
-          .map((p, idx) => ({
+      // Build candidate fallback packages for this lab
+      const defaultPkgs = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => isTenantMatch(p, targetLab));
+      const fallbackBase: VendorPackage[] = defaultPkgs.length > 0
+        ? defaultPkgs
+        : DEFAULT_ALL_VENDOR_PACKAGES.slice(0, 4).map((p, idx) => ({
             ...p,
             id: `pkg-${targetLab}-${idx + 1}`,
             labId: targetLab,
           }));
+
+      const remainingFallback = fallbackBase.filter((p) => !deletedSet.has(p.id));
+
+      if (hadDeletionsForThisLab && remainingFallback.length === 0) {
+        // User explicitly deleted all packages for this lab; respect deletion and do not resurrect!
+        finalPkgs = [];
+      } else {
+        finalPkgs = remainingFallback;
       }
     }
 
@@ -2961,26 +2976,43 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [allVendorPackages, deletedPackageIds, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   const vendorDoctors = useMemo(() => {
+    const deletedSet = new Set(deletedDoctorIds);
+    let targetLab = 'lab-apex';
     if (currentUser?.role === 'admin') {
       if (superAdminTenantScope === 'all') {
-        return selectedVendorLabId
-          ? allVendorDoctors.filter((d) => isTenantMatch(d, selectedVendorLabId))
-          : allVendorDoctors;
+        if (!selectedVendorLabId || selectedVendorLabId === 'all') {
+          return allVendorDoctors.filter((d) => !deletedSet.has(d.id));
+        }
+        targetLab = selectedVendorLabId;
+      } else {
+        targetLab = superAdminTenantScope;
       }
-      return allVendorDoctors.filter((d) => isTenantMatch(d, superAdminTenantScope));
+    } else {
+      targetLab = (currentUser && currentUser.labId && currentUser.labId !== 'all')
+        ? currentUser.labId
+        : (selectedVendorLabId || 'lab-apex');
     }
-    const targetLab = (currentUser && currentUser.labId && currentUser.labId !== 'all')
-      ? currentUser.labId
-      : (selectedVendorLabId || 'lab-apex');
-    const matched = allVendorDoctors.filter((d) => isTenantMatch(d, targetLab));
+
+    const matched = allVendorDoctors.filter((d) => isTenantMatch(d, targetLab) && !deletedSet.has(d.id));
+    const hadDeletionsForThisLab =
+      allVendorDoctors.some((d) => isTenantMatch(d, targetLab) && deletedSet.has(d.id)) ||
+      DEFAULT_ALL_VENDOR_DOCTORS.some((d) => isTenantMatch(d, targetLab) && deletedSet.has(d.id)) ||
+      Array.from(deletedSet).some((delId) => delId.includes(targetLab));
+
     if (matched.length > 0) return matched;
-    // Smart Fallback: Provide clinical team stamped for this lab
-    return DEFAULT_ALL_VENDOR_DOCTORS.filter((d) => isTenantMatch(d, 'lab-apex')).map((d, idx) => ({
+    if (hadDeletionsForThisLab) {
+      // User explicitly deleted doctor(s) / team member(s) for this lab; respect deletion and do not resurrect!
+      return [];
+    }
+    // Smart Fallback: Provide clinical team stamped for this lab only if never deleted
+    return DEFAULT_ALL_VENDOR_DOCTORS.filter(
+      (d) => isTenantMatch(d, 'lab-apex') && !deletedSet.has(d.id) && !deletedSet.has(`doc-${targetLab}-${d.id}`)
+    ).map((d, idx) => ({
       ...d,
       id: `doc-${targetLab}-${idx + 1}`,
       labId: targetLab,
     }));
-  }, [allVendorDoctors, selectedVendorLabId, currentUser, superAdminTenantScope]);
+  }, [allVendorDoctors, deletedDoctorIds, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   // Real-Time Hostinger Server & MySQL Sync State
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
@@ -3397,19 +3429,27 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribePackages = subscribeToPackages(
       (cloudPackages) => {
         if (Array.isArray(cloudPackages) && cloudPackages.length > 0) {
-          const safePkgs = cloudPackages.map((p: any) => ({
-            ...p,
-            labId: p.labId || 'lab-apex',
-            features: Array.isArray(p.features)
-              ? p.features
-              : Array.isArray(p.testsIncluded)
-              ? p.testsIncluded
-              : [],
-            testsCount: p.testsCount || p.testCount || (Array.isArray(p.features) ? p.features.length : 0),
-          }));
+          let delPackageIds = new Set<string>();
+          try {
+            const rawDel = localStorage.getItem('cms_deleted_vendor_package_ids');
+            if (rawDel) JSON.parse(rawDel).forEach((d: string) => delPackageIds.add(String(d)));
+          } catch {}
+          const safePkgs = cloudPackages
+            .filter((p: any) => !delPackageIds.has(p.id))
+            .map((p: any) => ({
+              ...p,
+              labId: p.labId || 'lab-apex',
+              features: Array.isArray(p.features)
+                ? p.features
+                : Array.isArray(p.testsIncluded)
+                ? p.testsIncluded
+                : [],
+              testsCount: p.testsCount || p.testCount || (Array.isArray(p.features) ? p.features.length : 0),
+            }));
           setAllVendorPackages(safePkgs);
           try {
             localStorage.setItem('cms_vendor_packages', JSON.stringify(safePkgs));
+            localStorage.setItem('cms_all_vendor_packages', JSON.stringify(safePkgs));
           } catch {}
         }
       }
@@ -3419,19 +3459,27 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeDoctors = subscribeToDoctors(
       (cloudDoctors) => {
         if (Array.isArray(cloudDoctors) && cloudDoctors.length > 0) {
+          let delDoctorIds = new Set<string>();
+          try {
+            const rawDel = localStorage.getItem('cms_deleted_vendor_doctor_ids');
+            if (rawDel) JSON.parse(rawDel).forEach((d: string) => delDoctorIds.add(String(d)));
+          } catch {}
           setAllVendorDoctors((prev) => {
             const prevMap = new Map(prev.map((d) => [d.id, d]));
-            const merged = cloudDoctors.map((cd) => {
-              const localDoc = prevMap.get(cd.id);
-              const bestDocImg = pickBestMediaUrl(localDoc?.imageUrl || (localDoc as any)?.signatureUrl, cd.imageUrl || (cd as any)?.signatureUrl);
-              return {
-                ...cd,
-                imageUrl: bestDocImg,
-                signatureUrl: bestDocImg,
-              };
-            });
+            const merged = cloudDoctors
+              .filter((cd) => !delDoctorIds.has(cd.id))
+              .map((cd) => {
+                const localDoc = prevMap.get(cd.id);
+                const bestDocImg = pickBestMediaUrl(localDoc?.imageUrl || (localDoc as any)?.signatureUrl, cd.imageUrl || (cd as any)?.signatureUrl);
+                return {
+                  ...cd,
+                  imageUrl: bestDocImg,
+                  signatureUrl: bestDocImg,
+                };
+              });
             try {
               localStorage.setItem('cms_vendor_doctors', JSON.stringify(merged));
+              localStorage.setItem('cms_all_vendor_doctors', JSON.stringify(merged));
             } catch {}
             return merged;
           });
@@ -5853,6 +5901,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const updated = prev.filter((p) => p.id !== id);
       try {
         localStorage.setItem('cms_all_vendor_packages', JSON.stringify(updated));
+        localStorage.setItem('cms_vendor_packages', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -5902,14 +5951,21 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       labId: effectiveTenant,
       id: `doc-${Date.now()}`,
     };
-    setAllVendorDoctors((prev) => [...prev, newDoc]);
+    setAllVendorDoctors((prev) => {
+      const updated = [...prev, newDoc];
+      try {
+        localStorage.setItem('cms_all_vendor_doctors', JSON.stringify(updated));
+        localStorage.setItem('cms_vendor_doctors', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     syncDoctorToCloud(newDoc);
   };
 
   const updateVendorDoctor = (id: string, doc: Partial<VendorDoctor>) => {
     let syncedDoc: VendorDoctor | null = null;
-    setAllVendorDoctors((prev) =>
-      prev.map((d) => {
+    setAllVendorDoctors((prev) => {
+      const updated = prev.map((d) => {
         if (d.id === id) {
           if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(d, activeTenantId, currentUser)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant doctor update for ${id}`);
@@ -5919,15 +5975,34 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return syncedDoc;
         }
         return d;
-      })
-    );
+      });
+      try {
+        localStorage.setItem('cms_all_vendor_doctors', JSON.stringify(updated));
+        localStorage.setItem('cms_vendor_doctors', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     if (syncedDoc) {
       syncDoctorToCloud(syncedDoc);
     }
   };
 
   const deleteVendorDoctor = (id: string) => {
-    setAllVendorDoctors((prev) => prev.filter((d) => d.id !== id));
+    setDeletedDoctorIds((prev) => {
+      const updated = Array.from(new Set([...prev, id]));
+      try {
+        localStorage.setItem('cms_deleted_vendor_doctor_ids', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setAllVendorDoctors((prev) => {
+      const updated = prev.filter((d) => d.id !== id);
+      try {
+        localStorage.setItem('cms_all_vendor_doctors', JSON.stringify(updated));
+        localStorage.setItem('cms_vendor_doctors', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     deleteDoctorFromCloud(id);
   };
 

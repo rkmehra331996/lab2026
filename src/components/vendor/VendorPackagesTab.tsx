@@ -933,8 +933,14 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
                         {/* 2. Delete Action */}
                         <button
                           type="button"
-                          onClick={() => handleRequestDelete(pkg)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRequestDelete(pkg);
+                          }}
                           className="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50/50 hover:bg-rose-100/70 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                          title="Delete Package"
+                          aria-label={`Delete ${pkg.name}`}
                         >
                           <Trash2 className="w-3.5 h-3.5 text-rose-700" />
                           <span>Delete</span>
@@ -1026,9 +1032,14 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleRequestDelete(pkg)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleRequestDelete(pkg);
+                                }}
                                 className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-700 font-bold transition cursor-pointer"
                                 title="Delete Package"
+                                aria-label={`Delete ${pkg.name}`}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -1193,7 +1204,7 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
       {/* DELETE CONFIRMATION MODAL (Safe for iframe - No window.confirm) */}
       {/* ========================================================================= */}
       {packageToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-xs">
             <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 mx-auto mb-3">
               <AlertTriangle className="w-6 h-6" />
