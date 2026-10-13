@@ -6635,27 +6635,25 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Vendor Lab Directory Management
   const addVendorLab = (vendor: Omit<VendorLabDirectoryItem, 'id'>): VendorLabDirectoryItem => {
-    // New labs always start in Draft mode until Super Admin publishes/approves
-    const isExplicitActive = vendor.status === 'Active' && vendor.isWebsiteApproved === true;
-    const initialStatus: VendorStatus = isExplicitActive ? 'Active' : 'Draft';
+    // Strict Business Rule: Lab create hone ke baad ALWAYS Draft me rahegi jab tak Super Admin approve nahi karta
     const randomSuffix = Math.random().toString(36).slice(2, 7);
     const newLabId = (vendor as any).id || `lab-${Date.now()}-${randomSuffix}`;
     const newLab: VendorLabDirectoryItem = {
       ...vendor,
       id: newLabId,
       logoUrl: vendor.logoUrl || '',
-      status: initialStatus,
-      isWebsiteApproved: isExplicitActive,
-      badge: isExplicitActive ? (vendor.badge || 'Verified Lab') : 'Draft - Pending Admin Approval',
+      status: 'Draft',
+      isWebsiteApproved: false,
+      badge: 'Draft - Pending Admin Approval',
     };
     setVendorLabsList((prev) => [newLab, ...prev]);
     syncVendorLabToCloud(newLab);
 
-    // Ensure settings map entry exists for this lab and is synced with draft/approved state
+    // Ensure settings map entry exists for this lab and is strictly initialized in Draft mode
     setVendorLabSettingsMap((prev) => {
       const defaultSettings = buildDefaultSettingsForLab(newLab);
-      defaultSettings.status = initialStatus;
-      defaultSettings.isWebsiteApproved = isExplicitActive;
+      defaultSettings.status = 'Draft';
+      defaultSettings.isWebsiteApproved = false;
       syncLabSettingsToCloud(newLabId, defaultSettings);
       return {
         ...prev,
@@ -7018,6 +7016,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 2. Build and store lab settings
     const settings = buildDefaultSettingsForLab(newLab);
+    settings.status = 'Draft';
+    settings.isWebsiteApproved = false;
     if (payload.address) settings.address = payload.address;
     if (payload.email) settings.email = payload.email;
     if (cleanPhone) settings.phone = cleanPhone;

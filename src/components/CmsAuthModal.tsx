@@ -826,7 +826,16 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
               </div>
 
               {/* Login Form for Selected Lab Role */}
-              <form onSubmit={handleLabWebsiteLogin} className="space-y-3.5 pt-1">
+              <form
+                onSubmit={handleLabWebsiteLogin}
+                className="space-y-3.5 pt-1"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-dashlane-ignore="true"
+                data-form-type="other"
+              >
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                     {labRole === 'vendor'
@@ -839,7 +848,17 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
+                      name="lab_user_identity"
                       required
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-dashlane-ignore="true"
+                      data-form-type="other"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
                       value={emailOrPhone}
                       onChange={(e) => setEmailOrPhone(e.target.value)}
                       placeholder={
@@ -862,7 +881,17 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type={showPassword ? 'text' : 'password'}
+                      name="lab_secure_key"
                       required
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-dashlane-ignore="true"
+                      data-form-type="other"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter password"
@@ -890,7 +919,17 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     </label>
                     <input
                       type="password"
+                      name="lab_security_pin"
                       maxLength={6}
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-dashlane-ignore="true"
+                      data-form-type="other"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
                       value={pinCode}
                       onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
                       placeholder="Enter 6-digit security PIN"
@@ -1043,7 +1082,16 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
               </div>
 
               {/* Login Form for SuperAdmin / Admin (labowner) */}
-              <form onSubmit={handleMainWebsiteLogin} className="space-y-3.5 pt-1">
+              <form
+                onSubmit={handleMainWebsiteLogin}
+                className="space-y-3.5 pt-1"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-dashlane-ignore="true"
+                data-form-type="other"
+              >
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                     {mainRole === 'super_admin'
@@ -1054,8 +1102,17 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
+                      name="sa_user_identity"
                       required
-                      autoComplete="off"
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-dashlane-ignore="true"
+                      data-form-type="other"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
                       value={emailOrPhone}
                       onChange={(e) => setEmailOrPhone(e.target.value)}
                       placeholder={
@@ -1076,8 +1133,17 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type={showPassword ? 'text' : 'password'}
+                      name="sa_secure_key"
                       required
-                      autoComplete="off"
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-dashlane-ignore="true"
+                      data-form-type="other"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder={mainRole === 'super_admin' ? 'Enter Super Admin password' : 'Enter password'}
@@ -1105,8 +1171,17 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                   </label>
                   <input
                     type="password"
+                    name="sa_security_pin"
                     maxLength={6}
-                    autoComplete="off"
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-dashlane-ignore="true"
+                    data-form-type="other"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     value={pinCode}
                     onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
                     placeholder="Enter 6-digit security PIN"

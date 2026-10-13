@@ -1291,34 +1291,47 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                   <label className="block font-extrabold text-slate-900 text-xs">
                     Current Vendor Status *
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
-                      formState.status === 'Draft' ? 'bg-amber-50 border-amber-500 text-amber-950 font-bold' : 'bg-white border-slate-200'
-                    }`}>
-                      <input
-                        type="radio"
-                        name="vendorStatus"
-                        value="Draft"
-                        checked={formState.status === 'Draft'}
-                        onChange={() => setFormState({ ...formState, status: 'Draft' })}
-                        className="text-amber-600"
-                      />
-                      <span>⏳ Draft (Website Hidden - Pending Admin Approval)</span>
-                    </label>
+                  {!editingVendor ? (
+                    <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 flex items-center gap-2.5">
+                      <Clock className="w-5 h-5 text-amber-600 shrink-0" />
+                      <div>
+                        <strong className="block font-extrabold text-amber-950 text-xs">
+                          ⏳ Draft Mode (Pending Super Admin Approval)
+                        </strong>
+                        <span className="text-[11px] text-amber-900/90 leading-relaxed block mt-0.5">
+                          Nayi lab create hone ke baad draft me rahegi jab tak Super Admin approval nahi karta. Create hone ke baad aap Admin panel se ise kabhi bhi &quot;Approve & Publish Live&quot; kar sakte hain.
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
+                        formState.status === 'Draft' ? 'bg-amber-50 border-amber-500 text-amber-950 font-bold' : 'bg-white border-slate-200'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="vendorStatus"
+                          value="Draft"
+                          checked={formState.status === 'Draft'}
+                          onChange={() => setFormState({ ...formState, status: 'Draft' })}
+                          className="text-amber-600"
+                        />
+                        <span>⏳ Draft (Website Hidden - Pending Admin Approval)</span>
+                      </label>
 
-                    <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
-                      formState.status === 'Active' ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold' : 'bg-white border-slate-200'
-                    }`}>
-                      <input
-                        type="radio"
-                        name="vendorStatus"
-                        value="Active"
-                        checked={formState.status === 'Active'}
-                        onChange={() => setFormState({ ...formState, status: 'Active' })}
-                        className="text-emerald-600"
-                      />
-                      <span>✅ Active (Approved & Website LIVE)</span>
-                    </label>
+                      <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
+                        formState.status === 'Active' ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold' : 'bg-white border-slate-200'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="vendorStatus"
+                          value="Active"
+                          checked={formState.status === 'Active'}
+                          onChange={() => setFormState({ ...formState, status: 'Active' })}
+                          className="text-emerald-600"
+                        />
+                        <span>✅ Active (Approved & Website LIVE)</span>
+                      </label>
 
                     <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
                       formState.status === 'Processing due to payment confirmation' ? 'bg-amber-50 border-amber-500 text-amber-950 font-bold' : 'bg-white border-slate-200'
@@ -1362,6 +1375,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                       <span>⛔ Suspended (Temporarily Deactivated)</span>
                     </label>
                   </div>
+                  )}
                 </div>
 
                 {/* Subscription & Payment Section */}
