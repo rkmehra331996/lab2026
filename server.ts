@@ -720,15 +720,27 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
         const targetId = id || data?.id || data?.reportId;
         if (targetId) {
           const targetLower = String(targetId).toLowerCase();
+          const targetNum = targetLower.replace(/^(rcp|tk|rpt|uhid)[-_\s]?/i, '');
           for (const k of targetKeys) {
             const currentArr = Array.isArray(store[k]) ? store[k] : [];
             const isLabCol = k === 'vendor_labs' || k === 'vendorLabs';
-            store[k] = currentArr.filter((item: any) => {
-              const itId = item.id ? String(item.id).toLowerCase() : '';
-              const itReportId = item.reportId ? String(item.reportId).toLowerCase() : '';
-              const itLabId = item.labId ? String(item.labId).toLowerCase() : '';
-              return itId !== targetLower && itReportId !== targetLower && (isLabCol ? itLabId !== targetLower : true);
-            });
+            if (Array.isArray(store[k])) {
+              store[k] = currentArr.filter((item: any) => {
+                const itId = item.id ? String(item.id).toLowerCase() : '';
+                const itReportId = item.reportId ? String(item.reportId).toLowerCase() : '';
+                const itLabId = item.labId ? String(item.labId).toLowerCase() : '';
+                const itToken = item.tokenNumber || item.tokenNo ? String(item.tokenNumber || item.tokenNo).toLowerCase() : '';
+                const itUhid = item.uhid ? String(item.uhid).toLowerCase() : '';
+                const matchId = itId === targetLower || (targetNum.length > 0 && itId.replace(/^(rcp|tk|rpt|uhid)[-_\s]?/i, '') === targetNum);
+                const matchReportId = itReportId === targetLower || (targetNum.length > 0 && itReportId.replace(/^(rcp|tk|rpt|uhid)[-_\s]?/i, '') === targetNum);
+                const matchToken = itToken === targetLower || (targetNum.length > 0 && itToken.replace(/^(rcp|tk|rpt|uhid)[-_\s]?/i, '') === targetNum);
+                const matchUhid = itUhid === targetLower || (targetNum.length > 0 && itUhid.replace(/^(rcp|tk|rpt|uhid)[-_\s]?/i, '') === targetNum);
+                return !matchId && !matchReportId && !matchToken && !matchUhid && (isLabCol ? itLabId !== targetLower : true);
+              });
+            } else if (typeof store[k] === 'object' && store[k] !== null) {
+              delete store[k][targetId];
+              delete store[k][targetLower];
+            }
           }
         }
       } else {

@@ -3332,14 +3332,41 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           try {
             const rawDel = localStorage.getItem('cms_deleted_reception_ids');
             if (rawDel) {
-              JSON.parse(rawDel).forEach((d: string) => deletedIds.add(String(d).toLowerCase()));
+              JSON.parse(rawDel).forEach((d: string) => {
+                const s = String(d).toLowerCase().trim();
+                deletedIds.add(s);
+                const n = s.replace(/^(rcp|tk|rpt|uhid)[-_\s]?/i, '');
+                if (n) {
+                  deletedIds.add(n);
+                  deletedIds.add(`rcp-${n}`);
+                  deletedIds.add(`tk-${n}`);
+                }
+              });
             }
           } catch {}
 
-          const activeCloud = cloudEntries.filter((e) => !deletedIds.has(String(e.id).toLowerCase()));
+          const isReceptionDeleted = (e: any) => {
+            const id = String(e.id || '').toLowerCase().trim();
+            const rpt = String(e.reportId || '').toLowerCase().trim();
+            const uhid = String(e.uhid || '').toLowerCase().trim();
+            const tk = String(e.tokenNumber || e.tokenNo || '').toLowerCase().trim();
+            const idNum = id.replace(/^(rcp|tk|rpt|uhid)[-_\s]?/i, '');
+            const rptNum = rpt.replace(/^rpt[-_\s]?/i, '');
+            const uhidNum = uhid.replace(/^uhid[-_\s]?/i, '');
+            const tkNum = tk.replace(/^tk[-_\s]?/i, '');
+            return (
+              deletedIds.has(id) ||
+              (idNum.length > 0 && deletedIds.has(idNum)) ||
+              (rpt.length > 0 && (deletedIds.has(rpt) || (rptNum.length > 0 && deletedIds.has(rptNum)))) ||
+              (uhid.length > 0 && (deletedIds.has(uhid) || (uhidNum.length > 0 && deletedIds.has(uhidNum)))) ||
+              (tk.length > 0 && (deletedIds.has(tk) || (tkNum.length > 0 && deletedIds.has(tkNum))))
+            );
+          };
+
+          const activeCloud = cloudEntries.filter((e) => !isReceptionDeleted(e));
           const existingIds = new Set(activeCloud.map((e) => e.id.toLowerCase()));
           const missingInitial = INITIAL_RECEPTION_ENTRIES.filter(
-            (e) => !existingIds.has(e.id.toLowerCase()) && !deletedIds.has(e.id.toLowerCase())
+            (e) => !existingIds.has(e.id.toLowerCase()) && !isReceptionDeleted(e)
           );
           const combined = [...activeCloud, ...missingInitial];
           setAllReceptionEntries(combined);
@@ -3365,14 +3392,28 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           try {
             const rawDel = localStorage.getItem('cms_deleted_report_ids');
             if (rawDel) {
-              JSON.parse(rawDel).forEach((d: string) => deletedReportIds.add(String(d).toLowerCase()));
+              JSON.parse(rawDel).forEach((d: string) => {
+                const s = String(d).toLowerCase().trim();
+                deletedReportIds.add(s);
+                const n = s.replace(/^rpt[-_\s]?/i, '');
+                if (n) {
+                  deletedReportIds.add(n);
+                  deletedReportIds.add(`rpt-${n}`);
+                }
+              });
             }
           } catch {}
 
-          const activeCloud = cloudReports.filter((r) => !deletedReportIds.has(String(r.reportId).toLowerCase()));
+          const isReportDeleted = (r: any) => {
+            const rptId = String(r.reportId || '').toLowerCase().trim();
+            const rptNum = rptId.replace(/^rpt[-_\s]?/i, '');
+            return deletedReportIds.has(rptId) || (rptNum.length > 0 && deletedReportIds.has(rptNum));
+          };
+
+          const activeCloud = cloudReports.filter((r) => !isReportDeleted(r));
           const existingIds = new Set(activeCloud.map((r) => r.reportId.toLowerCase()));
           const missingInitial = INITIAL_REPORTS.filter(
-            (r) => !existingIds.has(r.reportId.toLowerCase()) && !deletedReportIds.has(r.reportId.toLowerCase())
+            (r) => !existingIds.has(r.reportId.toLowerCase()) && !isReportDeleted(r)
           );
           const combined = [...activeCloud, ...missingInitial];
           setAllReports(combined);
@@ -3913,8 +3954,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteLabReport = (reportId: string) => {
     const cleanId = String(reportId || '').trim().toLowerCase();
     const cleanNum = cleanId.replace(/^rpt[-_\s]?/i, '');
-    setAllReports((prev) =>
-      prev.filter((r) => {
+    let remainingReports: LabReport[] = [];
+    setAllReports((prev) => {
+      remainingReports = prev.filter((r) => {
         const rptId = String(r.reportId || '').trim().toLowerCase();
         const rptNum = rptId.replace(/^rpt[-_\s]?/i, '');
         const rId = String((r as any).id || '').trim().toLowerCase();
@@ -3927,19 +3969,38 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return false;
         }
         return true;
-      })
-    );
+      });
+      return remainingReports;
+    });
+
+    try {
+      localStorage.setItem('cms_lab_reports', JSON.stringify(remainingReports));
+      const rawDel = localStorage.getItem('cms_deleted_report_ids');
+      const curList: string[] = rawDel ? JSON.parse(rawDel) : [];
+      const set = new Set(curList.map((x) => String(x).toLowerCase()));
+      set.add(cleanId);
+      if (cleanNum) {
+        set.add(cleanNum);
+        set.add(`rpt-${cleanNum}`);
+      }
+      localStorage.setItem('cms_deleted_report_ids', JSON.stringify(Array.from(set)));
+    } catch {}
+
     deleteLabReportFromCloud(reportId);
-    setAllReceptionEntries((prev) =>
-      prev.map((e) => {
+    setAllReceptionEntries((prev) => {
+      const mapped = prev.map((e) => {
         const eRpt = String(e.reportId || '').trim().toLowerCase();
         const eNum = eRpt.replace(/^rpt[-_\s]?/i, '');
         if (eRpt === cleanId || (cleanNum.length > 0 && eNum === cleanNum)) {
-          return { ...e, reportId: undefined, status: 'In Lab', technicianStatus: 'Accepted' };
+          return { ...e, reportId: undefined, status: 'In Lab' as const, technicianStatus: 'Accepted' as const };
         }
         return e;
-      })
-    );
+      });
+      try {
+        localStorage.setItem('cms_reception_entries', JSON.stringify(mapped));
+      } catch {}
+      return mapped;
+    });
   };
 
   const cancelLabReport = (reportId: string, reason: string, cancelledBy: string = 'Lab Technician') => {
@@ -4116,9 +4177,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const cleanId = String(id || '').trim().toLowerCase();
     const cleanNum = cleanId.replace(/^(rcp|tk|rpt|uhid)[-_\s]?/i, '');
     let deletedReportId: string | undefined;
+    const deletedEntryIds: string[] = [cleanId];
+    if (cleanNum) {
+      deletedEntryIds.push(cleanNum);
+      deletedEntryIds.push(`rcp-${cleanNum}`);
+      deletedEntryIds.push(`tk-${cleanNum}`);
+    }
 
-    setAllReceptionEntries((prev) =>
-      prev.filter((e) => {
+    let remainingReceptionEntries: ReceptionPatientEntry[] = [];
+    setAllReceptionEntries((prev) => {
+      remainingReceptionEntries = prev.filter((e) => {
         const eId = String(e.id || '').trim().toLowerCase();
         const eRpt = String(e.reportId || '').trim().toLowerCase();
         const eUhid = String(e.uhid || '').trim().toLowerCase();
@@ -4131,25 +4199,56 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           (eToken.length > 0 && (eToken === cleanId || (cleanNum.length > 0 && eToken.replace(/^tk[-_\s]?/i, '') === cleanNum)));
 
         if (isMatch) {
+          if (e.id) deletedEntryIds.push(String(e.id).toLowerCase());
           if (e.reportId) {
             deletedReportId = e.reportId;
+            deletedEntryIds.push(String(e.reportId).toLowerCase());
           }
+          if (e.uhid) deletedEntryIds.push(String(e.uhid).toLowerCase());
+          if (e.tokenNumber) deletedEntryIds.push(String(e.tokenNumber).toLowerCase());
+          if (e.tokenNo) deletedEntryIds.push(String(e.tokenNo).toLowerCase());
           return false;
         }
         return true;
-      })
-    );
+      });
+      return remainingReceptionEntries;
+    });
+
+    try {
+      localStorage.setItem('cms_reception_entries', JSON.stringify(remainingReceptionEntries));
+      const rawDel = localStorage.getItem('cms_deleted_reception_ids');
+      const curList: string[] = rawDel ? JSON.parse(rawDel) : [];
+      const set = new Set(curList.map((x) => String(x).toLowerCase()));
+      deletedEntryIds.forEach((d) => set.add(d.toLowerCase()));
+      localStorage.setItem('cms_deleted_reception_ids', JSON.stringify(Array.from(set)));
+    } catch {}
+
     deleteReceptionEntryFromCloud(id);
+
     if (deletedReportId) {
       const cleanDelRpt = deletedReportId.trim().toLowerCase();
       const cleanDelNum = cleanDelRpt.replace(/^rpt[-_\s]?/i, '');
-      setAllReports((prev) =>
-        prev.filter((r) => {
+      let remainingReports: LabReport[] = [];
+      setAllReports((prev) => {
+        remainingReports = prev.filter((r) => {
           const rptId = String(r.reportId || '').trim().toLowerCase();
           const rptNum = rptId.replace(/^rpt[-_\s]?/i, '');
           return rptId !== cleanDelRpt && (cleanDelNum.length === 0 || rptNum !== cleanDelNum);
-        })
-      );
+        });
+        return remainingReports;
+      });
+      try {
+        localStorage.setItem('cms_lab_reports', JSON.stringify(remainingReports));
+        const rawDelRpt = localStorage.getItem('cms_deleted_report_ids');
+        const curRptList: string[] = rawDelRpt ? JSON.parse(rawDelRpt) : [];
+        const rptSet = new Set(curRptList.map((x) => String(x).toLowerCase()));
+        rptSet.add(cleanDelRpt);
+        if (cleanDelNum) {
+          rptSet.add(cleanDelNum);
+          rptSet.add(`rpt-${cleanDelNum}`);
+        }
+        localStorage.setItem('cms_deleted_report_ids', JSON.stringify(Array.from(rptSet)));
+      } catch {}
       deleteLabReportFromCloud(deletedReportId);
     }
   };
@@ -5523,6 +5622,21 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     if (updatedPayload) {
       syncLabSettingsToCloud(targetLabId, updatedPayload);
+      if (newSettings.websiteDomain !== undefined || newSettings.domainPreview !== undefined) {
+        setVendorLabsList((prevLabs) =>
+          prevLabs.map((lab) => {
+            if (lab.id === targetLabId) {
+              const dom = newSettings.domainPreview || newSettings.websiteDomain || lab.domainPreview;
+              return {
+                ...lab,
+                domainPreview: dom,
+                websiteDomain: newSettings.websiteDomain !== undefined ? newSettings.websiteDomain : (lab as any).websiteDomain,
+              };
+            }
+            return lab;
+          })
+        );
+      }
     }
   };
 

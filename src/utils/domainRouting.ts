@@ -3,7 +3,6 @@ import { AppView } from '../types';
 export interface DomainRouteResolution {
   view: AppView;
   targetLab?: string;
-  targetPost?: string;
   isPlatformSubdomain?: boolean;
   isExplicitMainPlatform?: boolean;
 }
@@ -19,7 +18,6 @@ const VALID_VIEWS: AppView[] = [
   'website',
   'patient_portal',
   'lab_app',
-  'seo_post',
 ];
 
 const RESERVED_PATH_SEGMENTS = [
@@ -46,10 +44,6 @@ const RESERVED_PATH_SEGMENTS = [
   'website',
   'pricing',
   'demo',
-  'blog',
-  'post',
-  'posts',
-  'article',
 ];
 
 function findMatchingLabId(
@@ -123,41 +117,6 @@ export function resolveAppRoute(
   const shopParam = params.get('shop');
   const effectivePath = pathname !== undefined ? pathname : (typeof window !== 'undefined' ? window.location.pathname : '');
   const effectiveHash = hash !== undefined ? hash : (typeof window !== 'undefined' ? window.location.hash : '');
-
-  // 0a. Public SEO Blog Post URL Pattern: /blog/:slug, /post/:slug, /posts/:slug, /article/:slug
-  const postPathMatch = effectivePath.match(/^\/(?:blog|post|posts|article)\/([^/?#]+)/i);
-  if (postPathMatch && postPathMatch[1]) {
-    const rawSlug = decodeURIComponent(postPathMatch[1]).trim();
-    return {
-      view: 'seo_post',
-      targetPost: rawSlug,
-      isExplicitMainPlatform: true,
-    };
-  }
-
-  // 0a-hash. Hash-based Blog URL Pattern: #/blog/:slug or #/post/:slug
-  if (effectiveHash) {
-    const cleanHash = effectiveHash.replace(/^#\/?/, '/');
-    const hashPostMatch = cleanHash.match(/^\/?(?:blog|post|posts|article)\/([^/?#]+)/i);
-    if (hashPostMatch && hashPostMatch[1]) {
-      const rawSlug = decodeURIComponent(hashPostMatch[1]).trim();
-      return {
-        view: 'seo_post',
-        targetPost: rawSlug,
-        isExplicitMainPlatform: true,
-      };
-    }
-  }
-
-  // 0a-param. Direct Query Param: ?post=slug or ?blog=slug or ?article=slug
-  const postParam = params.get('post') || params.get('blog') || params.get('article');
-  if (postParam) {
-    return {
-      view: 'seo_post',
-      targetPost: decodeURIComponent(postParam).trim(),
-      isExplicitMainPlatform: true,
-    };
-  }
 
   // 0. Primary Vendor Shop / Lab URL Pattern: /shop/:id, /lab/:id, /labs/:id, /vendor/:id, /v/:id
   const pathPrefixMatch = effectivePath.match(/^\/(?:shop|lab|labs|vendor|v)\/([^/?#]+)/i);
@@ -323,7 +282,17 @@ export function resolveAppRoute(
     if (vendorLabsList && vendorLabsList.length > 0) {
       const matchedLab = vendorLabsList.find((l) => {
         const dp = (l.domainPreview || '').toLowerCase().trim();
-        return dp === cleanHost || dp.replace(/^www\./, '') === cleanHost.replace(/^www\./, '');
+        const wd = ((l as any).websiteDomain || '').toLowerCase().trim();
+        const cd = ((l as any).customDomain || '').toLowerCase().trim();
+        const ch = cleanHost.replace(/^www\./, '');
+        return (
+          dp === cleanHost ||
+          (dp.length > 0 && dp.replace(/^www\./, '') === ch) ||
+          wd === cleanHost ||
+          (wd.length > 0 && wd.replace(/^www\./, '') === ch) ||
+          cd === cleanHost ||
+          (cd.length > 0 && cd.replace(/^www\./, '') === ch)
+        );
       });
       if (matchedLab) {
         return {

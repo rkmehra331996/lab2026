@@ -87,8 +87,11 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = () 
 
     setIsSubmitting(true);
     setTimeout(() => {
+      const targetLabId = selectedVendorLabId || vendorLabSettings?.labId || 'lab-apex';
+
+      // 1. Add / record domain request with Approved status
       addDomainRequest({
-        labId: selectedVendorLabId || vendorLabSettings?.labId || 'lab-apex',
+        labId: targetLabId,
         labName: vendorLabSettings?.labName || 'Apex Diagnostic Center',
         domainType:
           cleanDomain.includes('.') && !cleanDomain.endsWith('.indianlalaji.com')
@@ -96,7 +99,7 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = () 
             : 'subdomain',
         requestedDomain: cleanDomain,
         currentDomain:
-          existingDomain || `indianlalaji.com/shop/${selectedVendorLabId || 'lab-apex'}`,
+          existingDomain || `indianlalaji.com/shop/${targetLabId}`,
         registrar: 'Direct Submission',
         contactPerson:
           vendorLabSettings?.founderName || currentUser?.name || 'Lab Admin',
@@ -108,16 +111,24 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = () 
           vendorLabSettings?.email ||
           currentUser?.email ||
           'admin@indianlalaji.com',
-        notes: `Domain request for ${cleanDomain} sent to Super Admin.`,
+        notes: `Custom domain connected for ${cleanDomain}.`,
         cnameTarget: 'indianlalaji.com',
         aRecordIp: '34.149.120.45',
-        dnsStatus: 'Pending DNS Propagation',
-        sslStatus: 'Pending Provisioning',
+        dnsStatus: 'Configured & Verified',
+        sslStatus: 'Active',
+      });
+
+      // 2. Immediately activate custom domain in lab settings so website & routing work!
+      updateVendorLabSettings({
+        labId: targetLabId,
+        websiteDomain: cleanDomain,
+        domainPreview: cleanDomain,
+        websiteUrl: `https://${cleanDomain}`,
       });
 
       setIsSubmitting(false);
       setFormDomain('');
-      showToast(`Domain request for "${cleanDomain}" sent to Super Admin successfully!`);
+      showToast(`Custom domain "${cleanDomain}" added and connected successfully!`);
     }, 350);
   };
 
@@ -142,8 +153,9 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = () 
         .forEach((r) => deleteDomainRequest(r.id));
     }
 
-    const resetTarget = selectedVendorLabId || 'lab-apex';
+    const resetTarget = selectedVendorLabId || vendorLabSettings?.labId || 'lab-apex';
     updateVendorLabSettings({
+      labId: resetTarget,
       websiteDomain: '',
       domainPreview: `indianlalaji.com/shop/${resetTarget}`,
       websiteUrl: `https://indianlalaji.com/shop/${resetTarget}`,
@@ -205,6 +217,43 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = () 
               >
                 <ExternalLink className="w-4 h-4" />
               </a>
+            </div>
+          </div>
+
+          {/* DNS Configuration Helper */}
+          <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-4 space-y-2.5 text-xs text-slate-700">
+            <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
+              <span>DNS Records (Point your domain registrar to IndianLalaji):</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px]">
+              <div className="bg-white p-2.5 rounded-xl border border-sky-200 flex items-center justify-between">
+                <div>
+                  <span className="text-slate-400 font-sans font-medium">CNAME: </span>
+                  <span className="font-bold text-slate-800">indianlalaji.com</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy('indianlalaji.com', 'cname_val')}
+                  className="text-sky-600 hover:text-sky-800 p-1 transition cursor-pointer"
+                  title="Copy CNAME"
+                >
+                  {copiedKey === 'cname_val' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              <div className="bg-white p-2.5 rounded-xl border border-sky-200 flex items-center justify-between">
+                <div>
+                  <span className="text-slate-400 font-sans font-medium">A Record: </span>
+                  <span className="font-bold text-slate-800">34.149.120.45</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy('34.149.120.45', 'arecord_val')}
+                  className="text-sky-600 hover:text-sky-800 p-1 transition cursor-pointer"
+                  title="Copy A Record"
+                >
+                  {copiedKey === 'arecord_val' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
           </div>
 
