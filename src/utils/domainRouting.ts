@@ -5,6 +5,7 @@ export interface DomainRouteResolution {
   targetLab?: string;
   isPlatformSubdomain?: boolean;
   isExplicitMainPlatform?: boolean;
+  targetPost?: string;
 }
 
 const VALID_VIEWS: AppView[] = [
@@ -18,6 +19,7 @@ const VALID_VIEWS: AppView[] = [
   'website',
   'patient_portal',
   'lab_app',
+  'seo_post',
 ];
 
 const RESERVED_PATH_SEGMENTS = [
@@ -117,6 +119,23 @@ export function resolveAppRoute(
   const shopParam = params.get('shop');
   const effectivePath = pathname !== undefined ? pathname : (typeof window !== 'undefined' ? window.location.pathname : '');
   const effectiveHash = hash !== undefined ? hash : (typeof window !== 'undefined' ? window.location.hash : '');
+
+  // 0a. Blog / SEO Post Routing: /blog/:slug, /post/:slug, /articles/:slug, or ?post=:slug
+  const postParam = params.get('post') || params.get('blog') || params.get('article');
+  if (postParam) {
+    return {
+      view: 'seo_post',
+      targetPost: decodeURIComponent(postParam).trim(),
+    };
+  }
+
+  const blogPathMatch = effectivePath.match(/^\/(?:blog|post|posts|articles|article|guide)\/([^/?#]+)/i);
+  if (blogPathMatch && blogPathMatch[1]) {
+    return {
+      view: 'seo_post',
+      targetPost: decodeURIComponent(blogPathMatch[1]).trim(),
+    };
+  }
 
   // 0. Primary Vendor Shop / Lab URL Pattern: /shop/:id, /lab/:id, /labs/:id, /vendor/:id, /v/:id
   const pathPrefixMatch = effectivePath.match(/^\/(?:shop|lab|labs|vendor|v)\/([^/?#]+)/i);

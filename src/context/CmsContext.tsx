@@ -28,7 +28,9 @@ import {
   PlanRenewalRequest,
   SeoSettings,
   DEFAULT_SEO_SETTINGS,
+  SeoPost,
 } from '../types';
+import { DEFAULT_SEO_POSTS } from '../data/defaultSeoPosts';
 import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES, DEFAULT_LAB_MANAGEMENT_FEATURES } from '../data/mockData';
 export { VENDOR_LABS_DIRECTORY };
 import { getPermissionsForRole, LAB_OPTIONS } from '../utils/rbac';
@@ -2105,6 +2107,13 @@ interface CmsContextType {
   seoSettings: SeoSettings;
   updateSeoSettings: (newSettings: Partial<SeoSettings>) => void;
   resetSeoSettings: () => void;
+  seoPosts: SeoPost[];
+  addSeoPost: (post: Omit<SeoPost, 'id' | 'createdAt' | 'updatedAt'>) => SeoPost;
+  updateSeoPost: (id: string, updates: Partial<SeoPost>) => void;
+  deleteSeoPost: (id: string) => void;
+  getPostBySlug: (slug: string) => SeoPost | undefined;
+  getPostById: (id: string) => SeoPost | undefined;
+  resetSeoPostsToDefault: () => void;
   portalSections: PortalWebsiteSections;
   updatePortalSection: (sectionKey: keyof PortalWebsiteSections, enabled: boolean) => void;
   toggleAllPortalSections: (enabled: boolean) => void;
@@ -2377,6 +2386,77 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
     applySeoSettingsToDOM(seoSettings);
   }, [seoSettings]);
+
+  const [seoPosts, setSeoPosts] = useState<SeoPost[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_seo_posts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+      return DEFAULT_SEO_POSTS;
+    } catch {
+      return DEFAULT_SEO_POSTS;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_seo_posts', JSON.stringify(seoPosts));
+    } catch {}
+  }, [seoPosts]);
+
+  const addSeoPost = (post: Omit<SeoPost, 'id' | 'createdAt' | 'updatedAt'>): SeoPost => {
+    const newPost: SeoPost = {
+      ...post,
+      id: `post-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      publishedAt: post.status === 'published' ? (post.publishedAt || new Date().toISOString().split('T')[0]) : undefined,
+    };
+    setSeoPosts((prev) => [newPost, ...prev]);
+    return newPost;
+  };
+
+  const updateSeoPost = (id: string, updates: Partial<SeoPost>) => {
+    setSeoPosts((prev) =>
+      prev.map((p) => {
+        if (p.id === id || p.slug === id) {
+          return {
+            ...p,
+            ...updates,
+            updatedAt: new Date().toISOString(),
+            publishedAt: updates.status === 'published' && !p.publishedAt ? new Date().toISOString().split('T')[0] : (updates.publishedAt ?? p.publishedAt),
+          };
+        }
+        return p;
+      })
+    );
+  };
+
+  const deleteSeoPost = (id: string) => {
+    setSeoPosts((prev) => prev.filter((p) => p.id !== id && p.slug !== id));
+  };
+
+  const getPostBySlug = (slug: string): SeoPost | undefined => {
+    if (!slug) return undefined;
+    const clean = slug.toLowerCase().trim();
+    return seoPosts.find((p) => (p.slug || '').toLowerCase().trim() === clean || (p.id || '').toLowerCase().trim() === clean);
+  };
+
+  const getPostById = (id: string): SeoPost | undefined => {
+    if (!id) return undefined;
+    return seoPosts.find((p) => p.id === id || p.slug === id);
+  };
+
+  const resetSeoPostsToDefault = () => {
+    setSeoPosts([...DEFAULT_SEO_POSTS]);
+    try {
+      localStorage.setItem('cms_seo_posts', JSON.stringify(DEFAULT_SEO_POSTS));
+    } catch {}
+  };
 
   const [portalSections, setPortalSections] = useState<PortalWebsiteSections>(() => {
     try {
@@ -7495,6 +7575,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         seoSettings,
         updateSeoSettings,
         resetSeoSettings,
+        seoPosts,
+        addSeoPost,
+        updateSeoPost,
+        deleteSeoPost,
+        getPostBySlug,
+        getPostById,
+        resetSeoPostsToDefault,
         portalSections,
         updatePortalSection,
         toggleAllPortalSections,
