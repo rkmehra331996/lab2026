@@ -202,7 +202,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const [age, setAge] = useState('32');
   const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>('Male');
   const [mobile, setMobile] = useState('');
-  const [referringDoctor, setReferringDoctor] = useState('Dr. S. K. Gupta (MD Med)');
+  const [referringDoctor, setReferringDoctor] = useState('');
   const [selectedTests, setSelectedTests] = useState<string[]>(['Complete Blood Count (CBC)']);
   const [sampleType, setSampleType] = useState('EDTA Whole Blood (Lavender Tube)');
 
@@ -575,7 +575,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       age: age || '30',
       gender,
       mobile: mobile || '9876500000',
-      referringDoctor,
+      referringDoctor: referringDoctor.trim() || 'Self Walk-in (Direct Patient)',
       tests: selectedTests,
       sampleType,
       totalAmount: grossAmount,
@@ -627,7 +627,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       age: age || '30',
       gender,
       mobile: mobile || '9876500000',
-      referringDoctor,
+      referringDoctor: referringDoctor.trim() || 'Self Walk-in (Direct Patient)',
       tests: selectedTests,
       sampleType,
       totalAmount: grossAmount,
@@ -685,7 +685,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       age: age || '30',
       gender,
       mobile: mobile || '9876500000',
-      referringDoctor,
+      referringDoctor: referringDoctor.trim() || 'Self Walk-in (Direct Patient)',
       tests: selectedTests,
       sampleType,
       totalAmount: grossAmount,
@@ -946,6 +946,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     setAge('30');
     setGender('Male');
     setMobile('');
+    setReferringDoctor('');
     setSelectedTests(['Complete Blood Count (CBC)']);
     setHasDiscount(false);
     setDiscountINR(0);
@@ -1577,21 +1578,13 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       Reference (Doctor / Clinic)
                     </label>
-                    <select
+                    <input
+                      type="text"
                       value={referringDoctor}
                       onChange={(e) => setReferringDoctor(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none truncate"
-                    >
-                      <option value="Self Walk-in (Direct Patient)">Self Walk-in (Direct)</option>
-                      {vendorDoctors.map((doc) => (
-                        <option key={doc.id} value={`${doc.name} (${doc.degrees})`}>
-                          {doc.name} • {doc.specialization}
-                        </option>
-                      ))}
-                      <option value="Dr. S. K. Gupta (MD Med)">Dr. S. K. Gupta (MD Med)</option>
-                      <option value="Dr. Anita Joshi, MD (Obs & Gynae)">Dr. Anita Joshi, MD</option>
-                      <option value="Dr. Hardeep Bawa, MS">Dr. Hardeep Bawa, MS</option>
-                    </select>
+                      placeholder="e.g. Self Walk-in / Dr. Name / Clinic"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none truncate"
+                    />
                   </div>
                 </div>
               </div>
