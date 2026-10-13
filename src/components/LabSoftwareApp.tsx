@@ -382,16 +382,37 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
     setDeleteConfirm({
       isOpen: true,
       title: 'Are you sure you want to delete this?',
-      message: `Patient "${p.name}" (${p.uhid}) will be permanently removed from today's worklist and queue.`,
+      message: `Patient "${p.name}" (${p.uhid || p.tokenNumber || p.id}) will be permanently removed from today's worklist and queue.`,
       confirmText: 'Yes',
       onConfirm: () => {
         deleteReceptionEntry(p.id);
+        if (p.reportId) {
+          deleteLabReport(p.reportId);
+        }
         if (workstationPatientId === p.id) {
           const remaining = patients.filter((item) => item.id !== p.id);
           if (remaining.length > 0) setWorkstationPatientId(remaining[0].id);
         }
         setDeleteConfirm(null);
         setToastNotice(`Patient "${p.name}" deleted successfully.`);
+        setTimeout(() => setToastNotice(null), 3000);
+      },
+    });
+  };
+
+  const handleDeleteReceptionOrder = (entry: ReceptionPatientEntry) => {
+    setDeleteConfirm({
+      isOpen: true,
+      title: 'Are you sure you want to delete this?',
+      message: `Patient entry "${entry.patientName}" (Token ${entry.tokenNumber || entry.tokenNo || entry.id}) will be permanently deleted from the lab queue.`,
+      confirmText: 'Yes',
+      onConfirm: () => {
+        deleteReceptionEntry(entry.id);
+        if (entry.reportId) {
+          deleteLabReport(entry.reportId);
+        }
+        setDeleteConfirm(null);
+        setToastNotice(`Patient entry "${entry.patientName}" deleted from workstation.`);
         setTimeout(() => setToastNotice(null), 3000);
       },
     });
@@ -2689,6 +2710,20 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
                               <span>Pull Specimen to Lab</span>
                             </button>
                           )}
+
+                          {/* Delete Patient Data Entry Option for Technician */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteReceptionOrder(entry);
+                            }}
+                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer shadow-2xs hover:shadow-xs active:scale-95 flex items-center justify-center shrink-0"
+                            title="Delete this patient entry from lab queue"
+                            aria-label="Delete Patient Entry"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                          </button>
                         </div>
                       </div>
                     );

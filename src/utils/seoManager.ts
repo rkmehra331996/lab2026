@@ -1,4 +1,4 @@
-import { SeoSettings, DEFAULT_SEO_SETTINGS } from '../types';
+import { SeoSettings, DEFAULT_SEO_SETTINGS, SeoPost } from '../types';
 
 function setMetaTag(selectorAttr: string, selectorValue: string, content: string, isProperty = false) {
   if (typeof document === 'undefined') return;
@@ -178,3 +178,73 @@ export function applySeoSettingsToDOM(settings: SeoSettings): void {
     footerContainer.innerHTML = '';
   }
 }
+
+/**
+ * Dynamically applies specific Blog Post SEO metadata to browser document and social tags
+ */
+export function applyPostSeoToDOM(post: SeoPost): void {
+  if (typeof document === 'undefined') return;
+
+  const title = post.seoTitle || post.title || 'Diagnostic Healthcare Blog';
+  const description = post.metaDescription || post.excerpt || '';
+  const canonical = post.canonicalUrl || `${window.location.origin}/blog/${post.slug || post.id}`;
+  const image = post.openGraph?.ogImage || post.featuredImage || `${window.location.origin}/icon.svg`;
+
+  document.title = `${title} | IndianLalaJi`;
+  setMetaTag('name', 'description', description);
+  setLinkTag('canonical', canonical);
+
+  // OpenGraph
+  setMetaTag('property', 'og:type', 'article', true);
+  setMetaTag('property', 'og:title', post.openGraph?.ogTitle || title, true);
+  setMetaTag('property', 'og:description', post.openGraph?.ogDescription || description, true);
+  setMetaTag('property', 'og:image', image, true);
+  setMetaTag('property', 'og:url', canonical, true);
+
+  // Twitter
+  setMetaTag('name', 'twitter:card', 'summary_large_image');
+  setMetaTag('name', 'twitter:title', post.openGraph?.ogTitle || title);
+  setMetaTag('name', 'twitter:description', post.openGraph?.ogDescription || description);
+  setMetaTag('name', 'twitter:image', image);
+
+  // Article / BlogPosting Schema
+  let postSchemaScript = document.getElementById('seo-post-json-ld') as HTMLScriptElement | null;
+  if (!postSchemaScript) {
+    postSchemaScript = document.createElement('script');
+    postSchemaScript.id = 'seo-post-json-ld';
+    postSchemaScript.type = 'application/ld+json';
+    document.head.appendChild(postSchemaScript);
+  }
+
+  if (post.schemaMarkup && post.schemaMarkup.trim()) {
+    postSchemaScript.textContent = post.schemaMarkup;
+  } else {
+    const fallbackSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: post.title,
+      description: post.excerpt || description,
+      image: [image],
+      datePublished: post.publishedAt || post.createdAt,
+      dateModified: post.updatedAt || post.publishedAt || post.createdAt,
+      author: {
+        '@type': 'Person',
+        name: post.author || 'IndianLalaJi Editorial Desk',
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'INDIANLALAJI.COM',
+        logo: {
+          '@type': 'ImageObject',
+          url: `${window.location.origin}/icon.svg`,
+        },
+      },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': canonical,
+      },
+    };
+    postSchemaScript.textContent = JSON.stringify(fallbackSchema, null, 2);
+  }
+}
+

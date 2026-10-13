@@ -1366,6 +1366,18 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                           <RotateCcw className="w-3.5 h-3.5" />
                           <span>Re-send to Lab</span>
                         </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(retEntry);
+                          }}
+                          className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer shadow-2xs hover:shadow-xs active:scale-95 flex items-center justify-center"
+                          title="Delete returned entry from queue"
+                          aria-label="Delete Entry"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-700" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -2498,7 +2510,10 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                           {/* 3. Delete */}
                           <button
                             type="button"
-                            onClick={() => setDeleteTarget(entry)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget(entry);
+                            }}
                             className="p-1.5 sm:p-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg transition cursor-pointer shadow-2xs hover:shadow-xs active:scale-95 flex items-center justify-center"
                             title="Delete Patient Entry"
                             aria-label="Delete"
@@ -2723,9 +2738,15 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
               <button
                 type="button"
                 onClick={() => {
-                  deleteReceptionEntry(deleteTarget.id);
-                  setDeleteTarget(null);
-                  showToast('🗑️ Entry removed from queue');
+                  if (deleteTarget) {
+                    deleteReceptionEntry(deleteTarget.id);
+                    if (lastRegisteredEntry && (lastRegisteredEntry.id === deleteTarget.id || lastRegisteredEntry.tokenNumber === deleteTarget.tokenNumber)) {
+                      setLastRegisteredEntry(null);
+                      setShowRecentlyRegisteredBanner(false);
+                    }
+                    showToast(`🗑️ Patient ${deleteTarget.patientName || 'entry'} removed from queue`);
+                    setDeleteTarget(null);
+                  }
                 }}
                 className="w-full py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm hover:shadow transition cursor-pointer"
               >

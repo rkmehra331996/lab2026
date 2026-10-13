@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AppView, Language } from './types';
+import { AppView, Language, SeoPost } from './types';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { TrustStrip } from './components/TrustStrip';
@@ -38,6 +38,8 @@ import { BranchManagerDashboard } from './components/BranchManagerDashboard';
 import { PathologistDashboard } from './components/PathologistDashboard';
 import { RoleContextBanner } from './components/RoleContextBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { Footer } from './components/Footer';
+import { SeoPostDetailView } from './components/SeoPostDetailView';
 import { Building, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { isUserAuthorizedForView } from './utils/rbac';
 import { useCms } from './context/CmsContext';
@@ -87,6 +89,7 @@ export default function App() {
   // Loading & error state when resolving lab directly from the URL
   const [isFetchingUrlLab, setIsFetchingUrlLab] = useState(false);
   const [urlLabError, setUrlLabError] = useState<{ identifier: string; message: string } | null>(null);
+  const [activePost, setActivePost] = useState<SeoPost | null>(null);
   const isFetchingLabRef = React.useRef(false);
   const attemptedLabFetchesRef = React.useRef<Set<string>>(new Set());
 
@@ -103,6 +106,7 @@ export default function App() {
     injectCloudLab,
     isCacheModalOpen,
     closeCacheModal,
+    getPostBySlug,
   } = useCms();
 
   // Fetch and resolve specific lab directly from the current URL
@@ -248,6 +252,16 @@ export default function App() {
         window.location.hash
       );
 
+      if (resolution.targetPost) {
+        const post = getPostBySlug(resolution.targetPost);
+        if (post) {
+          setActivePost(post);
+          setCurrentView('seo_post');
+          setUrlLabError(null);
+          return;
+        }
+      }
+
       if (resolution.targetLab) {
         const cleanId = resolution.targetLab.trim();
         const targetLower = cleanId.toLowerCase();
@@ -311,6 +325,14 @@ export default function App() {
           window.location.pathname,
           window.location.hash
         );
+        if (resolution.targetPost) {
+          const post = getPostBySlug(resolution.targetPost);
+          if (post) {
+            setActivePost(post);
+            setCurrentView('seo_post');
+            return;
+          }
+        }
         if (resolution.targetLab) {
           fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList);
         }
@@ -538,6 +560,36 @@ export default function App() {
             </button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Dedicated Experience: SEO Blog Post & Clinical Guide View
+  if (currentView === 'seo_post' && activePost) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+        <SeoPostDetailView
+          post={activePost}
+          onBack={() => {
+            setCurrentView('website');
+            if (typeof window !== 'undefined') {
+              window.history.pushState(null, '', '/');
+            }
+          }}
+          onSelectPost={(p) => setActivePost(p)}
+          onNavigateView={(v) => {
+            setCurrentView(v);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+        <CmsAuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onNavigateView={(v) => {
+            setCurrentView(v);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
       </div>
     );
   }
@@ -953,6 +1005,17 @@ export default function App() {
           <FinalCTASection onOpenDemo={handleOpenDemo} />
         )}
       </main>
+
+      {/* Website Footer with SEO Post Cards & Platform Navigation */}
+      <Footer
+        onSelectView={setCurrentView}
+        onOpenDemo={handleOpenDemo}
+        onSelectPost={(post) => {
+          setActivePost(post);
+          setCurrentView('seo_post');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
 
       {/* 33. Mobile Fixed CTA */}
       <MobileFixedCTA onOpenReport={() => handleViewPatientPortal()} />

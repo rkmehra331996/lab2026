@@ -8,7 +8,8 @@ export type AppView =
   | 'branch_manager_dashboard'
   | 'reception_dashboard'
   | 'technician_dashboard'
-  | 'pathologist_dashboard';
+  | 'pathologist_dashboard'
+  | 'seo_post';
 
 export type UserRole =
   | 'admin'
@@ -111,6 +112,35 @@ export interface CompanySettings {
   upiId?: string;
   upiMerchantName?: string;
   qrCodeUrl?: string;
+}
+
+export interface SeoPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string;
+  featuredImage: string;
+  category: string;
+  tags: string[];
+  // SEO & Meta fields
+  seoTitle: string;
+  metaDescription: string;
+  focusKeyword: string;
+  canonicalUrl?: string;
+  openGraph?: {
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+  };
+  schemaMarkup?: string;
+  status: 'draft' | 'published';
+  author: string;
+  readingTime?: string;
+  viewsCount?: number;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface SeoSettings {

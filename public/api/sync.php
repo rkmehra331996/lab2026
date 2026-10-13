@@ -28,7 +28,8 @@ $TABLE_MAP = [
     'contact_submissions' => ['table' => 'contact_submissions',   'id' => 'id'],
     'domain_requests'     => ['table' => 'domain_requests',       'id' => 'id'],
     'lab_images'          => ['table' => 'lab_images',            'id' => 'id'],
-    'plan_requests'       => ['table' => 'lab_plan_requests',      'id' => 'id']
+    'plan_requests'       => ['table' => 'lab_plan_requests',      'id' => 'id'],
+    'seo_posts'           => ['table' => 'seo_posts',              'id' => 'id']
 ];
 
 /**

@@ -516,4 +516,32 @@ VALUES
   ('plan-1year', 'Enterprise Diagnostic Network (1 Year)', 'Max Savings', 11999.00, 19999.00, 999.00, '1 Year', 'yearly', 0, '["Unlimited Desks & Collection Hubs", "Custom Brand Domain/Subdomain Support", "Dedicated 24x7 Account Manager", "Custom Test Catalog Setup", "Annual Cloud Archive Storage"]')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `priceINR` = VALUES(`priceINR`);
 
+-- 22. Table: seo_posts (SEO Blog Articles & Public Knowledge Base)
+CREATE TABLE IF NOT EXISTS `seo_posts` (
+  `id` VARCHAR(100) NOT NULL PRIMARY KEY,
+  `title` VARCHAR(255) NOT NULL,
+  `slug` VARCHAR(255) NOT NULL UNIQUE,
+  `excerpt` TEXT DEFAULT NULL,
+  `content` LONGTEXT NOT NULL,
+  `featuredImage` TEXT DEFAULT NULL,
+  `category` VARCHAR(100) DEFAULT 'Pathology Guides',
+  `tags` JSON DEFAULT NULL,
+  `seoTitle` VARCHAR(255) DEFAULT NULL,
+  `metaDescription` TEXT DEFAULT NULL,
+  `focusKeyword` VARCHAR(150) DEFAULT NULL,
+  `canonicalUrl` TEXT DEFAULT NULL,
+  `openGraph` JSON DEFAULT NULL,
+  `schemaMarkup` LONGTEXT DEFAULT NULL,
+  `status` VARCHAR(20) DEFAULT 'published',
+  `author` VARCHAR(150) DEFAULT 'Editorial Desk',
+  `readingTime` VARCHAR(50) DEFAULT '3 min read',
+  `viewsCount` INT DEFAULT 0,
+  `publishedAt` VARCHAR(50) DEFAULT NULL,
+  `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_seo_slug` (`slug`),
+  INDEX `idx_seo_status` (`status`),
+  INDEX `idx_seo_category` (`category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

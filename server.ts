@@ -722,11 +722,12 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
           const targetLower = String(targetId).toLowerCase();
           for (const k of targetKeys) {
             const currentArr = Array.isArray(store[k]) ? store[k] : [];
+            const isLabCol = k === 'vendor_labs' || k === 'vendorLabs';
             store[k] = currentArr.filter((item: any) => {
               const itId = item.id ? String(item.id).toLowerCase() : '';
               const itReportId = item.reportId ? String(item.reportId).toLowerCase() : '';
               const itLabId = item.labId ? String(item.labId).toLowerCase() : '';
-              return itId !== targetLower && itReportId !== targetLower && itLabId !== targetLower;
+              return itId !== targetLower && itReportId !== targetLower && (isLabCol ? itLabId !== targetLower : true);
             });
           }
         }

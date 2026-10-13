@@ -49,6 +49,7 @@ import { HostingerDatabaseCard } from './admin/HostingerDatabaseCard';
 import { WebsiteBackupTab } from './admin/WebsiteBackupTab';
 import { VendorPlanRenewTab } from './admin/VendorPlanRenewTab';
 import { SeoSettingsTab } from './admin/SeoSettingsTab';
+import { SeoPostsManagement } from './admin/SeoPostsManagement';
 import { forceFreshReload } from '../utils/cacheManager';
 import { IndianLalajiMarquee } from './IndianLalajiMarquee';
 
@@ -97,7 +98,7 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     openCacheModal,
   } = useCms();
 
-  type SuperAdminMenu = 'home' | 'labs' | 'clients' | 'drafts' | 'backup' | 'domain_requests' | 'plans' | 'seo';
+  type SuperAdminMenu = 'home' | 'labs' | 'clients' | 'drafts' | 'backup' | 'domain_requests' | 'plans' | 'seo' | 'seo_posts';
   const [activeMenu, setActiveMenu] = useState<SuperAdminMenu>('home');
 
   type HomeSubTab = 'pricing' | 'upi_qr' | 'backup' | 'cloud_sync' | 'cache' | 'settings' | 'features' | 'seo';
@@ -717,6 +718,31 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 }`}
               >
                 Google
+              </span>
+            </button>
+
+            {/* SEO Posts Management Tab */}
+            <button
+              type="button"
+              id="menu-btn-seo-posts"
+              onClick={() => setActiveMenu('seo_posts')}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shrink-0 relative ${
+                activeMenu === 'seo_posts'
+                  ? 'bg-amber-400 text-slate-950 font-bold shadow-2xs'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+              }`}
+              title="Super Admin SEO Posts Management (Articles, Categories, Focus Keywords, Schema)"
+            >
+              <FileText className="w-3.5 h-3.5 text-teal-300" />
+              <span>SEO Posts</span>
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden sm:inline-block leading-none ${
+                  activeMenu === 'seo_posts'
+                    ? 'bg-slate-900 text-amber-300'
+                    : 'bg-teal-500/30 text-teal-200'
+                }`}
+              >
+                Blog
               </span>
             </button>
 
@@ -2751,10 +2777,50 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
         <SeoSettingsTab showToast={showToast} />
       </div>
     )}
+
+    {/* VIEW 8: SUPER ADMIN SEO POSTS MANAGEMENT */}
+    {activeMenu === 'seo_posts' && (
+      <div className="animate-in fade-in-50 duration-200">
+        <SeoPostsManagement
+          showToast={showToast}
+          onPreviewPost={(post) => {
+            if (typeof window !== 'undefined') {
+              window.open(`/blog/${post.slug || post.id}`, '_blank');
+            }
+          }}
+        />
+      </div>
+    )}
   </div>
 
-  {/* IndianLalaji Infinite Loop Marquee - Just Before Super Admin Footer */}
-  <IndianLalajiMarquee theme="superadmin" />
+  {/* Super Admin Clean SEO Articles Status Strip */}
+  <div className="border-t border-slate-200 bg-slate-50/90 px-4 sm:px-6 py-2.5 text-xs text-slate-600 flex items-center justify-between gap-3 flex-wrap">
+    <div className="flex items-center gap-2">
+      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span className="font-bold text-slate-800">SEO Knowledge Base:</span>
+      <span className="text-slate-500">Live published articles crawlable for Google & indexed in sitemap.xml</span>
+    </div>
+    <div className="flex items-center gap-3">
+      <button
+        type="button"
+        onClick={() => setActiveMenu('seo_posts')}
+        className="text-teal-700 hover:text-teal-900 font-bold hover:underline cursor-pointer flex items-center gap-1"
+      >
+        <FileText className="w-3.5 h-3.5" />
+        <span>Manage SEO Posts</span>
+      </button>
+      <span className="text-slate-300">•</span>
+      <a
+        href="/sitemap.xml"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline flex items-center gap-1"
+      >
+        <span>View XML Sitemap</span>
+        <ExternalLink className="w-3 h-3" />
+      </a>
+    </div>
+  </div>
 
   {/* Super Admin Footer with Cache & Hard Reload Controls */}
   <footer
