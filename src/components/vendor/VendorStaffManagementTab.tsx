@@ -258,22 +258,8 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
     setTimeout(() => setToastMessage(''), 4000);
   };
 
-  // Open Delete Confirmation & Data Transfer Modal
+  // Open Delete Confirmation Modal
   const handleOpenDelete = (staff: LabStaffAccount) => {
-    const isOnlyStaffOfRole =
-      (staff.role === 'reception' && receptionCount <= 1) ||
-      (staff.role === 'technician' && techCount <= 1);
-
-    if (isOnlyStaffOfRole) {
-      setToastMessage(
-        `⚠️ Cannot delete: At least 1 ${
-          staff.role === 'reception' ? 'Receptionist' : 'Lab Technician'
-        } must always exist in the laboratory.`
-      );
-      setTimeout(() => setToastMessage(''), 4000);
-      return;
-    }
-
     const sameRoleCandidates = staffAccounts.filter(
       (s) => s.role === staff.role && s.id !== staff.id
     );
@@ -283,54 +269,34 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
     setTransferError('');
   };
 
-  // Confirm Delete with Data Transfer
+  // Confirm Delete
   const handleConfirmDelete = () => {
     if (!deletingStaff) return;
 
-    const isOnlyStaffOfRole =
-      (deletingStaff.role === 'reception' && receptionCount <= 1) ||
-      (deletingStaff.role === 'technician' && techCount <= 1);
-
-    if (isOnlyStaffOfRole) {
-      setTransferError(
-        `At least 1 ${
-          deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'
-        } must always exist. Delete is disabled when only one staff member remains.`
-      );
-      return;
-    }
-
-    if (!transferRecipientId) {
-      setTransferError(
-        `Please select a replacement ${
-          deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'
-        } to transfer all assigned data to.`
-      );
-      return;
-    }
-
-    const recipient = staffAccounts.find((s) => s.id === transferRecipientId);
-    if (!recipient || recipient.role !== deletingStaff.role) {
-      setTransferError(
-        `Data must be transferred to another staff member of the exact same role (${
-          deletingStaff.role === 'reception' ? 'Reception → Reception' : 'Technician → Technician'
-        }).`
-      );
-      return;
-    }
-
-    // Execute transfer of all assigned queue items & records, then delete account
-    transferStaffDataAndDelete(deletingStaff.id, recipient.id);
-
-    setToastMessage(
-      `✅ Transferred all assigned data from ${deletingStaff.name} to ${recipient.name} (${
-        deletingStaff.role === 'reception' ? 'Reception → Reception' : 'Technician → Technician'
-      }) & deleted staff account.`
+    const sameRoleCandidates = staffAccounts.filter(
+      (s) => s.role === deletingStaff.role && s.id !== deletingStaff.id
     );
+
+    const recipient = transferRecipientId
+      ? staffAccounts.find((s) => s.id === transferRecipientId)
+      : null;
+
+    if (sameRoleCandidates.length > 0 && recipient && recipient.role === deletingStaff.role) {
+      // Execute transfer of all assigned queue items & records, then delete account
+      transferStaffDataAndDelete(deletingStaff.id, recipient.id);
+      setToastMessage(
+        `✅ Transferred data from ${deletingStaff.name} to ${recipient.name} & deleted staff account.`
+      );
+    } else {
+      // Direct delete staff account
+      deleteStaffAccount(deletingStaff.id);
+      setToastMessage(`✅ Staff account "${deletingStaff.name}" deleted successfully.`);
+    }
+
     setDeletingStaff(null);
     setTransferRecipientId('');
     setTransferError('');
-    setTimeout(() => setToastMessage(''), 4500);
+    setTimeout(() => setToastMessage(''), 4000);
   };
 
   // Copy Login Credentials
@@ -777,48 +743,25 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                         </div>
 
                         {/* Top Direct Action: Edit & Delete */}
-                        {(() => {
-                          const isOnlyStaffOfRole =
-                            (staff.role === 'reception' && receptionCount <= 1) ||
-                            (staff.role === 'technician' && techCount <= 1);
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(staff)}
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-[#123B6D] transition cursor-pointer"
+                            title="Edit Staff (Name & Change Password)"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                          </button>
 
-                          return (
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEdit(staff)}
-                                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-[#123B6D] transition cursor-pointer"
-                                title="Edit Staff (Name & Change Password)"
-                              >
-                                <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                              </button>
-
-                              <button
-                                type="button"
-                                disabled={isOnlyStaffOfRole}
-                                onClick={() => !isOnlyStaffOfRole && handleOpenDelete(staff)}
-                                className={`p-1.5 rounded-lg border text-xs font-semibold transition ${
-                                  isOnlyStaffOfRole
-                                    ? 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed opacity-50'
-                                    : 'border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer'
-                                }`}
-                                title={
-                                  isOnlyStaffOfRole
-                                    ? `Delete disabled: Minimum 1 ${
-                                        staff.role === 'reception' ? 'Receptionist' : 'Lab Technician'
-                                      } must always exist in the laboratory.`
-                                    : `Delete Staff (${
-                                        staff.role === 'reception'
-                                          ? 'Reception → Reception'
-                                          : 'Technician → Technician'
-                                      } data transfer required)`
-                                }
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          );
-                        })()}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDelete(staff)}
+                            className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            title={`Delete Staff (${staff.name})`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Credentials Box */}
@@ -863,27 +806,6 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                       </div>
                     </div>
 
-                    {/* Minimum Staff Policy Indicator on Card */}
-                    {(() => {
-                      const isOnlyStaffOfRole =
-                        (staff.role === 'reception' && receptionCount <= 1) ||
-                        (staff.role === 'technician' && techCount <= 1);
-
-                      if (!isOnlyStaffOfRole) return null;
-
-                      return (
-                        <div className="mt-2.5 py-1.5 px-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-bold flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5">
-                            <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            <span>Min 1 {isReception ? 'Receptionist' : 'Lab Technician'} Required</span>
-                          </span>
-                          <span className="text-[10px] uppercase tracking-wider bg-amber-200 text-amber-950 px-2 py-0.5 rounded font-black shrink-0">
-                            Delete Disabled
-                          </span>
-                        </div>
-                      );
-                    })()}
-
                     {/* Bottom Action Bar */}
                     <div className="pt-4 mt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                       <button
@@ -919,36 +841,15 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                           <span>Edit (Name &amp; Password)</span>
                         </button>
 
-                        {(() => {
-                          const isOnlyStaffOfRole =
-                            (staff.role === 'reception' && receptionCount <= 1) ||
-                            (staff.role === 'technician' && techCount <= 1);
-
-                          return (
-                            <button
-                              type="button"
-                              disabled={isOnlyStaffOfRole}
-                              onClick={() => !isOnlyStaffOfRole && handleOpenDelete(staff)}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1 transition ${
-                                isOnlyStaffOfRole
-                                  ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed opacity-60'
-                                  : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200 cursor-pointer'
-                              }`}
-                              title={
-                                isOnlyStaffOfRole
-                                  ? `Delete disabled: At least 1 ${
-                                      isReception ? 'Receptionist' : 'Lab Technician'
-                                    } must always exist in the laboratory.`
-                                  : `Delete staff (${
-                                      isReception ? 'Reception → Reception' : 'Technician → Technician'
-                                    } data transfer required)`
-                              }
-                            >
-                              <Trash2 className={`w-3.5 h-3.5 ${isOnlyStaffOfRole ? 'text-slate-400' : 'text-rose-600'}`} />
-                              <span>{isOnlyStaffOfRole ? 'Delete (Disabled)' : 'Delete'}</span>
-                            </button>
-                          );
-                        })()}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDelete(staff)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-bold border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 flex items-center gap-1 transition cursor-pointer"
+                          title={`Delete staff (${staff.name})`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Delete</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1120,44 +1021,19 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
 
               {/* Modal Footer */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                {(() => {
-                  const isEditingOnlyStaff = editingStaff && (
-                    (editingStaff.role === 'reception' && receptionCount <= 1) ||
-                    (editingStaff.role === 'technician' && techCount <= 1)
-                  );
-
-                  return (
-                    <button
-                      type="button"
-                      disabled={Boolean(isEditingOnlyStaff)}
-                      onClick={() => {
-                        if (isEditingOnlyStaff) return;
-                        const toDelete = editingStaff;
-                        setEditingStaff(null);
-                        handleOpenDelete(toDelete);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 ${
-                        isEditingOnlyStaff
-                          ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed opacity-60'
-                          : 'border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer'
-                      }`}
-                      title={
-                        isEditingOnlyStaff
-                          ? `Delete disabled: Minimum 1 ${
-                              editingStaff?.role === 'reception' ? 'Receptionist' : 'Lab Technician'
-                            } must always exist.`
-                          : 'Delete Staff (Requires data transfer)'
-                      }
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>
-                        {isEditingOnlyStaff
-                          ? `Delete (Disabled: Only 1 ${editingStaff?.role === 'reception' ? 'Reception' : 'Technician'})`
-                          : 'Delete Staff'}
-                      </span>
-                    </button>
-                  );
-                })()}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const toDelete = editingStaff;
+                    setEditingStaff(null);
+                    if (toDelete) handleOpenDelete(toDelete);
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold border border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer flex items-center gap-1 transition"
+                  title="Delete Staff Account"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Delete Staff</span>
+                </button>
 
                 <div className="flex items-center gap-2">
                   <button
@@ -1246,26 +1122,35 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 </div>
               </div>
 
-              {/* Data Transfer Rule Banner */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-amber-600" />
-                    <span>Mandatory Data Transfer Required</span>
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-950">
-                    {transferRoleLabel}
-                  </span>
+              {/* Data Transfer Rule Banner / Notice */}
+              {sameRoleCandidates.length > 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-amber-600" />
+                      <span>Data Handover & Reassignment</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-950">
+                      {transferRoleLabel}
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-900/90 leading-relaxed">
+                    Assigned patient queue items, active specimens, and reports will be handed over to another {deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'}.
+                  </p>
                 </div>
-                <p className="text-xs text-amber-900/90 leading-relaxed">
-                  Before deleting <strong>{deletingStaff.name}</strong>, all assigned patients, active specimen testing queues, and reports must be transferred to another staff member of the <strong>same role</strong>.
-                </p>
-              </div>
+              ) : (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-700 leading-relaxed space-y-1">
+                  <span className="font-bold text-slate-900 block">Single Staff Notice</span>
+                  <p>
+                    <strong>{deletingStaff.name}</strong> is currently the registered {deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'} for this laboratory. Deleting this account will remove their login credentials. All past patient records and reports remain intact and safely preserved.
+                  </p>
+                </div>
+              )}
 
               {/* Assigned Workload Summary */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-1">
                 <span className="font-bold text-slate-700 block text-[11px] uppercase tracking-wider">
-                  Current Assigned Records to Transfer:
+                  Associated Records:
                 </span>
                 {deletingStaff.role === 'reception' ? (
                   <div className="font-semibold text-slate-800">
@@ -1279,16 +1164,12 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 )}
               </div>
 
-              {/* Recipient Selector (Same Role Required) */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                  Select Recipient {deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'} to Take Over All Data <span className="text-rose-500">*</span>
-                </label>
-                {sameRoleCandidates.length === 0 ? (
-                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-bold">
-                    No other {deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'} exists. You must add another staff member of this role before you can delete this one.
-                  </div>
-                ) : (
+              {/* Recipient Selector (When Same Role Candidates Exist) */}
+              {sameRoleCandidates.length > 0 && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                    Select Handover Recipient ({deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'})
+                  </label>
                   <select
                     value={transferRecipientId}
                     onChange={(e) => {
@@ -1303,13 +1184,13 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                       </option>
                     ))}
                   </select>
-                )}
-                {selectedRecipient && (
-                  <p className="text-[11px] text-emerald-700 font-semibold mt-1">
-                    ✓ All historical and active records will be reassigned to <strong>{selectedRecipient.name}</strong> ({transferRoleLabel}).
-                  </p>
-                )}
-              </div>
+                  {selectedRecipient && (
+                    <p className="text-[11px] text-emerald-700 font-semibold mt-1">
+                      ✓ Historical and active records will be reassigned to <strong>{selectedRecipient.name}</strong>.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Error Message */}
               {transferError && (
@@ -1334,9 +1215,8 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 </button>
                 <button
                   type="button"
-                  disabled={sameRoleCandidates.length === 0 || !transferRecipientId}
                   onClick={handleConfirmDelete}
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-xs cursor-pointer flex items-center gap-1.5 transition"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer flex items-center gap-1.5 transition"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Yes</span>

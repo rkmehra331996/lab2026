@@ -2834,17 +2834,36 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return settings;
   }, [vendorLabSettingsMap, effectiveSettingsLabId, vendorLabsList]);
 
+  const [deletedPackageIds, setDeletedPackageIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_deleted_vendor_package_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [deletedStaffIds, setDeletedStaffIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_deleted_staff_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [allVendorPackages, setAllVendorPackages] = useState<VendorPackage[]>(() => {
     try {
+      const savedDeleted = localStorage.getItem('cms_deleted_vendor_package_ids');
+      const delSet = new Set(savedDeleted ? JSON.parse(savedDeleted) : []);
       const saved = localStorage.getItem('cms_all_vendor_packages');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           const existingIds = new Set(parsed.map((p: any) => p.id));
-          const existingLabIds = new Set(parsed.map((p: any) => p.labId));
-          const missingPkgs = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => !existingIds.has(p.id) && !existingLabIds.has(p.labId));
+          const missingPkgs = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => !existingIds.has(p.id) && !delSet.has(p.id));
           return [
-            ...parsed.map((p: any) => ({
+            ...parsed.filter((p: any) => !delSet.has(p.id)).map((p: any) => ({
               ...p,
               labId: p.labId || 'lab-apex',
               features: Array.isArray(p.features)
@@ -2858,7 +2877,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ];
         }
       }
-      return DEFAULT_ALL_VENDOR_PACKAGES;
+      return DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => !delSet.has(p.id));
     } catch {
       return DEFAULT_ALL_VENDOR_PACKAGES;
     }
@@ -2880,11 +2899,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const vendorPackages = useMemo(() => {
+    const deletedSet = new Set(deletedPackageIds);
     let targetLab = 'lab-apex';
     if (currentUser?.role === 'admin') {
       if (superAdminTenantScope === 'all') {
         if (!selectedVendorLabId || selectedVendorLabId === 'all') {
-          return allVendorPackages.length > 0 ? allVendorPackages : DEFAULT_ALL_VENDOR_PACKAGES;
+          return allVendorPackages.filter((p) => !deletedSet.has(p.id));
         }
         targetLab = selectedVendorLabId;
       } else {
@@ -2896,16 +2916,30 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         : (selectedVendorLabId || 'lab-apex');
     }
 
-    const matched = allVendorPackages.filter((p) => isTenantMatch(p, targetLab));
-    const finalPkgs = matched.length > 0
-      ? matched
-      : DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => isTenantMatch(p, targetLab)).length > 0
-        ? DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => isTenantMatch(p, targetLab))
-        : DEFAULT_ALL_VENDOR_PACKAGES.slice(0, 4).map((p, idx) => ({
+    const matched = allVendorPackages.filter((p) => isTenantMatch(p, targetLab) && !deletedSet.has(p.id));
+    const hadDeletionsForThisLab = allVendorPackages.some((p) => isTenantMatch(p, targetLab) && deletedSet.has(p.id)) ||
+      DEFAULT_ALL_VENDOR_PACKAGES.some((p) => isTenantMatch(p, targetLab) && deletedSet.has(p.id));
+
+    let finalPkgs: VendorPackage[] = [];
+    if (matched.length > 0) {
+      finalPkgs = matched;
+    } else if (hadDeletionsForThisLab) {
+      // User explicitly deleted package(s) for this lab; respect deletion and do not resurrect!
+      finalPkgs = [];
+    } else {
+      const defaults = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => isTenantMatch(p, targetLab) && !deletedSet.has(p.id));
+      if (defaults.length > 0) {
+        finalPkgs = defaults;
+      } else {
+        finalPkgs = DEFAULT_ALL_VENDOR_PACKAGES.slice(0, 4)
+          .filter((p) => !deletedSet.has(`pkg-${targetLab}-${p.id}`))
+          .map((p, idx) => ({
             ...p,
             id: `pkg-${targetLab}-${idx + 1}`,
             labId: targetLab,
           }));
+      }
+    }
 
     return finalPkgs.map((p) => {
       const featArr = Array.isArray(p.features) && p.features.length > 0
@@ -2924,7 +2958,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         testsCount: p.testsCount || featArr.length || 24,
       };
     });
-  }, [allVendorPackages, selectedVendorLabId, currentUser, superAdminTenantScope]);
+  }, [allVendorPackages, deletedPackageIds, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   const vendorDoctors = useMemo(() => {
     if (currentUser?.role === 'admin') {
@@ -3113,15 +3147,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [allStaffAccounts, setAllStaffAccounts] = useState<LabStaffAccount[]>(() => {
     try {
+      const savedDeleted = localStorage.getItem('cms_deleted_staff_ids');
+      const delSet = new Set(savedDeleted ? JSON.parse(savedDeleted) : []);
       const saved = localStorage.getItem('cms_lab_staff_accounts');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           const existingIds = new Set(parsed.map((s: any) => s.id));
-          const existingLabIds = new Set(parsed.map((s: any) => s.labId));
-          const missingStaff = DEFAULT_STAFF_ACCOUNTS.filter((s) => !existingIds.has(s.id) && !existingLabIds.has(s.labId));
+          const missingStaff = DEFAULT_STAFF_ACCOUNTS.filter((s) => !existingIds.has(s.id) && !delSet.has(s.id));
           return [
-            ...parsed.map((s: any) => {
+            ...parsed.filter((s: any) => !delSet.has(s.id)).map((s: any) => {
               if (s.id === 'staff-rkmehra-admin') {
                 return { ...s, password: 'Asdfzxcv@336699' };
               }
@@ -3131,7 +3166,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ];
         }
       }
-      return DEFAULT_STAFF_ACCOUNTS;
+      return DEFAULT_STAFF_ACCOUNTS.filter((s) => !delSet.has(s.id));
     } catch {
       return DEFAULT_STAFF_ACCOUNTS;
     }
@@ -3852,14 +3887,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [allPlanRequests, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   const staffAccounts = useMemo(() => {
+    const deletedSet = new Set(deletedStaffIds);
     if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && (!selectedVendorLabId || selectedVendorLabId === 'all')) {
-      return allStaffAccounts;
+      return allStaffAccounts.filter((s) => !deletedSet.has(s.id));
     }
     const targetLab = (currentUser && currentUser.role !== 'admin' && currentUser.labId && currentUser.labId !== 'all')
       ? currentUser.labId
       : (superAdminTenantScope && superAdminTenantScope !== 'all' ? superAdminTenantScope : (selectedVendorLabId && selectedVendorLabId !== 'all' ? selectedVendorLabId : 'lab-apex'));
-    return allStaffAccounts.filter((s) => isTenantMatch(s, targetLab));
-  }, [allStaffAccounts, currentUser, superAdminTenantScope, selectedVendorLabId]);
+    return allStaffAccounts.filter((s) => isTenantMatch(s, targetLab) && !deletedSet.has(s.id));
+  }, [allStaffAccounts, deletedStaffIds, currentUser, superAdminTenantScope, selectedVendorLabId]);
 
   const vendorTests = useMemo(() => {
     if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && (!selectedVendorLabId || selectedVendorLabId === 'all')) {
@@ -4669,6 +4705,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteStaffAccount = (id: string) => {
+    setDeletedStaffIds((prev) => {
+      const updated = Array.from(new Set([...prev, id]));
+      try {
+        localStorage.setItem('cms_deleted_staff_ids', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     setAllStaffAccounts((prev) => {
       const updated = prev.filter((s) => s.id !== id);
       try {
@@ -4683,19 +4726,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const deletingStaff = allStaffAccounts.find((s) => s.id === deletingStaffId);
     const recipientStaff = allStaffAccounts.find((s) => s.id === recipientStaffId);
 
-    if (!deletingStaff || !recipientStaff) {
-      console.warn('Cannot transfer data: invalid staff IDs', { deletingStaffId, recipientStaffId });
+    if (!deletingStaff) {
+      deleteStaffAccount(deletingStaffId);
       return;
     }
 
-    if (deletingStaff.role !== recipientStaff.role) {
-      console.warn('Cannot transfer data: roles do not match', { deletingRole: deletingStaff.role, recipientRole: recipientStaff.role });
-      return;
-    }
-
-    const sameRoleStaff = allStaffAccounts.filter((s) => s.role === deletingStaff.role);
-    if (sameRoleStaff.length <= 1) {
-      console.warn(`Cannot delete: Minimum 1 ${deletingStaff.role} must always exist.`);
+    if (!recipientStaff || deletingStaff.role !== recipientStaff.role) {
+      deleteStaffAccount(deletingStaffId);
       return;
     }
 
@@ -4815,6 +4852,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     // 3. Remove deleted staff account from local state and cloud
+    setDeletedStaffIds((prev) => {
+      const updated = Array.from(new Set([...prev, deletingStaffId]));
+      try {
+        localStorage.setItem('cms_deleted_staff_ids', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     setAllStaffAccounts((prev) => {
       const updated = prev.filter((s) => s.id !== deletingStaffId);
       try {
@@ -5798,7 +5842,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteVendorPackage = (id: string) => {
-    setAllVendorPackages((prev) => prev.filter((p) => p.id !== id));
+    setDeletedPackageIds((prev) => {
+      const updated = Array.from(new Set([...prev, id]));
+      try {
+        localStorage.setItem('cms_deleted_vendor_package_ids', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setAllVendorPackages((prev) => {
+      const updated = prev.filter((p) => p.id !== id);
+      try {
+        localStorage.setItem('cms_all_vendor_packages', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     deletePackageFromCloud(id);
   };
 

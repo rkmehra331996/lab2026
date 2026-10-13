@@ -1150,21 +1150,39 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold cursor-pointer"
+                  onClick={() => {
+                    if (editingPackage) {
+                      const toDelete = editingPackage;
+                      setIsEditModalOpen(false);
+                      setEditingPackage(null);
+                      handleRequestDelete(toDelete);
+                    }
+                  }}
+                  className="px-3 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold flex items-center gap-1.5 cursor-pointer text-xs"
                 >
-                  Cancel
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Package</span>
                 </button>
-                <button
-                  type="submit"
-                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-5 py-2 rounded-xl font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Save className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Update Package</span>
-                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-5 py-2 rounded-xl font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Save className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Update Package</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>
