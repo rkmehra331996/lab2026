@@ -228,6 +228,8 @@ export default function App() {
     }
   };
 
+  const hasInitialSyncedRef = React.useRef(false);
+
   // Persist currentView to localStorage whenever it changes (only for authenticated or dashboard views, avoid trapping homepage)
   useEffect(() => {
     try {
@@ -239,10 +241,28 @@ export default function App() {
     } catch {}
   }, [currentView]);
 
-  // Sync view and lab tenant from URL parameters, subdomains, /shop/ or /lab/ paths, or custom domains
+  // Sync view and lab tenant from URL parameters, subdomains, /shop/ or /lab/ paths, or custom domains on initial load
   useEffect(() => {
+    if (hasInitialSyncedRef.current) return;
+
     try {
-      // CRITICAL: Never reset or overwrite active dashboard workspaces during normal operations
+      const resolution = resolveAppRoute(
+        window.location.hostname,
+        window.location.search,
+        vendorLabsList,
+        window.location.pathname,
+        window.location.hash
+      );
+
+      // If URL explicitly points to an SEO post, load the post object
+      if (resolution.targetPost && !activePost) {
+        const post = getPostBySlug(resolution.targetPost);
+        if (post) {
+          setActivePost(post);
+        }
+      }
+
+      // Never reset or overwrite active dashboard workspaces or active post view during in-app navigation
       const isDashboardView = [
         'vendor_dashboard',
         'admin_dashboard',
@@ -253,17 +273,10 @@ export default function App() {
         'lab_app',
       ].includes(currentView);
 
-      if (isDashboardView) {
+      if (isDashboardView || currentView === 'seo_post') {
+        hasInitialSyncedRef.current = true;
         return;
       }
-
-      const resolution = resolveAppRoute(
-        window.location.hostname,
-        window.location.search,
-        vendorLabsList,
-        window.location.pathname,
-        window.location.hash
-      );
 
       // CRITICAL: When user explicitly opens the main platform domain (indianlalaji.com or www.indianlalaji.com),
       // always reset to the homepage 'website' view and purge any stale dashboard view.
@@ -273,6 +286,7 @@ export default function App() {
         try {
           localStorage.removeItem('cms_current_view');
         } catch {}
+        hasInitialSyncedRef.current = true;
         return;
       }
 
@@ -282,6 +296,7 @@ export default function App() {
           setActivePost(post);
           setCurrentView('seo_post');
           setUrlLabError(null);
+          hasInitialSyncedRef.current = true;
           return;
         }
       }
@@ -318,6 +333,7 @@ export default function App() {
             : 'vendor_website';
           setCurrentView(targetView);
           setUrlLabError(null);
+          hasInitialSyncedRef.current = true;
         } else if (!isFetchingLabRef.current && !attemptedLabFetchesRef.current.has(cleanId.toLowerCase())) {
           fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList);
         }
@@ -328,18 +344,15 @@ export default function App() {
         }
       }
 
-      if (resolution.isExplicitMainPlatform) {
-        // When visiting main platform directly:
-        setCurrentView('website');
-        setUrlLabError(null);
-        try {
-          localStorage.removeItem('cms_current_view');
-        } catch {}
-      } else if (resolution.view && !resolution.targetLab) {
+      if (resolution.view && !resolution.targetLab && resolution.view !== currentView) {
         setCurrentView(resolution.view);
       }
+
+      if (vendorLabsList && vendorLabsList.length > 0) {
+        hasInitialSyncedRef.current = true;
+      }
     } catch {}
-  }, [vendorLabsList, currentView]);
+  }, [vendorLabsList]);
 
   // Support browser Back/Forward navigation across /shop/, /lab/ paths and views
   useEffect(() => {
@@ -370,83 +383,89 @@ export default function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [vendorLabsList, selectVendorLab]);
+  }, [vendorLabsList, selectVendorLab, getPostBySlug]);
 
   // Update URL search parameters and path when view or selected lab changes
   useEffect(() => {
     // CRITICAL: If we are currently fetching or resolving a lab from URL, DO NOT overwrite the browser URL
     if (isFetchingUrlLab) return;
 
+    // Never mutate or flicker the browser URL for in-app views like dashboard workspaces or SEO posts
+    // This stops screen blinking and eliminates URL bar jumping completely!
+    const isDashboardOrPost = [
+      'vendor_dashboard',
+      'admin_dashboard',
+      'technician_dashboard',
+      'reception_dashboard',
+      'pathologist_dashboard',
+      'branch_manager_dashboard',
+      'lab_app',
+      'seo_post',
+    ].includes(currentView);
+
+    if (isDashboardOrPost) {
+      return;
+    }
+
     try {
       const url = new URL(window.location.href);
-      const currentRoute = resolveAppRoute(
-        window.location.hostname,
-        window.location.search,
-        vendorLabsList,
-        window.location.pathname,
-        window.location.hash
-      );
 
-      // If the URL already targets a lab that has not yet resolved, avoid overwriting with the fallback lab
-      if (currentRoute.targetLab && selectedVendorLabId) {
-        const targetClean = currentRoute.targetLab.toLowerCase().replace(/^lab-/, '');
-        const selClean = selectedVendorLabId.toLowerCase().replace(/^lab-/, '');
-        const targetDigits = currentRoute.targetLab.replace(/\D/g, '');
-        const selDigits = selectedVendorLabId.replace(/\D/g, '');
-        const match =
-          targetClean === selClean ||
-          (targetDigits.length >= 10 && selDigits.length >= 10 && targetDigits.slice(-10) === selDigits.slice(-10));
-        if (!match) {
-          return;
-        }
-      }
+      let targetPath = window.location.pathname;
+      let targetSearch = '';
 
       if (currentView === 'website') {
-        url.searchParams.delete('view');
-        url.searchParams.delete('lab');
-        url.searchParams.delete('shop');
-        url.searchParams.delete('vendor');
-        url.searchParams.delete('subdomain');
-        const cleanPath = url.pathname.startsWith('/shop/') || url.pathname.startsWith('/lab/') ? '/' : url.pathname;
-        window.history.replaceState({}, '', cleanPath + (url.search ? url.search : ''));
+        if (url.pathname.startsWith('/shop/') || url.pathname.startsWith('/lab/')) {
+          url.searchParams.delete('view');
+          url.searchParams.delete('post');
+          url.searchParams.delete('lab');
+          url.searchParams.delete('shop');
+          url.searchParams.delete('vendor');
+          url.searchParams.delete('subdomain');
+          targetPath = '/';
+          targetSearch = url.search ? url.search : '';
+          const targetFullUrl = targetPath + targetSearch;
+          const currentFullUrl = window.location.pathname + window.location.search;
+          if (targetFullUrl !== currentFullUrl) {
+            window.history.replaceState({}, '', targetFullUrl);
+          }
+        }
       } else if (currentView === 'vendor_website') {
         const currentLab = vendorLabsList.find((l) => l.id === selectedVendorLabId);
         const defaultActiveLab = vendorLabsList.find((l) => l.status === 'Active')?.id || vendorLabsList[0]?.id || 'lab-apex';
         const vendorId = currentLab?.id || selectedVendorLabId || defaultActiveLab;
         url.searchParams.delete('view');
+        url.searchParams.delete('post');
         url.searchParams.delete('lab');
         url.searchParams.delete('shop');
         url.searchParams.delete('vendor');
         url.searchParams.delete('subdomain');
         const prefix = window.location.pathname.startsWith('/lab/') ? '/lab/' : '/shop/';
-        window.history.replaceState({}, '', `${prefix}${vendorId}` + (url.search ? url.search : ''));
+        targetPath = `${prefix}${vendorId}`;
+        targetSearch = url.search ? url.search : '';
+        const targetFullUrl = targetPath + targetSearch;
+        const currentFullUrl = window.location.pathname + window.location.search;
+        if (targetFullUrl !== currentFullUrl) {
+          window.history.replaceState({}, '', targetFullUrl);
+        }
       } else if (currentView === 'patient_portal') {
         url.searchParams.set('view', 'patient_portal');
+        url.searchParams.delete('post');
         if (selectedVendorLabId && selectedVendorLabId !== 'all') {
           const currentLab = vendorLabsList.find((l) => l.id === selectedVendorLabId);
-          const slug = getTenantSubdomain(currentLab?.domainPreview || selectedVendorLabId);
-          url.searchParams.set('lab', slug);
+          url.searchParams.set('lab', currentLab?.id || selectedVendorLabId);
         } else {
           url.searchParams.delete('lab');
         }
-        window.history.replaceState({}, '', url.pathname + url.search);
-      } else {
-        url.searchParams.set('view', currentView);
-        const effectiveLab = (currentUser && currentUser.role !== 'admin' && currentUser.labId && currentUser.labId !== 'all')
-          ? currentUser.labId
-          : selectedVendorLabId;
-        if (effectiveLab && ['vendor_dashboard', 'reception_dashboard', 'technician_dashboard', 'pathologist_dashboard', 'branch_manager_dashboard'].includes(currentView)) {
-          const currentLab = vendorLabsList.find((l) => l.id === effectiveLab);
-          const slug = getTenantSubdomain(currentLab?.domainPreview || effectiveLab);
-          url.searchParams.set('lab', slug);
-        } else if (!['patient_portal'].includes(currentView)) {
-          url.searchParams.delete('lab');
+        targetPath = url.pathname.startsWith('/shop/') || url.pathname.startsWith('/lab/') ? '/' : url.pathname;
+        targetSearch = url.search;
+        const targetFullUrl = targetPath + targetSearch;
+        const currentFullUrl = window.location.pathname + window.location.search;
+        if (targetFullUrl !== currentFullUrl) {
+          window.history.replaceState({}, '', targetFullUrl);
         }
-        const cleanPath = url.pathname.startsWith('/shop/') || url.pathname.startsWith('/lab/') ? '/' : url.pathname;
-        window.history.replaceState({}, '', cleanPath + url.search);
       }
     } catch {}
-  }, [currentView, selectedVendorLabId, vendorLabsList, currentUser]);
+  }, [currentView, selectedVendorLabId, vendorLabsList, currentUser, activePost]);
 
   // Keep dashboard views strictly locked to logged-in user's own laboratory
   useEffect(() => {
@@ -466,7 +485,7 @@ export default function App() {
     ) {
       const userNorm = currentUser.labId.toLowerCase().replace(/^lab-/, '');
       const selectedNorm = (selectedVendorLabId || '').toLowerCase().replace(/^lab-/, '');
-      if (userNorm && userNorm !== selectedNorm) {
+      if (userNorm && userNorm !== selectedNorm && selectedVendorLabId !== currentUser.labId) {
         selectVendorLab(currentUser.labId);
       }
     }
@@ -601,14 +620,13 @@ export default function App() {
           post={activePost}
           onBack={() => {
             setCurrentView('website');
-            if (typeof window !== 'undefined') {
-              window.history.pushState(null, '', '/');
-            }
+            setActivePost(null);
+            window.scrollTo({ top: 0 });
           }}
           onSelectPost={(p) => setActivePost(p)}
           onNavigateView={(v) => {
             setCurrentView(v);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0 });
           }}
         />
         <CmsAuthModal
@@ -1067,7 +1085,7 @@ export default function App() {
         onSelectPost={(post) => {
           setActivePost(post);
           setCurrentView('seo_post');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo({ top: 0 });
         }}
       />
 

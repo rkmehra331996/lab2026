@@ -2440,11 +2440,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSeoPosts((prev) => prev.filter((p) => p.id !== id && p.slug !== id));
   };
 
-  const getPostBySlug = (slug: string): SeoPost | undefined => {
+  const getPostBySlug = useCallback((slug: string): SeoPost | undefined => {
     if (!slug) return undefined;
     const clean = slug.toLowerCase().trim();
     return seoPosts.find((p) => (p.slug || '').toLowerCase().trim() === clean || (p.id || '').toLowerCase().trim() === clean);
-  };
+  }, [seoPosts]);
 
   const getPostById = (id: string): SeoPost | undefined => {
     if (!id) return undefined;

@@ -39,7 +39,7 @@ export const SeoPostDetailView: React.FC<SeoPostDetailViewProps> = ({
   // Update dynamic head metadata, OpenGraph and JSON-LD schema
   useEffect(() => {
     applyPostSeoToDOM(post);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0 });
   }, [post]);
 
   const handleCopyLink = () => {
