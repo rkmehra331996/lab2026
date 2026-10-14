@@ -39,6 +39,16 @@
             }).catch(function() {});
           }
 
+          // Ensure visiting indianlalaji.com homepage root always opens clean public website
+          try {
+            var host = (window.location.hostname || '').toLowerCase();
+            if ((host === 'indianlalaji.com' || host === 'www.indianlalaji.com') &&
+                (window.location.pathname === '/' || window.location.pathname === '/index.html' || !window.location.pathname) &&
+                !window.location.search) {
+              localStorage.removeItem('cms_current_view');
+            }
+          } catch (e) {}
+
           // React preamble flag for dev mode
           window.__vite_plugin_react_preamble_installed__ = true;
 

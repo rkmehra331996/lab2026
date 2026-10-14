@@ -54,8 +54,21 @@ export default function App() {
         typeof window !== 'undefined' ? window.location.hostname : '',
         typeof window !== 'undefined' ? window.location.search : '',
         undefined,
-        typeof window !== 'undefined' ? window.location.pathname : ''
+        typeof window !== 'undefined' ? window.location.pathname : '',
+        typeof window !== 'undefined' ? window.location.hash : ''
       );
+
+      // If visiting the main official platform (indianlalaji.com or www.indianlalaji.com),
+      // ALWAYS open the main company website ('website') and clear any stale dashboard memory
+      if (resolution.isExplicitMainPlatform) {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('cms_current_view');
+          } catch {}
+        }
+        return 'website';
+      }
+
       if (resolution.view && resolution.view !== 'website') {
         return resolution.view;
       }
@@ -229,7 +242,26 @@ export default function App() {
   // Sync view and lab tenant from URL parameters, subdomains, /shop/ or /lab/ paths, or custom domains
   useEffect(() => {
     try {
-      // CRITICAL: Never reset or overwrite active dashboard workspaces
+      const resolution = resolveAppRoute(
+        window.location.hostname,
+        window.location.search,
+        vendorLabsList,
+        window.location.pathname,
+        window.location.hash
+      );
+
+      // CRITICAL: When user explicitly opens the main platform domain (indianlalaji.com or www.indianlalaji.com),
+      // always reset to the homepage 'website' view and purge any stale dashboard view.
+      if (resolution.isExplicitMainPlatform) {
+        setCurrentView('website');
+        setUrlLabError(null);
+        try {
+          localStorage.removeItem('cms_current_view');
+        } catch {}
+        return;
+      }
+
+      // CRITICAL: Never reset or overwrite active dashboard workspaces during normal operations
       const isDashboardView = [
         'vendor_dashboard',
         'admin_dashboard',
@@ -243,14 +275,6 @@ export default function App() {
       if (isDashboardView) {
         return;
       }
-
-      const resolution = resolveAppRoute(
-        window.location.hostname,
-        window.location.search,
-        vendorLabsList,
-        window.location.pathname,
-        window.location.hash
-      );
 
       if (resolution.targetPost) {
         const post = getPostBySlug(resolution.targetPost);

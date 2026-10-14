@@ -46,6 +46,11 @@ const RESERVED_PATH_SEGMENTS = [
   'website',
   'pricing',
   'demo',
+  'index',
+  'index.html',
+  'home',
+  'main',
+  'root',
 ];
 
 function findMatchingLabId(

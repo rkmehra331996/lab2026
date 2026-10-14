@@ -13,8 +13,6 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
-import { TermsConditionsModal } from './TermsConditionsModal';
-import { IndianLalajiMarquee } from './IndianLalajiMarquee';
 
 interface FinalCTASectionProps {
   onOpenDemo?: () => void;
@@ -34,7 +32,6 @@ export const FinalCTASection: React.FC<FinalCTASectionProps> = () => {
     message: '',
   });
   const [submitted, setSubmitted] = useState(false);
-  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -253,28 +250,6 @@ export const FinalCTASection: React.FC<FinalCTASectionProps> = () => {
           </div>
         </div>
 
-        {/* Clean Bottom Copyright Strip with Terms & Conditions */}
-        <div className="mt-14 pt-8 border-t border-white/10 text-center text-xs text-slate-400">
-          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-            <span>© 2026 IndianLalaJi.com — LIMS</span>
-            <span className="text-slate-600 hidden sm:inline">|</span>
-            <span>Powered by PageGuru.in</span>
-            <span className="text-slate-600 hidden sm:inline">|</span>
-            <button
-              type="button"
-              onClick={() => setIsTermsModalOpen(true)}
-              className="text-slate-300 hover:text-amber-400 underline underline-offset-2 transition cursor-pointer font-medium"
-            >
-              Terms &amp; Conditions
-            </button>
-          </p>
-        </div>
-
-        {/* Terms & Conditions Modal Popup */}
-        <TermsConditionsModal
-          isOpen={isTermsModalOpen}
-          onClose={() => setIsTermsModalOpen(false)}
-        />
       </div>
     </section>
   );
