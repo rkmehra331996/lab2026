@@ -902,7 +902,13 @@ Consultant Doctors: ${JSON.stringify(vendorContext?.doctors || [])}
         template = await vite.transformIndexHtml(url, template);
         // Completely strip /@vite/client so dev server HMR / WebSocket client never executes in browser
         template = template.replace(/<script type="module" src="\/@vite\/client"><\/script>/gi, '');
-        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+        res.status(200).set({
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store',
+        }).end(template);
       } catch (e) {
         vite.ssrFixStacktrace(e as Error);
         next(e);
@@ -912,9 +918,22 @@ Consultant Doctors: ${JSON.stringify(vendorContext?.doctors || [])}
     // Production static serving
     const distPath = path.join(__dirname, 'dist');
     if (fs.existsSync(distPath)) {
-      app.use(express.static(distPath));
+      app.use(express.static(distPath, {
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('.html') || filePath.endsWith('.json') || filePath.endsWith('.webmanifest')) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.setHeader('Surrogate-Control', 'no-store');
+          }
+        }
+      }));
     }
     app.use('*', (_req, res) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

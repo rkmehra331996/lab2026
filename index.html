@@ -30,7 +30,7 @@
             enumerable: true,
           });
 
-          // Unregister any active Service Workers to prevent caching / controllerchange reloads
+          // 1. Unregister any active Service Workers to prevent caching / controllerchange reloads
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(regs) {
               for (var i = 0; i < regs.length; i++) {
@@ -38,6 +38,28 @@
               }
             }).catch(function() {});
           }
+
+          // 2. Clear CacheStorage (all caches created by workbox, sw, or browser cache)
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              for (var c = 0; c < names.length; c++) {
+                caches.delete(names[c]).catch(function() {});
+              }
+            }).catch(function() {});
+          }
+
+          // 3. Final Release Version Tag - clear old cached session if version changed
+          try {
+            var FINAL_APP_RELEASE = 'INDIANLALAJI-FINAL-RELEASE-2026';
+            var previousRelease = localStorage.getItem('app_final_release_version');
+            if (previousRelease !== FINAL_APP_RELEASE) {
+              localStorage.setItem('app_final_release_version', FINAL_APP_RELEASE);
+              try { sessionStorage.clear(); } catch (e) {}
+              if (!window.location.search && !window.location.hash && (window.location.pathname === '/' || window.location.pathname === '/index.html' || !window.location.pathname)) {
+                localStorage.removeItem('cms_current_view');
+              }
+            }
+          } catch (e) {}
 
           // Ensure visiting indianlalaji.com homepage root always opens clean public website
           try {
