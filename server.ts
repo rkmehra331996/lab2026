@@ -631,6 +631,32 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
         if (labId) {
           store.lab_settings[labId] = { ...(store.lab_settings[labId] || {}), ...data };
           store.labSettingsMap[labId] = { ...(store.labSettingsMap[labId] || {}), ...data };
+
+          const updateLabEntry = (l: any) => {
+            if (l.id === labId) {
+              return {
+                ...l,
+                ...(data.phone !== undefined ? { phone: data.phone } : {}),
+                ...(data.address !== undefined ? { address: data.address } : {}),
+                ...(data.email !== undefined ? { email: data.email } : {}),
+                ...(data.labName !== undefined ? { name: data.labName } : {}),
+                ...(data.name !== undefined ? { name: data.name } : {}),
+                ...(data.tagline !== undefined ? { tagline: data.tagline } : {}),
+                ...(data.city !== undefined ? { city: data.city } : {}),
+                ...(data.state !== undefined ? { state: data.state } : {}),
+                ...(data.nablAccreditationNo !== undefined ? { nablCode: data.nablAccreditationNo } : {}),
+                ...(data.nablNumber !== undefined ? { nablCode: data.nablNumber } : {}),
+                _updatedAt: new Date().toISOString(),
+              };
+            }
+            return l;
+          };
+          if (Array.isArray(store.vendor_labs)) {
+            store.vendor_labs = store.vendor_labs.map(updateLabEntry);
+          }
+          if (Array.isArray(store.vendorLabs)) {
+            store.vendorLabs = store.vendorLabs.map(updateLabEntry);
+          }
         } else {
           Object.assign(store.lab_settings, data);
           Object.assign(store.labSettingsMap, data);

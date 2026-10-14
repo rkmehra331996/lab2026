@@ -306,15 +306,15 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   };
 
   const labShopId = vendorLabSettings?.labShopId || (currentLabItem ? `LSP-${currentLabItem.id.replace('lab-', '').toUpperCase()}` : (defaultDirectoryLab ? `LSP-${defaultDirectoryLab.id.replace('lab-', '').toUpperCase()}` : 'LSP-101'));
-  const labName = currentLabItem?.name || vendorLabSettings?.labName || vendorLabSettings?.name || defaultDirectoryLab?.name || 'Diagnostic Laboratory';
+  const labName = vendorLabSettings?.labName || vendorLabSettings?.name || currentLabItem?.name || defaultDirectoryLab?.name || 'Diagnostic Laboratory';
   const labNabl = vendorLabSettings?.nablAccreditationNo || vendorLabSettings?.nablNumber || currentLabItem?.nablCode || defaultDirectoryLab?.nablCode || 'Verified';
-  const labPhone = currentLabItem?.phone || vendorLabSettings?.phone || vendorLabSettings?.helplinePhone || defaultDirectoryLab?.phone || '6070809010';
-  const labWhatsapp = vendorLabSettings?.whatsapp || currentLabItem?.phone || labPhone || '6070809010';
-  const labEmail = currentLabItem?.email || vendorLabSettings?.email || defaultDirectoryLab?.email || 'care@indianlalaji.com';
-  const labTagline = currentLabItem?.tagline || vendorLabSettings?.tagline || defaultDirectoryLab?.tagline || 'Advanced Pathology, Biochemistry & Diagnostic Testing Centre';
+  const labPhone = vendorLabSettings?.phone || vendorLabSettings?.helplinePhone || currentLabItem?.phone || defaultDirectoryLab?.phone || '6070809010';
+  const labWhatsapp = vendorLabSettings?.whatsapp || vendorLabSettings?.phone || currentLabItem?.phone || labPhone || '6070809010';
+  const labEmail = vendorLabSettings?.email || currentLabItem?.email || defaultDirectoryLab?.email || 'care@indianlalaji.com';
+  const labTagline = vendorLabSettings?.tagline || currentLabItem?.tagline || defaultDirectoryLab?.tagline || 'Advanced Pathology, Biochemistry & Diagnostic Testing Centre';
   const labHours = vendorLabSettings?.openingHours || 'Open 7:00 AM – 9:00 PM (All 7 Days)';
   const labEmergency = vendorLabSettings?.emergencyHours || '24x7 Emergency Services at Central Lab';
-  const labAddress = currentLabItem?.address || vendorLabSettings?.address || defaultDirectoryLab?.address || 'Healthcare Complex, India';
+  const labAddress = vendorLabSettings?.address || currentLabItem?.address || defaultDirectoryLab?.address || 'Healthcare Complex, India';
   const labDescription = vendorLabSettings?.description || labTagline || `${labName} - Authorized NABL Accredited Diagnostic Center.`;
   const labWebsiteUrl =
     vendorLabSettings?.websiteUrl &&
@@ -4229,6 +4229,17 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   <p className="text-xs sm:text-sm font-medium text-slate-700 mt-0.5 leading-relaxed">
                     {labAddress}
                   </p>
+                  {vendorLabSettings?.contactGoogleMapUrl && (
+                    <a
+                      href={vendorLabSettings.contactGoogleMapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-[#123B6D] hover:underline inline-flex items-center gap-1 mt-1"
+                    >
+                      <span>📍 View on Google Maps</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </div>
               </div>
 

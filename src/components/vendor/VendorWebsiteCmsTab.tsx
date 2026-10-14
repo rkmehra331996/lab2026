@@ -731,11 +731,44 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({
     contactGoogleMapUrl: vendorLabSettings.contactGoogleMapUrl || '',
   });
 
-  const handleSaveContact = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateVendorLabSettings({
-      ...contactForm,
+  // Keep contactForm synced with vendorLabSettings on lab switch, mount, or external changes
+  useEffect(() => {
+    setContactForm({
+      phone: vendorLabSettings.phone || '',
+      helplinePhone: vendorLabSettings.helplinePhone || '',
+      whatsapp: vendorLabSettings.whatsapp || '',
+      email: vendorLabSettings.email || '',
+      address: vendorLabSettings.address || '',
+      openingHours: vendorLabSettings.openingHours || 'Open 7:00 AM – 9:00 PM (All 7 Days)',
+      emergencyHours: vendorLabSettings.emergencyHours || '24x7 Emergency Services at Central Lab',
+      contactGoogleMapUrl: vendorLabSettings.contactGoogleMapUrl || '',
     });
+  }, [
+    vendorLabSettings.phone,
+    vendorLabSettings.helplinePhone,
+    vendorLabSettings.whatsapp,
+    vendorLabSettings.email,
+    vendorLabSettings.address,
+    vendorLabSettings.openingHours,
+    vendorLabSettings.emergencyHours,
+    vendorLabSettings.contactGoogleMapUrl,
+    vendorLabSettings.labId,
+  ]);
+
+  const handleSaveContact = (e?: React.FormEvent | React.MouseEvent) => {
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
+    const effectiveLabId = vendorLabSettings.labId || selectedVendorLabId;
+    const payload = {
+      ...contactForm,
+      labId: effectiveLabId,
+    };
+    updateVendorLabSettings(payload);
+    setFormData((prev) => ({
+      ...prev,
+      ...payload,
+    }));
     triggerToast('Contact Us details updated successfully!');
   };
 
@@ -2111,6 +2144,7 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({
               </p>
             </div>
             <button
+              type="button"
               onClick={handleSaveContact}
               className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
             >

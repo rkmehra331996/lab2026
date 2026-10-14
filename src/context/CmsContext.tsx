@@ -5794,20 +5794,40 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     if (updatedPayload) {
       syncLabSettingsToCloud(targetLabId, updatedPayload);
-      if (newSettings.websiteDomain !== undefined || newSettings.domainPreview !== undefined) {
-        setVendorLabsList((prevLabs) =>
-          prevLabs.map((lab) => {
-            if (lab.id === targetLabId) {
-              const dom = newSettings.domainPreview || newSettings.websiteDomain || lab.domainPreview;
-              return {
-                ...lab,
-                domainPreview: dom,
-                websiteDomain: newSettings.websiteDomain !== undefined ? newSettings.websiteDomain : (lab as any).websiteDomain,
-              };
-            }
-            return lab;
-          })
-        );
+
+      // Keep vendorLabsList directory synchronized whenever contact details, name, tagline, address or domain changes
+      let syncedLabItem: VendorLabDirectoryItem | null = null;
+      setVendorLabsList((prevLabs) => {
+        const nextLabs = prevLabs.map((lab) => {
+          if (lab.id === targetLabId) {
+            const dom = newSettings.domainPreview || newSettings.websiteDomain || lab.domainPreview;
+            const updatedLab: VendorLabDirectoryItem = {
+              ...lab,
+              ...(newSettings.phone !== undefined ? { phone: newSettings.phone } : {}),
+              ...(newSettings.address !== undefined ? { address: newSettings.address } : {}),
+              ...(newSettings.email !== undefined ? { email: newSettings.email } : {}),
+              ...(newSettings.labName !== undefined ? { name: newSettings.labName } : {}),
+              ...(newSettings.tagline !== undefined ? { tagline: newSettings.tagline } : {}),
+              ...(newSettings.city !== undefined ? { city: newSettings.city } : {}),
+              ...(newSettings.state !== undefined ? { state: newSettings.state } : {}),
+              ...(newSettings.nablAccreditationNo !== undefined ? { nablCode: newSettings.nablAccreditationNo } : {}),
+              ...(newSettings.nablNumber !== undefined ? { nablCode: newSettings.nablNumber } : {}),
+              ...(dom ? { domainPreview: dom } : {}),
+              ...(newSettings.websiteDomain !== undefined ? { websiteDomain: newSettings.websiteDomain } : {}),
+              _updatedAt: new Date().toISOString(),
+            };
+            syncedLabItem = updatedLab;
+            return updatedLab;
+          }
+          return lab;
+        });
+        try {
+          localStorage.setItem('cms_vendor_labs_list', JSON.stringify(nextLabs));
+        } catch {}
+        return nextLabs;
+      });
+      if (syncedLabItem) {
+        syncVendorLabToCloud(syncedLabItem);
       }
     }
   };
