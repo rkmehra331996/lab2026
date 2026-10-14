@@ -2685,9 +2685,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Keep selectedVendorLabId in sync whenever a non-superadmin user logs in
   useEffect(() => {
     if (currentUser && currentUser.role !== 'admin' && currentUser.labId && currentUser.labId !== 'all') {
-      setSelectedVendorLabId(currentUser.labId);
+      const userNorm = currentUser.labId.toLowerCase().replace(/^lab-/, '');
+      const selNorm = (selectedVendorLabId || '').toLowerCase().replace(/^lab-/, '');
+      if (userNorm && userNorm !== selNorm) {
+        const matched = vendorLabsList.find(
+          (l) => l.id.toLowerCase().replace(/^lab-/, '') === userNorm
+        );
+        setSelectedVendorLabId(matched ? matched.id : currentUser.labId);
+      }
     }
-  }, [currentUser]);
+  }, [currentUser, selectedVendorLabId, vendorLabsList]);
 
   // Super Admin global vs lab-specific view scope ('all' or specific labId)
   const [superAdminTenantScope, setSuperAdminTenantScope] = useState<string>('all');

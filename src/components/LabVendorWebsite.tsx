@@ -3070,10 +3070,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
       {/* SECTION 3: HEALTH PACKAGES (with Booking Button & Peek Carousel) */}
       <div id="packages-section" className="scroll-mt-24" />
-      <section id="packages" className="py-16 bg-white border-b border-slate-200 scroll-mt-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#123B6D]/10 text-[#123B6D] text-xs font-bold mb-3">
+      <section id="packages" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 bg-white border-b border-slate-200 scroll-mt-24">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10 px-2">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#123B6D]/10 text-[#123B6D] text-xs font-bold mb-3">
               <span>{vendorLabSettings?.packagesBadge || 'Preventive Health Packages'}</span>
             </div>
 
@@ -3083,7 +3083,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 {vendorLabSettings?.packagesTitle || 'Comprehensive Health Checkups for Complete Wellness'}
               </h2>
               {Boolean(vendorLabSettings?.packagesSubtitle) && (
-                <p className="text-sm text-[#64748B] mt-1.5 font-medium">
+                <p className="text-sm text-[#64748B] mt-2 font-medium">
                   {vendorLabSettings?.packagesSubtitle}
                 </p>
               )}
@@ -3218,11 +3218,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   })}
                 </div>
 
-                {/* Mobile View: 1 Package = 100% width, 2+ Packages = 90% card with 10% peek & swipe */}
+                {/* Mobile View: 1 Package = 100% width, 2+ Packages = 84% card with peek & smooth swipe */}
                 <div className="block md:hidden">
                   {safeVendorPackages.length === 1 ? (
-                    /* 1 Package: Full screen width (100%) */
-                    <div className="w-full">
+                    /* 1 Package: Full screen width with clean padding */
+                    <div className="w-full py-2">
                       {(() => {
                         const pkg = safeVendorPackages[0];
                         const pkgImageUrl = getPackageImg(pkg, 0);
@@ -3231,7 +3231,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                         return (
                           <div
                             key={pkg.id || 0}
-                            className="bg-white rounded-3xl border border-slate-200/90 shadow-sm flex flex-col overflow-hidden relative w-full"
+                            className="bg-white rounded-3xl border border-slate-200/90 shadow-md flex flex-col overflow-hidden relative w-full"
                           >
                             <div className="relative w-full h-48 bg-slate-100 overflow-hidden shrink-0 group/cover">
                               <img
@@ -3262,18 +3262,23 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                                       {pkgTestsCount} Tests
                                     </span>
                                   </div>
-                                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                                    {pkgFeatures.map((feat, fIdx) => (
+                                  <div className="space-y-1.5">
+                                    {pkgFeatures.slice(0, 4).map((feat, fIdx) => (
                                       <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700 leading-snug">
                                         <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                                        <span className="font-medium text-slate-700">{feat}</span>
+                                        <span className="font-medium text-slate-700 line-clamp-1">{feat}</span>
                                       </div>
                                     ))}
+                                    {pkgFeatures.length > 4 && (
+                                      <div className="text-[11px] font-bold text-[#123B6D] pl-5 pt-0.5">
+                                        +{pkgFeatures.length - 4} more tests included
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
                               <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5 mt-auto">
-                                <div className="px-3.5 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-[#123B6D] font-black text-base shadow-2xs">
+                                <div className="px-3.5 py-2 rounded-xl bg-blue-50 border border-blue-200 text-[#123B6D] font-black text-base shadow-2xs">
                                   ₹{pkg.priceINR}
                                 </div>
                                 <button
@@ -3282,7 +3287,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                                     setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
                                     setIsBookingModalOpen(true);
                                   }}
-                                  className="flex-1 bg-[#123B6D] text-white py-2.5 px-3 rounded-xl text-xs font-black shadow-sm flex items-center justify-center gap-1.5 active:scale-98"
+                                  className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-3 rounded-xl text-xs font-black shadow-sm flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
                                 >
                                   <span>Book Test</span>
                                   <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
@@ -3294,11 +3299,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                       })()}
                     </div>
                   ) : safeVendorPackages.length > 1 ? (
-                    /* 2+ Packages: First card 90% width, next card 10% visible on right. Horizontal swipe & click navigation enabled. */
-                    <div className="relative">
+                    /* 2+ Packages: Clean padded container, horizontal swipe enabled with smooth vertical page scroll */
+                    <div className="relative w-full">
                       <div
                         ref={packagesCarouselRef}
-                        className="flex overflow-x-auto snap-x snap-mandatory gap-3.5 pb-2 -mx-4 px-4 scroll-smooth touch-pan-x"
+                        className="flex overflow-x-auto snap-x snap-mandatory gap-4 pt-2 pb-4 px-1 scroll-smooth overscroll-x-contain touch-manipulation"
                         style={{
                           scrollbarWidth: 'none',
                           msOverflowStyle: 'none',
@@ -3307,7 +3312,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                         onScroll={(e) => {
                           const el = e.currentTarget;
                           const scrollLeft = el.scrollLeft;
-                          const cardWidth = el.offsetWidth * 0.88;
+                          const cardWidth = el.offsetWidth * 0.85;
                           if (cardWidth > 0) {
                             const idx = Math.min(
                               safeVendorPackages.length - 1,
@@ -3326,7 +3331,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                           return (
                             <div
                               key={pkg.id || idx}
-                              className="w-[88vw] shrink-0 snap-start bg-white rounded-3xl border border-slate-200/90 shadow-sm flex flex-col overflow-hidden relative"
+                              className="w-[84vw] max-w-[340px] shrink-0 snap-start bg-white rounded-3xl border border-slate-200/90 shadow-md hover:shadow-lg transition-shadow flex flex-col overflow-hidden relative"
                             >
                               {/* Package Cover Image */}
                               <div className="relative w-full h-44 bg-slate-100 overflow-hidden shrink-0 group/cover">
@@ -3365,13 +3370,18 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                                       {pkgTestsCount} Tests
                                     </span>
                                   </div>
-                                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                                    {pkgFeatures.map((feat, fIdx) => (
+                                  <div className="space-y-1.5">
+                                    {pkgFeatures.slice(0, 4).map((feat, fIdx) => (
                                       <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700 leading-snug">
                                         <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                                        <span className="font-medium text-slate-700">{feat}</span>
+                                        <span className="font-medium text-slate-700 line-clamp-1">{feat}</span>
                                       </div>
                                     ))}
+                                    {pkgFeatures.length > 4 && (
+                                      <div className="text-[11px] font-bold text-[#123B6D] pl-5 pt-0.5">
+                                        +{pkgFeatures.length - 4} more tests included
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
@@ -3399,7 +3409,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                       </div>
 
                       {/* Mobile Swipe Pagination Dots & Scroll Controls */}
-                      <div className="flex items-center justify-between mt-3 px-1">
+                      <div className="flex items-center justify-between mt-4 px-2">
                         <div className="flex items-center gap-1.5">
                           {safeVendorPackages.map((_, dotIdx) => (
                             <button
@@ -3408,7 +3418,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                               onClick={() => {
                                 const el = packagesCarouselRef.current;
                                 if (el) {
-                                  const cardW = el.offsetWidth * 0.88;
+                                  const cardW = el.offsetWidth * 0.85;
                                   el.scrollTo({ left: dotIdx * cardW, behavior: 'smooth' });
                                   setActiveMobilePkgIndex(dotIdx);
                                 }

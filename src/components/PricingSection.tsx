@@ -110,10 +110,6 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#123B6D]/10 text-[#123B6D] text-xs font-bold mb-3 border border-[#123B6D]/20">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>Transparent INR Pricing • 3 Flexible Packages</span>
-          </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-[#123B6D] tracking-tight">
             Simple, All-Inclusive Plans for Every Laboratory
           </h2>

@@ -242,6 +242,21 @@ export default function App() {
   // Sync view and lab tenant from URL parameters, subdomains, /shop/ or /lab/ paths, or custom domains
   useEffect(() => {
     try {
+      // CRITICAL: Never reset or overwrite active dashboard workspaces during normal operations
+      const isDashboardView = [
+        'vendor_dashboard',
+        'admin_dashboard',
+        'technician_dashboard',
+        'reception_dashboard',
+        'pathologist_dashboard',
+        'branch_manager_dashboard',
+        'lab_app',
+      ].includes(currentView);
+
+      if (isDashboardView) {
+        return;
+      }
+
       const resolution = resolveAppRoute(
         window.location.hostname,
         window.location.search,
@@ -258,21 +273,6 @@ export default function App() {
         try {
           localStorage.removeItem('cms_current_view');
         } catch {}
-        return;
-      }
-
-      // CRITICAL: Never reset or overwrite active dashboard workspaces during normal operations
-      const isDashboardView = [
-        'vendor_dashboard',
-        'admin_dashboard',
-        'technician_dashboard',
-        'reception_dashboard',
-        'pathologist_dashboard',
-        'branch_manager_dashboard',
-        'lab_app',
-      ].includes(currentView);
-
-      if (isDashboardView) {
         return;
       }
 
@@ -313,7 +313,10 @@ export default function App() {
         if (directMatch) {
           selectVendorLab(directMatch.id);
           setSelectedVendorLabId(directMatch.id);
-          setCurrentView(resolution.view === 'patient_portal' ? 'patient_portal' : 'vendor_website');
+          const targetView = (resolution.view && resolution.view !== 'website')
+            ? resolution.view
+            : 'vendor_website';
+          setCurrentView(targetView);
           setUrlLabError(null);
         } else if (!isFetchingLabRef.current && !attemptedLabFetchesRef.current.has(cleanId.toLowerCase())) {
           fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList);
@@ -439,7 +442,8 @@ export default function App() {
         } else if (!['patient_portal'].includes(currentView)) {
           url.searchParams.delete('lab');
         }
-        window.history.replaceState({}, '', url.pathname + url.search);
+        const cleanPath = url.pathname.startsWith('/shop/') || url.pathname.startsWith('/lab/') ? '/' : url.pathname;
+        window.history.replaceState({}, '', cleanPath + url.search);
       }
     } catch {}
   }, [currentView, selectedVendorLabId, vendorLabsList, currentUser]);
@@ -460,12 +464,13 @@ export default function App() {
       currentUser.labId &&
       currentUser.labId !== 'all'
     ) {
-      if (selectedVendorLabId !== currentUser.labId) {
-        setSelectedVendorLabId(currentUser.labId);
+      const userNorm = currentUser.labId.toLowerCase().replace(/^lab-/, '');
+      const selectedNorm = (selectedVendorLabId || '').toLowerCase().replace(/^lab-/, '');
+      if (userNorm && userNorm !== selectedNorm) {
         selectVendorLab(currentUser.labId);
       }
     }
-  }, [currentView, currentUser, selectedVendorLabId, selectVendorLab, setSelectedVendorLabId]);
+  }, [currentView, currentUser, selectedVendorLabId, selectVendorLab]);
 
   // Authorization check for protected dashboard workspaces using RBAC
   const isAuthorizedForView = (view: AppView): boolean => {
@@ -680,12 +685,17 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <CompanyAdminDashboard
-          onNavigateView={(view) => {
-            setCurrentView(view);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-        />
+        <ErrorBoundary
+          fallbackTitle="Super Admin Console"
+          fallbackMessage="Super Admin dashboard load karte waqt ek error aayi. Please Retry karein."
+        >
+          <CompanyAdminDashboard
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
@@ -725,12 +735,17 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <LabVendorDashboard
-          onNavigateView={(view) => {
-            setCurrentView(view);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-        />
+        <ErrorBoundary
+          fallbackTitle="Lab Owner / Management Dashboard"
+          fallbackMessage="Lab dashboard load karte waqt ek error aayi. Please Retry karein."
+        >
+          <LabVendorDashboard
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
           isVendorContext={true}
@@ -771,13 +786,18 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <ReceptionEntryDashboard
-          onNavigateView={(view) => {
-            setCurrentView(view);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          onOpenReportPortal={handleViewPatientPortal}
-        />
+        <ErrorBoundary
+          fallbackTitle="Reception & Billing Dashboard"
+          fallbackMessage="Reception dashboard load karte waqt ek error aayi. Please Retry karein."
+        >
+          <ReceptionEntryDashboard
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onOpenReportPortal={handleViewPatientPortal}
+          />
+        </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
           isVendorContext={true}
@@ -818,10 +838,15 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <LabSoftwareApp
-          onBackToWebsite={handleBackToWebsite}
-          onViewReport={handleViewPatientPortal}
-        />
+        <ErrorBoundary
+          fallbackTitle="Technician Testing Workstation"
+          fallbackMessage="Technician workstation load karte waqt ek error aayi. Please Retry karein."
+        >
+          <LabSoftwareApp
+            onBackToWebsite={handleBackToWebsite}
+            onViewReport={handleViewPatientPortal}
+          />
+        </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
           isVendorContext={true}
@@ -912,13 +937,18 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <PathologistDashboard
-          onNavigateView={(view) => {
-            setCurrentView(view);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          onOpenReportPortal={handleViewPatientPortal}
-        />
+        <ErrorBoundary
+          fallbackTitle="Pathologist Verification Desk"
+          fallbackMessage="Pathologist dashboard load karte waqt ek error aayi. Please Retry karein."
+        >
+          <PathologistDashboard
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onOpenReportPortal={handleViewPatientPortal}
+          />
+        </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
           isVendorContext={true}
