@@ -76,7 +76,6 @@ import { TermsConditionsModal } from './TermsConditionsModal';
 import { VendorPolicyModal, PolicyTabType } from './vendor/VendorPolicyModal';
 import { HomeScreenShortcutModal, DownloadAppModal } from './DownloadAppModal';
 import { VendorAiVoiceBot } from './vendor/VendorAiVoiceBot';
-import { IndianLalajiMarquee } from './IndianLalajiMarquee';
 import { getTenantWebsiteUrl, getTenantSubdomain, getTenantBrowserUrl, SUPER_ADMIN_DOMAIN, normalizeToDirectoryUrl } from '../constants/domains';
 import { isTenantMatch, isReportAccessibleToTenant } from '../utils/tenantSecurity';
 import { optimizeImageFile } from '../utils/imageOptimizer';
@@ -2931,17 +2930,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   <FileText className="w-4 h-4 text-[#0F766E]" />
                   <span>Check &amp; Download Report</span>
                 </button>
-
-                <a
-                  href={`tel:+91${cleanPhone}`}
-                  className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#123B6D] px-2 py-1.5 transition"
-                  title="Call Lab Helpline"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <span>+91 {labPhone}</span>
-                </a>
               </div>
             </div>
 
@@ -4482,9 +4470,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       </section>
 
-      {/* IndianLalaji Infinite Loop Marquee - Just Before Vendor Footer */}
-      <IndianLalajiMarquee theme="light" labName={labName} labId={labShopId} />
-
       {/* 10. Footer */}
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
@@ -4508,81 +4493,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
                   Advanced automated laboratory offering reliable diagnostic testing and comprehensive clinical pathology services, supported by modern technology, efficient processes, and quality-focused laboratory practices.
                 </p>
-
-                {/* Social Media Links in Footer */}
-                {vendorLabSettings?.socialMedia?.enabled !== false && hasAnySocialLinks && (
-                  <div className="pt-3">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Connect With Us</span>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {socialWhatsappUrl && (
-                        <a
-                          href={socialWhatsappUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="WhatsApp"
-                          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-emerald-50 text-emerald-600 border border-slate-200 hover:border-emerald-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                      {socialFacebookUrl && (
-                        <a
-                          href={socialFacebookUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Facebook"
-                          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-blue-50 text-[#1877F2] border border-slate-200 hover:border-blue-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                        >
-                          <Facebook className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                      {socialInstagramUrl && (
-                        <a
-                          href={socialInstagramUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Instagram"
-                          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                        >
-                          <Instagram className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                      {socialTwitterUrl && (
-                        <a
-                          href={socialTwitterUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Twitter / X"
-                          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 hover:border-slate-400 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                        >
-                          <Twitter className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                      {socialYoutubeUrl && (
-                        <a
-                          href={socialYoutubeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="YouTube"
-                          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-red-50 text-red-600 border border-slate-200 hover:border-red-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                        >
-                          <Youtube className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                      {socialLinkedinUrl && (
-                        <a
-                          href={socialLinkedinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="LinkedIn"
-                          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-sky-50 text-[#0A66C2] border border-slate-200 hover:border-sky-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                        >
-                          <Linkedin className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
