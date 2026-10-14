@@ -255,6 +255,7 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
     const mrp = Math.max(price, Number(formMrpINR) || price);
 
     const payload = {
+      ...(editingPackage || {}),
       name: formName.trim(),
       description: formDescription.trim() || 'Comprehensive diagnostic checkup package.',
       priceINR: price,
@@ -266,7 +267,7 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
 
     if (editingPackage) {
       updateVendorPackage(editingPackage.id, payload);
-      showToast(`Package "${payload.name}" updated successfully!`);
+      showToast(`Package "${payload.name}" updated successfully (Price: ₹${price})!`);
       setIsEditModalOpen(false);
       setEditingPackage(null);
     } else {
@@ -486,7 +487,7 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
                 </div>
 
                 {/* Pricing & Test Count Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       Parameters / Tests Count
@@ -502,15 +503,28 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
 
                   <div>
                     <label className="block text-[11px] font-bold text-[#123B6D] mb-1">
-                      Price (₹) <span className="text-rose-500">*</span>
+                      Offer Price (₹) <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="number"
                       min={0}
                       required
-                      value={formPriceINR}
-                      onChange={(e) => setFormPriceINR(Number(e.target.value))}
-                      className="w-full px-3 py-2 text-xs font-black text-[#123B6D] border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-[#123B6D] focus:outline-none"
+                      value={formPriceINR === 0 ? '' : formPriceINR}
+                      onChange={(e) => setFormPriceINR(Number(e.target.value) || 0)}
+                      className="w-full px-3 py-2 text-xs font-black text-[#123B6D] border border-blue-300 bg-blue-50/40 rounded-lg focus:ring-2 focus:ring-[#123B6D] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Original MRP (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={formMrpINR === 0 ? '' : formMrpINR}
+                      onChange={(e) => setFormMrpINR(Number(e.target.value) || 0)}
+                      className="w-full px-3 py-2 text-xs font-bold border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-[#123B6D] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1087,7 +1101,7 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Tests Count</label>
                   <input
@@ -1099,24 +1113,26 @@ export const VendorPackagesTab: React.FC<VendorPackagesTabProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">MRP Price (₹)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={formMrpINR}
-                    onChange={(e) => setFormMrpINR(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#123B6D] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-[#123B6D] mb-1">Discount Price (₹)</label>
+                  <label className="block font-bold text-[#123B6D] mb-1">
+                    Offer Price (₹) <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="number"
                     min={0}
                     required
-                    value={formPriceINR}
-                    onChange={(e) => setFormPriceINR(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-[#123B6D] focus:ring-2 focus:ring-[#123B6D] focus:outline-none"
+                    value={formPriceINR === 0 ? '' : formPriceINR}
+                    onChange={(e) => setFormPriceINR(Number(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-blue-300 bg-blue-50/40 rounded-xl font-black text-sm text-[#123B6D] focus:ring-2 focus:ring-[#123B6D] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-600 mb-1">Original MRP (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formMrpINR === 0 ? '' : formMrpINR}
+                    onChange={(e) => setFormMrpINR(Number(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-[#123B6D] focus:outline-none"
                   />
                 </div>
               </div>

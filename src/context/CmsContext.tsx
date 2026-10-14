@@ -2932,28 +2932,27 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       DEFAULT_ALL_VENDOR_PACKAGES.some((p) => isTenantMatch(p, targetLab) && deletedSet.has(p.id)) ||
       Array.from(deletedSet).some((delId) => delId.includes(targetLab));
 
+    const defaultPkgs = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => isTenantMatch(p, targetLab));
+    const fallbackBase: VendorPackage[] = defaultPkgs.length > 0
+      ? defaultPkgs
+      : DEFAULT_ALL_VENDOR_PACKAGES.slice(0, 4).map((p, idx) => ({
+          ...p,
+          id: `pkg-${targetLab}-${idx + 1}`,
+          labId: targetLab,
+        }));
+
+    const remainingFallback = fallbackBase.filter((p) => !deletedSet.has(p.id));
+
     let finalPkgs: VendorPackage[] = [];
     if (matched.length > 0) {
-      finalPkgs = matched;
+      const matchedIds = new Set(matched.map((p) => p.id));
+      const nonOverlappingFallback = remainingFallback.filter((fb) => !matchedIds.has(fb.id));
+      finalPkgs = [...matched, ...nonOverlappingFallback];
+    } else if (hadDeletionsForThisLab && remainingFallback.length === 0) {
+      // User explicitly deleted all packages for this lab; respect deletion and do not resurrect!
+      finalPkgs = [];
     } else {
-      // Build candidate fallback packages for this lab
-      const defaultPkgs = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => isTenantMatch(p, targetLab));
-      const fallbackBase: VendorPackage[] = defaultPkgs.length > 0
-        ? defaultPkgs
-        : DEFAULT_ALL_VENDOR_PACKAGES.slice(0, 4).map((p, idx) => ({
-            ...p,
-            id: `pkg-${targetLab}-${idx + 1}`,
-            labId: targetLab,
-          }));
-
-      const remainingFallback = fallbackBase.filter((p) => !deletedSet.has(p.id));
-
-      if (hadDeletionsForThisLab && remainingFallback.length === 0) {
-        // User explicitly deleted all packages for this lab; respect deletion and do not resurrect!
-        finalPkgs = [];
-      } else {
-        finalPkgs = remainingFallback;
-      }
+      finalPkgs = remainingFallback;
     }
 
     return finalPkgs.map((p) => {
@@ -5885,25 +5884,66 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       labId: effectiveTenant,
       id: `pkg-${Date.now()}`,
     };
-    setAllVendorPackages((prev) => [newPkg, ...prev]);
+    setAllVendorPackages((prev) => {
+      const updated = [newPkg, ...prev];
+      try {
+        localStorage.setItem('cms_all_vendor_packages', JSON.stringify(updated));
+        localStorage.setItem('cms_vendor_packages', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     syncPackageToCloud(newPkg);
   };
 
   const updateVendorPackage = (id: string, pkg: Partial<VendorPackage>) => {
     let syncedPkg: VendorPackage | null = null;
-    setAllVendorPackages((prev) =>
-      prev.map((p) => {
-        if (p.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(p, activeTenantId)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant package update for ${id}`);
-            return p;
+    setAllVendorPackages((prev) => {
+      const exists = prev.some((p) => p.id === id);
+      if (exists) {
+        const updated = prev.map((p) => {
+          if (p.id === id) {
+            syncedPkg = { ...p, ...pkg };
+            return syncedPkg;
           }
-          syncedPkg = { ...p, ...pkg };
-          return syncedPkg;
-        }
-        return p;
-      })
-    );
+          return p;
+        });
+        try {
+          localStorage.setItem('cms_all_vendor_packages', JSON.stringify(updated));
+          localStorage.setItem('cms_vendor_packages', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      } else {
+        // Fallback or preset package that was rendered in vendorPackages but not yet written to allVendorPackages
+        const fallbackExisting =
+          vendorPackages.find((p) => p.id === id) ||
+          DEFAULT_ALL_VENDOR_PACKAGES.find((p) => p.id === id);
+
+        const targetLab = (currentUser && currentUser.labId && currentUser.labId !== 'all')
+          ? currentUser.labId
+          : (activeTenantId !== 'all' ? activeTenantId : (selectedVendorLabId || 'lab-apex'));
+
+        const newPkg: VendorPackage = fallbackExisting
+          ? { ...fallbackExisting, ...pkg, id, labId: fallbackExisting.labId || targetLab }
+          : {
+              id,
+              labId: targetLab,
+              name: pkg.name || 'Test Package',
+              description: pkg.description || 'Comprehensive diagnostic checkup package.',
+              priceINR: pkg.priceINR ?? 999,
+              mrpINR: pkg.mrpINR ?? 1999,
+              testsCount: pkg.testsCount ?? 10,
+              features: pkg.features ?? ['General Pathology Evaluation'],
+              ...pkg,
+            };
+        syncedPkg = newPkg;
+        const updated = [newPkg, ...prev];
+        try {
+          localStorage.setItem('cms_all_vendor_packages', JSON.stringify(updated));
+          localStorage.setItem('cms_vendor_packages', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      }
+    });
     if (syncedPkg) {
       syncPackageToCloud(syncedPkg);
     }
