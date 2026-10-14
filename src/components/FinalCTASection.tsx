@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import {
-  ArrowRight,
   MessageSquare,
   PhoneCall,
   ShieldCheck,
-  Building2,
   Mail,
   MapPin,
   Clock,
   Send,
   CheckCircle2,
-  KeyRound,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 
@@ -19,7 +16,7 @@ interface FinalCTASectionProps {
 }
 
 export const FinalCTASection: React.FC<FinalCTASectionProps> = () => {
-  const { openRegisterLabModal, openLoginModal, companySettings } = useCms();
+  const { companySettings } = useCms();
   const displayBrand = companySettings?.companyName || 'INDIANLALAJI.COM';
   const phone = companySettings?.supportPhone || '+91 7087033009';
   const cleanPhone = phone.replace(/\D/g, '');
@@ -70,26 +67,6 @@ export const FinalCTASection: React.FC<FinalCTASectionProps> = () => {
           <p className="text-base sm:text-lg text-slate-300 mt-3 font-medium">
             Have questions about setting up your laboratory, pricing plans, or need live assistance? We are here to help.
           </p>
-
-          {/* Quick CTA Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
-            <button
-              onClick={openRegisterLabModal}
-              className="bg-amber-400 hover:bg-amber-300 text-slate-950 px-6 py-3 rounded-xl font-black text-sm transition shadow-lg flex items-center gap-2 cursor-pointer active:scale-98"
-            >
-              <Building2 className="w-4 h-4 text-slate-950" />
-              <span>Create Your Lab Now</span>
-              <ArrowRight className="w-4 h-4 text-slate-950" />
-            </button>
-
-            <button
-              onClick={() => openLoginModal(undefined, 'login')}
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-5 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 cursor-pointer"
-            >
-              <KeyRound className="w-4 h-4 text-amber-400" />
-              <span>Existing Lab Login</span>
-            </button>
-          </div>
         </div>
 
         {/* Contact Info Grid + Form */}

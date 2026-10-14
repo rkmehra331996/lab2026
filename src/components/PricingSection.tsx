@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Check,
   ArrowRight,
-  ShieldCheck,
   Sparkles,
   Zap,
   Award,
@@ -260,10 +259,6 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
                       <QrCode className="w-3.5 h-3.5 text-amber-600" />
                       <span>Pay ₹{price.toLocaleString('en-IN')} via Dynamic UPI QR</span>
                     </button>
-                    <div className="text-[10px] text-center text-slate-500 flex items-center justify-center gap-1.5 pt-0.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Instant Access • GST Tax Invoice Included</span>
-                    </div>
                   </div>
                 </div>
 
@@ -420,35 +415,10 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
                     <QrCode className="w-3.5 h-3.5 text-amber-600" />
                     <span>Pay ₹{(plan.priceINR ?? plan.monthlyPriceINR).toLocaleString('en-IN')} via Dynamic UPI QR</span>
                   </button>
-                  <div className="text-[10px] text-center text-slate-500 flex items-center justify-center gap-2 pt-0.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Instant Access • GST Tax Invoice Included</span>
-                  </div>
                 </div>
               </div>
             );
           })}
-        </div>
-
-        {/* Bottom Assurance Banner */}
-        <div className="mt-14 max-w-4xl mx-auto rounded-2xl bg-white border border-slate-200 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-slate-900">Need Custom Branch Licensing or Dedicated On-Premise Server?</h4>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Our Indian technical team assists with data import from older software, barcode scanners, and custom lab letterheads.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => openRegisterLabModal()}
-            className="shrink-0 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition cursor-pointer"
-          >
-            Talk to Lab Specialist
-          </button>
         </div>
       </div>
 
