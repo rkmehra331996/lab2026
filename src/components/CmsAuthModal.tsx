@@ -1502,11 +1502,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                                 : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50'
                             }`}
                           >
-                            {pkg.badge && (
-                              <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md absolute top-2 right-2 border ${pkg.badgeColor}`}>
-                                {pkg.badge}
-                              </span>
-                            )}
                             <div className="flex items-center gap-2 mb-1">
                               <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
                                 isSelected ? 'border-[#123B6D] bg-[#123B6D]' : 'border-slate-300'
@@ -1573,15 +1568,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                           <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
                             <span>Password <span className="text-rose-600">*</span> — 5 characters + 5 numbers</span>
                           </label>
-                          <button
-                            type="button"
-                            onClick={handleGeneratePassword}
-                            className="text-[10px] font-bold text-[#123B6D] hover:underline flex items-center gap-1 cursor-pointer bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
-                            title="Auto generate compliant password: 5 letters + 5 numbers"
-                          >
-                            <Sparkles className="w-3 h-3 text-amber-500" />
-                            <span>⚡ Generate</span>
-                          </button>
                         </div>
 
                         <div className="relative">
@@ -1643,15 +1629,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                             <Hash className="w-3 h-3 text-[#123B6D]" />
                             <span>6-Digit PIN <span className="text-rose-600">*</span></span>
                           </label>
-                          <button
-                            type="button"
-                            onClick={handleGeneratePin}
-                            className="text-[10px] font-bold text-[#123B6D] hover:underline flex items-center gap-1 cursor-pointer bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
-                            title="Auto generate 6-digit PIN"
-                          >
-                            <RotateCw className="w-3 h-3 text-amber-500" />
-                            <span>Auto PIN</span>
-                          </button>
                         </div>
 
                         <input
@@ -1663,13 +1640,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                           placeholder="6 numeric digits (e.g. 123456)"
                           className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono tracking-widest text-slate-900 placeholder:text-slate-400"
                         />
-                        <div className="text-[10px] text-slate-400 mt-1">
-                          {createPin.length === 6 ? (
-                            <span className="text-emerald-600 font-bold">✓ 6-Digit PIN ready</span>
-                          ) : (
-                            <span>Enter 6 digits for owner master authentication</span>
-                          )}
-                        </div>
                       </div>
                     </div>
                   </div>
