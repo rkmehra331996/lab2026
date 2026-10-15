@@ -577,17 +577,25 @@ export interface ReportItem {
   referenceRange: string;
   isAbnormal: boolean;
   notes?: string;
+  flag?: string;
 }
 
 export interface LabReport {
   reportId: string;
+  id?: string;
   uhid: string;
   patientName: string;
   ageGender: string;
+  patientAge?: number | string;
+  patientGender?: string;
   mobile: string;
+  patientMobile?: string;
   doctor: string;
+  referringDoctor?: string;
   sampleCollectedAt: string;
   reportedAt: string;
+  reportDate?: string;
+  testName?: string;
   labName: string;
   labAddress: string;
   labPhone: string;
@@ -607,7 +615,7 @@ export interface LabReport {
   isDraft?: boolean;
   clinicalImpression?: string;
   clinicNote?: string;
-  status?: 'Normal' | 'Verified' | 'Cancelled';
+  status?: 'Normal' | 'Verified' | 'Cancelled' | 'Completed' | 'Signed' | 'In Progress' | string;
   cancelled?: boolean;
   cancelReason?: string;
   totalAmount?: number;

@@ -43,7 +43,6 @@ import { AppView, ReceptionPatientEntry, LabReport } from '../types';
 import { ReceptionEntryDashboard, getDisplayTokenNumber, getWebsiteBookingMeta } from './ReceptionEntryDashboard';
 import { LabSoftwareApp } from './LabSoftwareApp';
 import { DashboardFooter } from './DashboardFooter';
-import { RoleContextBanner } from './RoleContextBanner';
 import { ReportDetailModal } from './ReportDetailModal';
 import { CollectRemainingPaymentModal } from './CollectRemainingPaymentModal';
 import { DayEndCashClosingModal } from './reception/DayEndCashClosingModal';
@@ -176,11 +175,11 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase().trim();
       const matchName = (report.patientName || '').toLowerCase().includes(q);
-      const matchMobile = (report.patientMobile || '').includes(q);
-      const matchId = (report.id || '').toLowerCase().includes(q);
+      const matchMobile = (report.mobile || report.patientMobile || '').includes(q);
+      const matchId = (report.reportId || report.id || '').toLowerCase().includes(q);
       const matchBarcode = (report.barcode || '').toLowerCase().includes(q);
-      const matchDoctor = (report.referringDoctor || '').toLowerCase().includes(q);
-      const matchItems = (report.items || []).some((i) => i.testName.toLowerCase().includes(q));
+      const matchDoctor = (report.doctor || report.referringDoctor || '').toLowerCase().includes(q);
+      const matchItems = (report.items || []).some((i) => (i.testName || '').toLowerCase().includes(q));
       return matchName || matchMobile || matchId || matchBarcode || matchDoctor || matchItems;
     });
   }, [reports, searchQuery]);
@@ -264,11 +263,8 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-      {/* 1. Global Role Context Banner */}
-      <RoleContextBanner currentView="expert_dashboard" onNavigateView={onNavigateView} />
-
-      {/* 2. Top Header Bar for Expert Supervisor */}
-      <header className="bg-gradient-to-r from-[#0F284E] via-[#123B6D] to-[#1E293B] text-white sticky top-9 z-30 shadow-md border-b border-white/10">
+      {/* Top Header Bar for Expert Supervisor */}
+      <header className="bg-gradient-to-r from-[#0F284E] via-[#123B6D] to-[#1E293B] text-white sticky top-0 z-30 shadow-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
           {/* Left: Lab Branding & Dual Department Badge */}
           <div className="flex items-center gap-3">
@@ -419,119 +415,6 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
         {/* ======================================================== */}
         {activeTab === 'dual_hub' && (
           <div className="space-y-6 animate-in fade-in duration-150">
-            {/* Top 4 Department Hero Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1: Reception Financial Snapshot */}
-              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span className="font-bold flex items-center gap-1.5 text-teal-800">
-                    <Receipt className="w-4 h-4 text-teal-600" />
-                    <span>Reception Billings</span>
-                  </span>
-                  <span className="text-[10px] font-black uppercase bg-teal-100 text-teal-900 px-2 py-0.5 rounded-full">
-                    Counter
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-2xl font-black font-mono text-slate-900">
-                    ₹{totalNetBilled.toLocaleString('en-IN')}
-                  </span>
-                  <span className="text-xs font-bold text-slate-500 font-mono">
-                    {totalPatientsToday} Walk-ins
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                  <span className="text-emerald-700 font-bold">
-                    Paid: ₹{totalTotalCollection.toLocaleString('en-IN')}
-                  </span>
-                  {totalDuePending > 0 ? (
-                    <span className="text-rose-600 font-black">
-                      Due: ₹{totalDuePending.toLocaleString('en-IN')}
-                    </span>
-                  ) : (
-                    <span className="text-emerald-600 font-bold">Nil Due ✓</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Card 2: Sample Queue & Handover */}
-              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span className="font-bold flex items-center gap-1.5 text-blue-800">
-                    <Users className="w-4 h-4 text-blue-600" />
-                    <span>Sample Collection</span>
-                  </span>
-                  <span className="text-[10px] font-black uppercase bg-blue-100 text-blue-900 px-2 py-0.5 rounded-full">
-                    Handover
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-2xl font-black font-mono text-slate-900">
-                    {waitingSamplesCount} Waiting
-                  </span>
-                  <span className="text-xs font-bold text-blue-700 font-mono">
-                    {inLabCount} In Tech
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Phlebotomy Tube Barcoding</span>
-                  <span className="text-[#123B6D] font-bold">EDTA / Serum / Urine</span>
-                </div>
-              </div>
-
-              {/* Card 3: Technician Testing Bench */}
-              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span className="font-bold flex items-center gap-1.5 text-purple-800">
-                    <FlaskConical className="w-4 h-4 text-purple-600" />
-                    <span>Technician Bench</span>
-                  </span>
-                  <span className="text-[10px] font-black uppercase bg-purple-100 text-purple-900 px-2 py-0.5 rounded-full">
-                    Analyzers
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-2xl font-black font-mono text-slate-900">
-                    {activeReportsCount} Tests
-                  </span>
-                  <span className="text-xs font-bold text-emerald-700 font-mono">
-                    {reportsReadyCount} Ready
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                  <span>Panic / Abnormal Flags:</span>
-                  <span className={`font-black ${abnormalAlertsCount > 0 ? 'text-rose-600' : 'text-slate-500'}`}>
-                    {abnormalAlertsCount} Flagged
-                  </span>
-                </div>
-              </div>
-
-              {/* Card 4: Turnaround Time (TAT) & Efficiency */}
-              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span className="font-bold flex items-center gap-1.5 text-amber-800">
-                    <Clock className="w-4 h-4 text-amber-600" />
-                    <span>Average TAT</span>
-                  </span>
-                  <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-full">
-                    98.4% On-Time
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-2xl font-black font-mono text-slate-900">
-                    28 Mins
-                  </span>
-                  <span className="text-xs font-bold text-slate-500 font-mono">
-                    Intake to Result
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Registration ➔ Phlebotomy:</span>
-                  <span className="font-bold text-slate-800">6.2 Mins Avg</span>
-                </div>
-              </div>
-            </div>
-
             {/* Department Workflow Funnel Bar */}
             <div className="bg-gradient-to-r from-slate-900 via-[#123B6D] to-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -857,7 +740,7 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
 
                       return (
                         <div
-                          key={report.id}
+                          key={report.reportId || report.id}
                           className={`p-3.5 rounded-xl border transition space-y-2.5 ${
                             hasAbnormal
                               ? 'border-amber-300 bg-amber-50/30'
@@ -868,26 +751,28 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
                             <div>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 font-mono font-black text-xs">
-                                  {report.barcode || report.id}
+                                  {report.barcode || report.reportId || report.id}
                                 </span>
                                 <h5 className="font-black text-xs sm:text-sm text-slate-900">
                                   {report.patientName}
                                 </h5>
                                 <span className="text-[11px] text-slate-500 font-medium">
-                                  ({report.patientAge}Y • {report.patientGender})
+                                  ({report.ageGender || `${report.patientAge || ''}Y • ${report.patientGender || ''}`})
                                 </span>
                               </div>
                               <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
-                                <span>Ref Dr: {report.referringDoctor || 'Self Walk-in'}</span>
+                                <span>Ref Dr: {report.doctor || report.referringDoctor || 'Self Walk-in'}</span>
                                 <span>•</span>
-                                <span className="font-mono text-slate-600">{report.reportDate || 'Today'}</span>
+                                <span className="font-mono text-slate-600">
+                                  {report.reportedAt ? new Date(report.reportedAt).toLocaleDateString('en-IN') : (report.reportDate || 'Today')}
+                                </span>
                               </div>
                             </div>
 
                             {/* Status Pill */}
                             <span
                               className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${
-                                report.status === 'Completed' || report.status === 'Signed'
+                                report.status === 'Completed' || report.status === 'Signed' || report.status === 'Verified'
                                   ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                                   : report.status === 'In Progress'
                                   ? 'bg-purple-100 text-purple-900 border border-purple-300'
@@ -901,7 +786,7 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
                           {/* Tests & Parameters summary */}
                           <div className="bg-white p-2 rounded-lg border border-slate-100 text-[11px] space-y-1">
                             <div className="flex items-center justify-between font-bold text-slate-800">
-                              <span>🔬 {report.testName || 'Comprehensive Pathology'}</span>
+                              <span>🔬 {report.testName || (report.items?.[0]?.testName) || 'Comprehensive Pathology'}</span>
                               <span className="text-[10px] text-slate-400 font-mono">
                                 {(report.items || []).length} Parameters
                               </span>
@@ -938,7 +823,7 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
                                 type="button"
                                 onClick={() => {
                                   if (onOpenReportPortal) {
-                                    onOpenReportPortal(report.id, report.patientMobile);
+                                    onOpenReportPortal(report.reportId || report.id || '', report.mobile || report.patientMobile || '');
                                   } else {
                                     onNavigateView('patient_portal');
                                   }
@@ -1154,8 +1039,8 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
       {selectedReportForView && (
         <ReportDetailModal
           report={selectedReportForView}
+          isOpen={Boolean(selectedReportForView)}
           onClose={() => setSelectedReportForView(null)}
-          labName={labName}
         />
       )}
 
@@ -1177,16 +1062,12 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
         <DayEndCashClosingModal
           isOpen={isCashClosingOpen}
           onClose={() => setIsCashClosingOpen(false)}
-          entries={receptionEntries}
-          labName={labName}
-          labAddress={vendorLabSettings?.address || 'Central Diagnostics Complex'}
-          labPhone={labPhone}
-          activeBranchId={activeBranchId}
+          receptionEntries={receptionEntries}
         />
       )}
 
       {/* 6. Dashboard Footer */}
-      <DashboardFooter currentView="expert_dashboard" onNavigateView={onNavigateView} />
+      <DashboardFooter currentRoleTitle="Expert Member" onNavigateView={onNavigateView} />
     </div>
   );
 };
