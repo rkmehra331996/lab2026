@@ -152,6 +152,9 @@ export const VendorDashboardsTab: React.FC<VendorDashboardsTabProps> = ({
               <p className="text-xs text-slate-300 max-w-2xl">
                 Manage and monitor both the Reception Department (patient billing, tokens, receipts, dues) and Technician Department (analyzers, parameter findings, abnormal flags, TAT handover) from one unified dashboard.
               </p>
+              <div className="flex items-center gap-2 text-[11px] text-amber-300 font-medium pt-0.5">
+                <span>🔑 Expert Member Login ID &amp; Password can be added, edited, or changed anytime in <strong>10. Staff Management</strong>.</span>
+              </div>
             </div>
 
             <button

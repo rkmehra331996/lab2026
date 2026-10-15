@@ -11,7 +11,6 @@ import {
   Copy,
   Check,
   Search,
-  Filter,
   Sparkles,
   CheckCircle2,
   AlertCircle,
@@ -19,11 +18,12 @@ import {
   Clock,
   Phone,
   ArrowRight,
-  RefreshCw,
-  Share2,
   X,
   Stethoscope,
   Activity,
+  Lock,
+  Star,
+  Layers,
 } from 'lucide-react';
 import { useCms } from '../../context/CmsContext';
 import { LabStaffAccount } from '../../types';
@@ -58,44 +58,49 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
     }
   }, [initialSubTab]);
 
-  const [roleFilter, setRoleFilter] = useState<'all' | 'reception' | 'technician'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'reception' | 'technician' | 'expert'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Password visibility map & copy indicator
+  // Password & PIN visibility map & copy indicator
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
+  const [showPinMap, setShowPinMap] = useState<Record<string, boolean>>({});
   const [copiedStaffId, setCopiedStaffId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('');
 
   // Add Staff Form State
   const [addForm, setAddForm] = useState<{
     name: string;
-    role: 'reception' | 'technician';
+    role: 'reception' | 'technician' | 'expert';
     username: string;
     phone: string;
     password: string;
+    pin: string;
     shift: string;
     status: 'active' | 'suspended';
     notes: string;
   }>({
     name: '',
-    role: 'reception',
+    role: 'expert',
     username: '',
     phone: '',
     password: '',
-    shift: 'Morning (7:00 AM – 3:00 PM)',
+    pin: '998877',
+    shift: 'Dual Department Shift (8:00 AM – 6:00 PM)',
     status: 'active',
     notes: '',
   });
   const [showAddPassword, setShowAddPassword] = useState(false);
   const [addFormError, setAddFormError] = useState('');
 
-  // Edit Staff Modal State (Edit Staff — Name & Change Password, / Delete)
+  // Edit Staff Modal State (Allows editing ID / Username, Password, Name, PIN, Shift, Role, Status)
   const [editingStaff, setEditingStaff] = useState<LabStaffAccount | null>(null);
   const [editName, setEditName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
   const [editPassword, setEditPassword] = useState('');
+  const [editPin, setEditPin] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editShift, setEditShift] = useState('');
-  const [editRole, setEditRole] = useState<'reception' | 'technician'>('reception');
+  const [editRole, setEditRole] = useState<'reception' | 'technician' | 'expert'>('expert');
   const [editStatus, setEditStatus] = useState<'active' | 'suspended'>('active');
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [editModalError, setEditModalError] = useState('');
@@ -118,15 +123,17 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
         const matchName = String(staff.name || '').toLowerCase().includes(query);
         const matchUser = String(staff.username || '').toLowerCase().includes(query);
         const matchPhone = (staff.phone || '').includes(query);
-        return matchName || matchUser || matchPhone;
+        const matchId = (staff.id || '').toLowerCase().includes(query);
+        return matchName || matchUser || matchPhone || matchId;
       }
       return true;
     });
   }, [staffAccounts, roleFilter, searchTerm]);
 
-  // Reception vs Technician counts
+  // Role counts
   const receptionCount = staffAccounts.filter((s) => s.role === 'reception').length;
   const techCount = staffAccounts.filter((s) => s.role === 'technician').length;
+  const expertCount = staffAccounts.filter((s) => s.role === 'expert').length;
 
   // Generate Suggested Password
   const generateSuggestedPassword = (name: string, role: string) => {
@@ -139,7 +146,12 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
   const handleNameBlur = () => {
     if (addForm.name.trim() && !addForm.username.trim()) {
       const clean = addForm.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-      const prefix = addForm.role === 'reception' ? 'rec_' : 'tech_';
+      const prefix =
+        addForm.role === 'reception'
+          ? 'rec_'
+          : addForm.role === 'technician'
+          ? 'tech_'
+          : 'exp_';
       const rand = Math.floor(10 + Math.random() * 90);
       setAddForm((prev) => ({
         ...prev,
@@ -169,13 +181,16 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
       (s) => s.username.toLowerCase() === addForm.username.trim().toLowerCase()
     );
     if (exists) {
-      setAddFormError('This username is already taken. Please choose another username.');
+      setAddFormError('This username / Login ID is already taken. Please choose another username.');
       return;
     }
 
-    const targetLabId = (currentUser && currentUser.labId && currentUser.labId !== 'all')
-      ? currentUser.labId
-      : (selectedVendorLabId && selectedVendorLabId !== 'all' ? selectedVendorLabId : (vendorLabSettings.labId || 'lab-apex'));
+    const targetLabId =
+      currentUser && currentUser.labId && currentUser.labId !== 'all'
+        ? currentUser.labId
+        : selectedVendorLabId && selectedVendorLabId !== 'all'
+        ? selectedVendorLabId
+        : vendorLabSettings.labId || 'lab-apex';
 
     addStaffAccount({
       name: addForm.name.trim(),
@@ -183,38 +198,64 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
       username: addForm.username.trim(),
       phone: addForm.phone.trim() || undefined,
       password: addForm.password.trim(),
+      pin: addForm.role === 'expert' ? addForm.pin.trim() || '998877' : addForm.pin.trim() || undefined,
       shift: addForm.shift,
       status: addForm.status,
-      notes: addForm.notes.trim() || undefined,
+      notes:
+        addForm.notes.trim() ||
+        (addForm.role === 'expert'
+          ? 'Expert member supervising Reception Billing and Technician Analyzers'
+          : undefined),
       labId: targetLabId,
       labName: vendorLabSettings.labName,
     });
 
-    setToastMessage(`Staff member "${addForm.name.trim()}" added successfully!`);
+    const roleName =
+      addForm.role === 'expert'
+        ? 'Expert Member'
+        : addForm.role === 'reception'
+        ? 'Receptionist'
+        : 'Lab Technician';
+
+    setToastMessage(`✅ ${roleName} "${addForm.name.trim()}" added successfully with Login ID: ${addForm.username.trim()}!`);
     setAddForm({
       name: '',
-      role: 'reception',
+      role: 'expert',
       username: '',
       phone: '',
       password: '',
-      shift: 'Morning (7:00 AM – 3:00 PM)',
+      pin: '998877',
+      shift: 'Dual Department Shift (8:00 AM – 6:00 PM)',
       status: 'active',
       notes: '',
     });
     setAddFormError('');
     setSubTab('list');
-    setTimeout(() => setToastMessage(''), 4000);
+    setTimeout(() => setToastMessage(''), 4500);
   };
 
-  // Open Edit Modal
+  // Open Edit Modal (Supports editing Login ID / Username, Password, Name, PIN, Shift, Role, Status)
   const handleOpenEdit = (staff: LabStaffAccount) => {
     setEditingStaff(staff);
-    setEditName(staff.name);
-    setEditPassword(staff.password);
+    setEditName(staff.name || '');
+    setEditUsername(staff.username || '');
+    setEditPassword(staff.password || '');
+    setEditPin(staff.pin || (staff.role === 'expert' ? '998877' : ''));
     setEditPhone(staff.phone || '');
-    setEditShift(staff.shift || 'General Shift');
-    setEditRole(staff.role === 'technician' ? 'technician' : 'reception');
-    setEditStatus(staff.status);
+    setEditShift(
+      staff.shift ||
+        (staff.role === 'expert'
+          ? 'Dual Department Shift (8:00 AM – 6:00 PM)'
+          : 'General Shift')
+    );
+    setEditRole(
+      staff.role === 'expert'
+        ? 'expert'
+        : staff.role === 'technician'
+        ? 'technician'
+        : 'reception'
+    );
+    setEditStatus(staff.status || 'active');
     setShowEditPassword(false);
     setEditModalError('');
   };
@@ -228,24 +269,59 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
       setEditModalError('Staff name cannot be empty.');
       return;
     }
+    if (!editUsername.trim()) {
+      setEditModalError('Login ID / Username cannot be empty.');
+      return;
+    }
     if (!editPassword.trim() || editPassword.length < 4) {
       setEditModalError('Password must be at least 4 characters long.');
       return;
     }
 
+    // Check duplicate username if username has changed
+    const usernameChanged =
+      editUsername.trim().toLowerCase() !== editingStaff.username.toLowerCase();
+    if (usernameChanged) {
+      const duplicate = staffAccounts.some(
+        (s) =>
+          s.id !== editingStaff.id &&
+          s.username.toLowerCase() === editUsername.trim().toLowerCase()
+      );
+      if (duplicate) {
+        setEditModalError(
+          'This Login ID / Username is already in use by another staff member. Please select a unique username.'
+        );
+        return;
+      }
+    }
+
     // Role check to guarantee at least 1 Technician and 1 Receptionist always exist
-    if (editingStaff.role === 'reception' && editRole === 'technician' && receptionCount <= 1) {
-      setEditModalError('Cannot change role: At least 1 Receptionist must always exist in the laboratory.');
+    if (
+      editingStaff.role === 'reception' &&
+      editRole !== 'reception' &&
+      receptionCount <= 1
+    ) {
+      setEditModalError(
+        'Cannot change role: At least 1 Receptionist must always exist in the laboratory.'
+      );
       return;
     }
-    if (editingStaff.role === 'technician' && editRole === 'reception' && techCount <= 1) {
-      setEditModalError('Cannot change role: At least 1 Lab Technician must always exist in the laboratory.');
+    if (
+      editingStaff.role === 'technician' &&
+      editRole !== 'technician' &&
+      techCount <= 1
+    ) {
+      setEditModalError(
+        'Cannot change role: At least 1 Lab Technician must always exist in the laboratory.'
+      );
       return;
     }
 
     updateStaffAccount(editingStaff.id, {
       name: editName.trim(),
+      username: editUsername.trim(),
       password: editPassword.trim(),
+      pin: editPin.trim() || undefined,
       phone: editPhone.trim() || undefined,
       shift: editShift,
       role: editRole,
@@ -253,9 +329,11 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
       lastPasswordReset: new Date().toISOString(),
     });
 
-    setToastMessage(`Staff "${editName.trim()}" profile and password updated!`);
+    setToastMessage(
+      `✅ Updated credentials for "${editName.trim()}"! New Login ID: "${editUsername.trim()}"`
+    );
     setEditingStaff(null);
-    setTimeout(() => setToastMessage(''), 4000);
+    setTimeout(() => setToastMessage(''), 4500);
   };
 
   // Open Delete Confirmation Modal
@@ -281,14 +359,16 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
       ? staffAccounts.find((s) => s.id === transferRecipientId)
       : null;
 
-    if (sameRoleCandidates.length > 0 && recipient && recipient.role === deletingStaff.role) {
-      // Execute transfer of all assigned queue items & records, then delete account
+    if (
+      sameRoleCandidates.length > 0 &&
+      recipient &&
+      recipient.role === deletingStaff.role
+    ) {
       transferStaffDataAndDelete(deletingStaff.id, recipient.id);
       setToastMessage(
         `✅ Transferred data from ${deletingStaff.name} to ${recipient.name} & deleted staff account.`
       );
     } else {
-      // Direct delete staff account
       deleteStaffAccount(deletingStaff.id);
       setToastMessage(`✅ Staff account "${deletingStaff.name}" deleted successfully.`);
     }
@@ -301,8 +381,18 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
 
   // Copy Login Credentials
   const handleCopyCredentials = (staff: LabStaffAccount) => {
-    const roleName = staff.role === 'reception' ? 'Receptionist (Front Desk)' : 'Lab Technician';
-    const text = `*🏥 ${vendorLabSettings.labName || 'Apex Diagnostic Lab'} Portal Access*\n• Role: ${roleName}\n• Staff Name: ${staff.name}\n• Login ID / Username: ${staff.username}\n• Password: ${staff.password}\n• Shift: ${staff.shift || 'General'}\n• Login URL: ${window.location.origin}`;
+    const roleName =
+      staff.role === 'expert'
+        ? '⭐ Expert Member (Dual Dept Lead: Reception + Testing)'
+        : staff.role === 'reception'
+        ? '🖥️ Receptionist (Front Desk Billing)'
+        : '🔬 Lab Technician (Pathology Testing)';
+
+    let text = `*🏥 ${vendorLabSettings.labName || 'Apex Diagnostic Lab'} Portal Access*\n• Role: ${roleName}\n• Staff Name: ${staff.name}\n• Login ID / Username: ${staff.username}\n• Password: ${staff.password}`;
+    if (staff.pin || staff.role === 'expert') {
+      text += `\n• Security PIN: ${staff.pin || '998877'}`;
+    }
+    text += `\n• Shift: ${staff.shift || 'General Shift'}\n• Status: ${staff.status === 'active' ? 'Active' : 'Suspended'}\n• Login Portal URL: ${window.location.origin}`;
 
     navigator.clipboard?.writeText(text);
     setCopiedStaffId(staff.id);
@@ -318,15 +408,68 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
     setShowPasswordMap((prev) => ({ ...prev, [staffId]: !prev[staffId] }));
   };
 
+  // Toggle single staff PIN visibility in list
+  const toggleShowPin = (staffId: string) => {
+    setShowPinMap((prev) => ({ ...prev, [staffId]: !prev[staffId] }));
+  };
+
   return (
     <div className="space-y-6">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-700 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2 animate-in slide-in-from-bottom-5">
-          <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl text-xs font-bold flex items-center gap-2.5 border border-indigo-400/40 animate-in slide-in-from-bottom-5">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
+
+      {/* Top Banner explaining Staff Management & Expert Member Controls */}
+      <div className="bg-gradient-to-r from-[#123B6D] via-[#1a4a82] to-[#2E1065] text-white p-5 rounded-2xl shadow-sm border border-indigo-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="p-1 rounded-lg bg-amber-400/20 text-amber-300">
+              <ShieldCheck className="w-4 h-4" />
+            </span>
+            <h2 className="text-sm font-black text-white">
+              Staff Passwords &amp; User Accounts Control
+            </h2>
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
+              Vendor Admin Master Control
+            </span>
+          </div>
+          <p className="text-xs text-slate-200 max-w-2xl leading-relaxed">
+            Manage, edit, or add employee credentials for <strong>⭐ Expert Member (Dual Dept Lead)</strong>, <strong>Reception Desk</strong>, and <strong>Lab Technician</strong>. You can change Login IDs (Usernames), passwords, and security PINs at any time.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setSubTab('add')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 ${
+              subTab === 'add'
+                ? 'bg-amber-400 text-slate-950'
+                : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+            }`}
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>+ Add New Staff</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSubTab('list')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 ${
+              subTab === 'list'
+                ? 'bg-amber-400 text-slate-950'
+                : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Staff List ({staffAccounts.length})</span>
+          </button>
+        </div>
+      </div>
 
       {/* ======================================================== */}
       {/* 1. ADD NEW STAFF FORM (subTab === 'add') */}
@@ -335,7 +478,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-6">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-teal-50 text-teal-700">
+              <span className="p-2 rounded-xl bg-indigo-50 text-indigo-700">
                 <UserPlus className="w-4 h-4" />
               </span>
               <div>
@@ -343,11 +486,11 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                   Add New Staff Member
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Provision new employee login credentials for Front Desk Reception or Pathology Testing Lab.
+                  Provision new employee login credentials for Expert Member (Dual Dept), Front Desk Reception, or Pathology Testing Lab.
                 </p>
               </div>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
               Staff Provisioning
             </span>
           </div>
@@ -360,63 +503,124 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
           )}
 
           <form onSubmit={handleAddSubmit} className="space-y-5">
-            {/* Step 1: Select Role */}
+            {/* Step 1: Select Role (3 Cards: Receptionist, Technician, Expert Member) */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-2">
                 1. Select Staff Role <span className="text-rose-500">*</span>
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Receptionist Card */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                {/* 1. Expert Member Card (Featured) */}
                 <div
-                  onClick={() => setAddForm({ ...addForm, role: 'reception' })}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                    addForm.role === 'reception'
-                      ? 'border-teal-600 bg-teal-50/60 shadow-xs'
+                  onClick={() =>
+                    setAddForm({
+                      ...addForm,
+                      role: 'expert',
+                      shift: 'Dual Department Shift (8:00 AM – 6:00 PM)',
+                      pin: addForm.pin || '998877',
+                    })
+                  }
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between ${
+                    addForm.role === 'expert'
+                      ? 'border-indigo-600 bg-indigo-50/70 shadow-xs ring-1 ring-indigo-500'
                       : 'border-slate-200 hover:border-slate-300 bg-white'
                   }`}
                 >
-                  <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center text-xl shrink-0">
-                    🖥️
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="font-extrabold text-xs text-slate-900">
-                        Receptionist (Front Desk)
-                      </h4>
-                      {addForm.role === 'reception' && (
-                        <Check className="w-3.5 h-3.5 text-teal-600" />
-                      )}
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                      ⭐
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      Patient intake, token queue registration, test billing, cash collection, and WhatsApp report dispensing.
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <h4 className="font-extrabold text-xs text-indigo-950 truncate">
+                          Expert Member
+                        </h4>
+                        {addForm.role === 'expert' && (
+                          <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                        )}
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-100/80 px-1.5 py-0.5 rounded inline-block mt-0.5">
+                        Dual Department
+                      </span>
+                      <p className="text-[11px] text-slate-600 mt-1.5 leading-relaxed">
+                        Supervisory access to both Reception Billing &amp; Tokens and Lab Technician Testing &amp; Analyzer queues.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Technician Card */}
+                {/* 2. Receptionist Card */}
                 <div
-                  onClick={() => setAddForm({ ...addForm, role: 'technician' })}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                    addForm.role === 'technician'
-                      ? 'border-purple-600 bg-purple-50/60 shadow-xs'
+                  onClick={() =>
+                    setAddForm({
+                      ...addForm,
+                      role: 'reception',
+                      shift: 'Morning (7:00 AM – 3:00 PM)',
+                    })
+                  }
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between ${
+                    addForm.role === 'reception'
+                      ? 'border-teal-600 bg-teal-50/70 shadow-xs ring-1 ring-teal-500'
                       : 'border-slate-200 hover:border-slate-300 bg-white'
                   }`}
                 >
-                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center text-xl shrink-0">
-                    🔬
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="font-extrabold text-xs text-slate-900">
-                        Lab Technician (Pathology)
-                      </h4>
-                      {addForm.role === 'technician' && (
-                        <Check className="w-3.5 h-3.5 text-purple-600" />
-                      )}
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center text-xl shrink-0">
+                      🖥️
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      Sample barcoding, analyzer test parameters entry, doctor signature sign-off, and PDF report publication.
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <h4 className="font-extrabold text-xs text-slate-900 truncate">
+                          Receptionist (Front Desk)
+                        </h4>
+                        {addForm.role === 'reception' && (
+                          <Check className="w-4 h-4 text-teal-600 shrink-0" />
+                        )}
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-teal-800 bg-teal-100/80 px-1.5 py-0.5 rounded inline-block mt-0.5">
+                        Billing &amp; Intake
+                      </span>
+                      <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                        Patient intake, token queue registration, test billing, cash collection, and WhatsApp report dispensing.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Technician Card */}
+                <div
+                  onClick={() =>
+                    setAddForm({
+                      ...addForm,
+                      role: 'technician',
+                      shift: 'Laboratory Shift (8:00 AM – 5:00 PM)',
+                    })
+                  }
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between ${
+                    addForm.role === 'technician'
+                      ? 'border-purple-600 bg-purple-50/70 shadow-xs ring-1 ring-purple-500'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center text-xl shrink-0">
+                      🔬
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <h4 className="font-extrabold text-xs text-slate-900 truncate">
+                          Lab Technician (Pathology)
+                        </h4>
+                        {addForm.role === 'technician' && (
+                          <Check className="w-4 h-4 text-purple-600 shrink-0" />
+                        )}
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-purple-800 bg-purple-100/80 px-1.5 py-0.5 rounded inline-block mt-0.5">
+                        Testing &amp; Reports
+                      </span>
+                      <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                        Sample barcoding, analyzer test parameters entry, doctor signature sign-off, and PDF report publication.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -431,7 +635,13 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Priya Sharma"
+                  placeholder={
+                    addForm.role === 'expert'
+                      ? 'e.g. Rajinder Sharma (Lead)'
+                      : addForm.role === 'reception'
+                      ? 'e.g. Priya Sharma'
+                      : 'e.g. Amit Khurana (DMLT)'
+                  }
                   value={addForm.name}
                   onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
                   onBlur={handleNameBlur}
@@ -445,7 +655,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 </label>
                 <input
                   type="tel"
-                  placeholder="e.g. 9876543210"
+                  placeholder="e.g. 9815099988"
                   value={addForm.phone}
                   onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
                   className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
@@ -453,11 +663,17 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
               </div>
             </div>
 
-            {/* Step 3: Login Credentials (Username & Password) */}
+            {/* Step 3: Login Credentials (Username, Password & Security PIN) */}
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
-              <span className="text-xs font-black text-slate-800 block">
-                2. Login Credentials Configuration
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>2. Login Credentials Configuration</span>
+                </span>
+                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                  Custom ID &amp; Password
+                </span>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -467,13 +683,19 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                   <input
                     type="text"
                     required
-                    placeholder="e.g. rec_priya_1"
+                    placeholder={
+                      addForm.role === 'expert'
+                        ? 'e.g. expert@apexlab.com or exp_rajinder'
+                        : addForm.role === 'reception'
+                        ? 'e.g. rec_priya_1'
+                        : 'e.g. tech_amit_1'
+                    }
                     value={addForm.username}
                     onChange={(e) => setAddForm({ ...addForm, username: e.target.value })}
                     className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none bg-white"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Used by staff to sign in on their dedicated terminal desk.
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Staff member enters this ID / username on the login portal.
                   </p>
                 </div>
 
@@ -501,10 +723,10 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                     <input
                       type={showAddPassword ? 'text' : 'password'}
                       required
-                      placeholder="Min 4 characters (e.g. Priya@2026)"
+                      placeholder="Min 4 characters (e.g. Expert@2026)"
                       value={addForm.password}
                       onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
-                      className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none bg-white"
+                      className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none bg-white font-bold"
                     />
                     <button
                       type="button"
@@ -515,6 +737,30 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                     </button>
                   </div>
                 </div>
+
+                {/* Optional PIN for Expert Member */}
+                {addForm.role === 'expert' && (
+                  <div className="md:col-span-2 p-3 rounded-xl bg-indigo-50/80 border border-indigo-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-indigo-950 mb-0.5">
+                        Security PIN (6-Digit PIN)
+                      </label>
+                      <p className="text-[11px] text-indigo-900/80">
+                        Required for secondary dual-department confirmation (Default: 998877).
+                      </p>
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={addForm.pin}
+                      onChange={(e) =>
+                        setAddForm({ ...addForm, pin: e.target.value.replace(/\D/g, '') })
+                      }
+                      placeholder="998877"
+                      className="w-32 p-2 rounded-lg border border-indigo-300 font-mono font-bold text-xs text-center bg-white text-indigo-950 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -529,6 +775,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                   onChange={(e) => setAddForm({ ...addForm, shift: e.target.value })}
                   className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none bg-white"
                 >
+                  <option>Dual Department Shift (8:00 AM – 6:00 PM)</option>
                   <option>Morning (7:00 AM – 3:00 PM)</option>
                   <option>Evening (2:00 PM – 10:00 PM)</option>
                   <option>General Shift (9:00 AM – 6:00 PM)</option>
@@ -548,7 +795,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                   }
                   className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none bg-white font-bold"
                 >
-                  <option value="active">Active (Can Login)</option>
+                  <option value="active">Active (Can Login Immediately)</option>
                   <option value="suspended">Suspended (Access Temporarily Blocked)</option>
                 </select>
               </div>
@@ -577,7 +824,6 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
 
       {/* ======================================================== */}
       {/* 2. STAFF LIST VIEW (subTab === 'list') */}
-      {/* (With Edit Staff — Name & Change Password, / Delete) */}
       {/* ======================================================== */}
       {subTab === 'list' && (
         <div className="space-y-4">
@@ -588,7 +834,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search staff by name, username or mobile..."
+                  placeholder="Search staff by name, username / login ID or mobile..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
@@ -599,7 +845,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="text-xs text-slate-400 hover:text-slate-600 font-bold p-1"
+                  className="text-xs text-slate-400 hover:text-slate-600 font-bold p-1 cursor-pointer"
                 >
                   Clear
                 </button>
@@ -607,7 +853,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
             </div>
 
             {/* Role Filter Buttons */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <button
                 type="button"
                 onClick={() => setRoleFilter('all')}
@@ -618,6 +864,19 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 }`}
               >
                 All Roles ({staffAccounts.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRoleFilter('expert')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                  roleFilter === 'expert'
+                    ? 'bg-indigo-700 text-white shadow-2xs'
+                    : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100 border border-indigo-200'
+                }`}
+              >
+                <span>⭐</span>
+                <span>Expert Members ({expertCount})</span>
               </button>
 
               <button
@@ -647,7 +906,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
               <button
                 type="button"
                 onClick={() => setSubTab('add')}
-                className="ml-2 px-3.5 py-1.5 rounded-xl text-xs font-black bg-[#123B6D] hover:bg-[#0e2c52] text-white flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
+                className="ml-1 px-3.5 py-1.5 rounded-xl text-xs font-black bg-[#123B6D] hover:bg-[#0e2c52] text-white flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
               >
                 <UserPlus className="w-3.5 h-3.5 text-amber-400" />
                 <span>+ Add New Staff</span>
@@ -662,8 +921,8 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
               <h3 className="text-sm font-black text-slate-700">No Staff Accounts Found</h3>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
                 {searchTerm
-                  ? 'No staff matched your search query. Try searching for a different name or username.'
-                  : 'You have not added any staff accounts yet. Click the button below to add your first staff member.'}
+                  ? 'No staff matched your search query. Try searching for a different name or login ID.'
+                  : 'You have not added any staff accounts for this filter. Click below to add your first staff member.'}
               </p>
               <button
                 type="button"
@@ -676,15 +935,19 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredStaff.map((staff) => {
+                const isExpert = staff.role === 'expert';
                 const isReception = staff.role === 'reception';
                 const isShowingPassword = !!showPasswordMap[staff.id];
+                const isShowingPin = !!showPinMap[staff.id];
                 const isCopied = copiedStaffId === staff.id;
 
                 return (
                   <div
                     key={staff.id}
                     className={`bg-white rounded-2xl border transition p-5 shadow-2xs hover:shadow-xs flex flex-col justify-between ${
-                      isReception
+                      isExpert
+                        ? 'border-indigo-300 bg-gradient-to-br from-indigo-50/20 via-white to-white hover:border-indigo-400 ring-1 ring-indigo-200/50'
+                        : isReception
                         ? 'border-teal-200/80 hover:border-teal-300'
                         : 'border-purple-200/80 hover:border-purple-300'
                     }`}
@@ -692,34 +955,42 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                     <div className="space-y-3.5">
                       {/* Top Header */}
                       <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div
-                            className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 ${
-                              isReception
+                            className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-xs ${
+                              isExpert
+                                ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white'
+                                : isReception
                                 ? 'bg-teal-50 text-teal-700 border border-teal-200'
                                 : 'bg-purple-50 text-purple-700 border border-purple-200'
                             }`}
                           >
-                            {isReception ? '🖥️' : '🔬'}
+                            {isExpert ? '⭐' : isReception ? '🖥️' : '🔬'}
                           </div>
 
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-extrabold text-sm text-slate-900">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-extrabold text-sm text-slate-900 truncate">
                                 {staff.name}
                               </h3>
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                                  isReception
+                                  isExpert
+                                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-2xs'
+                                    : isReception
                                     ? 'bg-teal-100 text-teal-800'
                                     : 'bg-purple-100 text-purple-800'
                                 }`}
                               >
-                                {isReception ? 'Receptionist' : 'Lab Technician'}
+                                {isExpert
+                                  ? '⭐ Expert Member (Dual Dept)'
+                                  : isReception
+                                  ? 'Receptionist'
+                                  : 'Lab Technician'}
                               </span>
                             </div>
 
-                            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                            <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
                               <span>
                                 Shift: <strong>{staff.shift || 'General Shift'}</strong>
                               </span>
@@ -743,14 +1014,14 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                         </div>
 
                         {/* Top Direct Action: Edit & Delete */}
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 shrink-0">
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(staff)}
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-[#123B6D] transition cursor-pointer"
-                            title="Edit Staff (Name & Change Password)"
+                            className="p-1.5 rounded-lg border border-indigo-200 bg-indigo-50/60 text-indigo-700 hover:bg-indigo-100 transition cursor-pointer"
+                            title="Edit Staff ID & Password"
                           >
-                            <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                            <Edit2 className="w-3.5 h-3.5 text-indigo-700" />
                           </button>
 
                           <button
@@ -764,21 +1035,23 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                         </div>
                       </div>
 
-                      {/* Credentials Box */}
-                      <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs">
-                        {/* Username */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-500 font-medium">Username / Login ID:</span>
-                          <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 select-all">
+                      {/* Credentials Box (Username, Password, and PIN) */}
+                      <div className="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 text-xs">
+                        {/* Username / Login ID */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-slate-500 font-semibold flex items-center gap-1">
+                            <span>Login ID / Username:</span>
+                          </span>
+                          <span className="font-mono font-bold text-slate-900 bg-white px-2.5 py-0.5 rounded border border-slate-200 select-all text-xs">
                             {staff.username}
                           </span>
                         </div>
 
                         {/* Password */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-500 font-medium">Login Password:</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-slate-500 font-semibold">Login Password:</span>
                           <div className="flex items-center gap-1.5 font-mono">
-                            <span className="font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 min-w-[70px] text-center select-all">
+                            <span className="font-bold text-slate-900 bg-white px-2.5 py-0.5 rounded border border-slate-200 min-w-[70px] text-center select-all text-xs">
                               {isShowingPassword ? staff.password : '••••••••'}
                             </span>
                             <button
@@ -788,13 +1061,40 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                               title={isShowingPassword ? 'Hide password' : 'Show password'}
                             >
                               {isShowingPassword ? (
-                                <EyeOff className="w-3.5 h-3.5" />
+                                <EyeOff className="w-3.5 h-3.5 text-slate-700" />
                               ) : (
-                                <Eye className="w-3.5 h-3.5" />
+                                <Eye className="w-3.5 h-3.5 text-slate-700" />
                               )}
                             </button>
                           </div>
                         </div>
+
+                        {/* Security PIN for Expert Member */}
+                        {(isExpert || staff.pin) && (
+                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
+                            <span className="text-indigo-900 font-semibold flex items-center gap-1">
+                              <KeyRound className="w-3 h-3 text-indigo-600" />
+                              <span>Security PIN (Dual Dept):</span>
+                            </span>
+                            <div className="flex items-center gap-1.5 font-mono">
+                              <span className="font-bold text-indigo-950 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 min-w-[50px] text-center select-all text-xs">
+                                {isShowingPin ? staff.pin || '998877' : '••••••'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => toggleShowPin(staff.id)}
+                                className="p-1 hover:bg-indigo-100 rounded text-indigo-600 cursor-pointer"
+                                title={isShowingPin ? 'Hide PIN' : 'Show PIN'}
+                              >
+                                {isShowingPin ? (
+                                  <EyeOff className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Eye className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Phone if available */}
                         {staff.phone && (
@@ -834,21 +1134,20 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(staff)}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200 flex items-center gap-1 transition cursor-pointer"
-                          title="Edit Staff Name & Password"
+                          className="px-3 py-1.5 rounded-xl text-xs font-black bg-indigo-50 text-indigo-900 hover:bg-indigo-100 border border-indigo-200 flex items-center gap-1.5 transition cursor-pointer"
+                          title="Change ID / Password / Edit Staff"
                         >
-                          <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                          <span>Edit (Name &amp; Password)</span>
+                          <Edit2 className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Change ID &amp; Password</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleOpenDelete(staff)}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 flex items-center gap-1 transition cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 flex items-center gap-1 transition cursor-pointer"
                           title={`Delete staff (${staff.name})`}
                         >
                           <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                          <span>Delete</span>
                         </button>
                       </div>
                     </div>
@@ -861,23 +1160,28 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
       )}
 
       {/* ======================================================== */}
-      {/* EDIT STAFF MODAL: NAME & CHANGE PASSWORD, / DELETE */}
+      {/* EDIT STAFF MODAL: CHANGE ID / USERNAME, NAME & PASSWORD */}
       {/* ======================================================== */}
       {editingStaff && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95">
             {/* Modal Header */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-blue-100 text-blue-800">
-                  <Edit2 className="w-4 h-4" />
+            <div className="p-4 bg-gradient-to-r from-slate-50 to-indigo-50/50 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-indigo-600 text-white shadow-xs">
+                  <KeyRound className="w-4 h-4" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">
-                    Edit Staff — Name &amp; Change Password
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                    <span>Edit Staff — ID &amp; Password</span>
+                    {editingStaff.role === 'expert' && (
+                      <span className="text-[10px] bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded font-black">
+                        ⭐ Expert Member
+                      </span>
+                    )}
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Update profile details and set a new login password for {editingStaff.name}
+                    Change Login ID, password, PIN, and profile access for {editingStaff.name}
                   </p>
                 </div>
               </div>
@@ -899,20 +1203,30 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 </div>
               )}
 
-              {/* Readonly Username */}
+              {/* Editable Login ID / Username */}
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  Login ID / Username (System Protected)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-bold text-slate-700">
+                    Login ID / Username <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                    Editable Login ID
+                  </span>
+                </div>
                 <input
                   type="text"
-                  disabled
-                  value={editingStaff.username}
-                  className="w-full p-2 rounded-xl border border-slate-200 bg-slate-100 font-mono text-slate-600 font-bold cursor-not-allowed"
+                  required
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                  placeholder="e.g. expert@apexlab.com or exp_rajinder"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold text-xs text-slate-900 bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
                 />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Staff member signs in using this unique Login ID / Username.
+                </p>
               </div>
 
-              {/* Edit Name */}
+              {/* Edit Full Name */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
                   Staff Full Name <span className="text-rose-500">*</span>
@@ -932,7 +1246,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 <div className="flex items-center justify-between">
                   <label className="font-black text-amber-950 flex items-center gap-1.5">
                     <KeyRound className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Change Staff Login Password</span>
+                    <span>Change Login Password</span>
                   </label>
                   <button
                     type="button"
@@ -962,21 +1276,50 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                   </button>
                 </div>
                 <p className="text-[10px] text-amber-900/80">
-                  Changing the password here will update the staff's login credential immediately.
+                  Updating the password here takes effect immediately for this user account.
                 </p>
               </div>
 
-              {/* Role, Shift, Phone */}
+              {/* Security PIN (for Expert Member or staff) */}
+              {(editRole === 'expert' || editingStaff.role === 'expert') && (
+                <div className="p-3 rounded-xl bg-indigo-50/80 border border-indigo-200/80 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="font-black text-indigo-950 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Security PIN (6-Digit Dual Dept Code)</span>
+                    </label>
+                    <span className="text-[10px] font-bold text-indigo-800 bg-indigo-100 px-2 py-0.5 rounded">
+                      Dual Dept Verification
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={editPin}
+                    onChange={(e) => setEditPin(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Default: 998877"
+                    className="w-full p-2 rounded-lg border border-slate-300 font-mono font-bold text-xs bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-indigo-900/80">
+                    Secondary authorization code for Dual Department Reception &amp; Testing actions.
+                  </p>
+                </div>
+              )}
+
+              {/* Role & Status */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Role</label>
+                  <label className="block font-bold text-slate-700 mb-1">Staff Role</label>
                   <select
                     value={editRole}
-                    onChange={(e) => setEditRole(e.target.value as 'reception' | 'technician')}
+                    onChange={(e) =>
+                      setEditRole(e.target.value as 'reception' | 'technician' | 'expert')
+                    }
                     className="w-full p-2 rounded-xl border border-slate-300 bg-white font-bold"
                   >
-                    <option value="reception">Reception Desk</option>
-                    <option value="technician">Lab Technician</option>
+                    <option value="expert">⭐ Expert Member (Dual Dept)</option>
+                    <option value="reception">🖥️ Reception Desk</option>
+                    <option value="technician">🔬 Lab Technician</option>
                   </select>
                 </div>
 
@@ -989,31 +1332,32 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                     }
                     className="w-full p-2 rounded-xl border border-slate-300 bg-white font-bold"
                   >
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
+                    <option value="active">Active (Can Login)</option>
+                    <option value="suspended">Suspended (Blocked)</option>
                   </select>
                 </div>
               </div>
 
+              {/* Shift & Phone */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Shift</label>
+                  <label className="block font-bold text-slate-700 mb-1">Shift Timings</label>
                   <input
                     type="text"
                     value={editShift}
                     onChange={(e) => setEditShift(e.target.value)}
-                    placeholder="e.g. Morning (7 AM - 3 PM)"
+                    placeholder="e.g. 8:00 AM - 6:00 PM"
                     className="w-full p-2 rounded-xl border border-slate-300 bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Phone</label>
+                  <label className="block font-bold text-slate-700 mb-1">Phone Number</label>
                   <input
                     type="tel"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="9876543210"
+                    placeholder="9815099988"
                     className="w-full p-2 rounded-xl border border-slate-300 bg-white font-mono"
                   />
                 </div>
@@ -1102,7 +1446,18 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
             : 0;
 
         const transferRoleLabel =
-          deletingStaff.role === 'reception' ? 'Reception → Reception' : 'Technician → Technician';
+          deletingStaff.role === 'expert'
+            ? 'Expert → Expert'
+            : deletingStaff.role === 'reception'
+            ? 'Reception → Reception'
+            : 'Technician → Technician';
+
+        const roleDisplay =
+          deletingStaff.role === 'expert'
+            ? '⭐ Expert Member (Dual Dept)'
+            : deletingStaff.role === 'reception'
+            ? 'Receptionist'
+            : 'Lab Technician';
 
         return (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1114,10 +1469,10 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                 </div>
                 <div className="flex-1">
                   <h3 className="text-base font-black text-slate-900">
-                    Are you sure you want to delete this?
+                    Are you sure you want to delete this staff account?
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Staff account: <strong>{deletingStaff.name}</strong> ({deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'}) • @{deletingStaff.username}
+                    Staff account: <strong>{deletingStaff.name}</strong> ({roleDisplay}) • Login ID: @{deletingStaff.username}
                   </p>
                 </div>
               </div>
@@ -1128,47 +1483,49 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4 text-amber-600" />
-                      <span>Data Handover & Reassignment</span>
+                      <span>Data Handover &amp; Reassignment</span>
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-950">
                       {transferRoleLabel}
                     </span>
                   </div>
                   <p className="text-xs text-amber-900/90 leading-relaxed">
-                    Assigned patient queue items, active specimens, and reports will be handed over to another {deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'}.
+                    Assigned patient queue items, active specimens, and reports will be handed over to another {roleDisplay}.
                   </p>
                 </div>
               ) : (
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-700 leading-relaxed space-y-1">
-                  <span className="font-bold text-slate-900 block">Single Staff Notice</span>
+                  <span className="font-bold text-slate-900 block">Staff Account Notice</span>
                   <p>
-                    <strong>{deletingStaff.name}</strong> is currently the registered {deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'} for this laboratory. Deleting this account will remove their login credentials. All past patient records and reports remain intact and safely preserved.
+                    <strong>{deletingStaff.name}</strong> is currently a registered {roleDisplay} for this laboratory. Deleting this account will permanently deactivate their login credentials. All past patient records, bills, and published reports remain intact and safely preserved.
                   </p>
                 </div>
               )}
 
-              {/* Assigned Workload Summary */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-1">
-                <span className="font-bold text-slate-700 block text-[11px] uppercase tracking-wider">
-                  Associated Records:
-                </span>
-                {deletingStaff.role === 'reception' ? (
-                  <div className="font-semibold text-slate-800">
-                    • <strong>{assignedEntriesCount}</strong> Patient Registrations / Reception Tokens
-                  </div>
-                ) : (
-                  <div className="font-semibold text-slate-800 space-y-0.5">
-                    <div>• <strong>{assignedTechEntriesCount}</strong> Patient Specimen Queue Items</div>
-                    <div>• <strong>{assignedReportsCount}</strong> Diagnostic Lab Reports</div>
-                  </div>
-                )}
-              </div>
+              {/* Associated workload notice if applicable */}
+              {(assignedEntriesCount > 0 || assignedTechEntriesCount > 0 || assignedReportsCount > 0) && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-1">
+                  <span className="font-bold text-slate-700 block text-[11px] uppercase tracking-wider">
+                    Associated Records:
+                  </span>
+                  {deletingStaff.role === 'reception' ? (
+                    <div className="font-semibold text-slate-800">
+                      • <strong>{assignedEntriesCount}</strong> Patient Registrations / Reception Tokens
+                    </div>
+                  ) : (
+                    <div className="font-semibold text-slate-800 space-y-0.5">
+                      <div>• <strong>{assignedTechEntriesCount}</strong> Patient Specimen Queue Items</div>
+                      <div>• <strong>{assignedReportsCount}</strong> Diagnostic Lab Reports</div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Recipient Selector (When Same Role Candidates Exist) */}
               {sameRoleCandidates.length > 0 && (
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                    Select Handover Recipient ({deletingStaff.role === 'reception' ? 'Receptionist' : 'Lab Technician'})
+                    Select Handover Recipient ({roleDisplay})
                   </label>
                   <select
                     value={transferRecipientId}
@@ -1211,7 +1568,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                   }}
                   className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                 >
-                  No
+                  No, Cancel
                 </button>
                 <button
                   type="button"
@@ -1219,7 +1576,7 @@ export const VendorStaffManagementTab: React.FC<VendorStaffManagementTabProps> =
                   className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer flex items-center gap-1.5 transition"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Yes</span>
+                  <span>Yes, Delete Account</span>
                 </button>
               </div>
             </div>

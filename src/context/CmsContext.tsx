@@ -1841,6 +1841,23 @@ export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
     shift: 'Clinical Sign-off Hours (9:30 AM - 6:30 PM)',
     notes: 'Senior Clinical Director, QCI signatory',
   },
+  {
+    id: 'staff-cc-expert-1',
+    name: 'Kamaljit Verma (Operations & Tech Lead)',
+    role: 'expert',
+    username: 'expert@citycare.com',
+    phone: '+91 98150 99887',
+    password: 'expert123',
+    pin: '998877',
+    status: 'active',
+    labId: 'lab-citycare',
+    labName: 'CityCare Advanced Diagnostics & Scan Centre',
+    branchId: 'branch-cc-1',
+    branchName: 'CityCare Phase 7 Diagnostic Hub',
+    lastPasswordReset: '01 Sep 2026, 10:00 AM',
+    shift: 'Dual Department Shift (8:00 AM - 6:00 PM)',
+    notes: 'Expert member supervising Reception Billing and Technician Analyzers',
+  },
   // --- METROPATH SCANS & MOLECULAR LAB STAFF (lab-metropath) ---
   {
     id: 'staff-mp-reception-1',
@@ -1906,6 +1923,23 @@ export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
     shift: 'Clinical Sign-off Hours (9:00 AM - 7:00 PM)',
     notes: 'Consultant Molecular Pathologist, NABL accredited digital signatory',
   },
+  {
+    id: 'staff-mp-expert-1',
+    name: 'Ananya Sen (Chief Lab Coordinator)',
+    role: 'expert',
+    username: 'expert@metropath.com',
+    phone: '+91 94170 99887',
+    password: 'expert123',
+    pin: '998877',
+    status: 'active',
+    labId: 'lab-metropath',
+    labName: 'MetroPath Scans & Molecular Pathology Hub',
+    branchId: 'branch-mp-1',
+    branchName: 'MetroPath Sector 34-A Super Specialty Hub',
+    lastPasswordReset: '01 Sep 2026, 10:00 AM',
+    shift: 'Dual Department Shift (8:00 AM - 6:00 PM)',
+    notes: 'Expert member supervising Reception Billing and Technician Analyzers',
+  },
   // --- SANJIVANI PATHOLOGY STAFF (lab-sanjivani) ---
   {
     id: 'staff-sanj-reception-1',
@@ -1954,6 +1988,23 @@ export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
     lastPasswordReset: '02 Sep 2026, 11:00 AM',
     shift: 'Clinical Sign-off (10:00 AM - 6:00 PM)',
     notes: 'Chief Pathologist, approves outpatient and clinical pathology reports',
+  },
+  {
+    id: 'staff-sanj-expert-1',
+    name: 'Ravinder Singh (Senior Technical Supervisor)',
+    role: 'expert',
+    username: 'expert@sanjivani.com',
+    phone: '+91 98881 99887',
+    password: 'expert123',
+    pin: '998877',
+    status: 'active',
+    labId: 'lab-sanjivani',
+    labName: 'Sanjivani Pathology & Preventive Health Lab',
+    branchId: 'branch-sanj-1',
+    branchName: 'Sanjivani Civil Lines Lab',
+    lastPasswordReset: '01 Sep 2026, 10:00 AM',
+    shift: 'Dual Department Shift (8:00 AM - 6:00 PM)',
+    notes: 'Expert member supervising Reception Billing and Technician Analyzers',
   },
   // --- LIFELINE PATHCARE STAFF (lab-lifeline-due) ---
   {
@@ -4141,8 +4192,22 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const isNameMatch = cleanRptName && cleanEName && cleanRptName === cleanEName;
 
             if (isIdMatch || isUhidMatch || isTokenMatch || isMobileMatch || isNameMatch) {
+              let updatedAge = e.age;
+              let updatedGender = e.gender;
+              if (completedRpt.ageGender) {
+                const ageMatch = completedRpt.ageGender.match(/(\d+)/);
+                if (ageMatch) updatedAge = ageMatch[1];
+                if (completedRpt.ageGender.toLowerCase().includes('female')) updatedGender = 'Female';
+                else if (completedRpt.ageGender.toLowerCase().includes('other')) updatedGender = 'Other';
+                else if (completedRpt.ageGender.toLowerCase().includes('male')) updatedGender = 'Male';
+              }
               const nextEntry: ReceptionPatientEntry = {
                 ...e,
+                patientName: completedRpt.patientName || e.patientName,
+                age: updatedAge,
+                gender: updatedGender,
+                mobile: completedRpt.mobile || e.mobile,
+                referringDoctor: completedRpt.doctor || e.referringDoctor,
                 reportId: completedRpt.reportId,
                 status: 'Report Ready',
                 technicianStatus: 'Report Generated',
@@ -4159,6 +4224,37 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           return mapped;
         });
+
+        // Also sync patient details in patients list
+        setAllPatients((prev) =>
+          prev.map((p) => {
+            if (
+              (p.reportId && p.reportId.toLowerCase() === completedRpt.reportId.toLowerCase()) ||
+              (p.uhid && completedRpt.uhid && p.uhid.toLowerCase() === completedRpt.uhid.toLowerCase()) ||
+              (p.name && completedRpt.patientName && p.name.trim().toLowerCase() === completedRpt.patientName.trim().toLowerCase())
+            ) {
+              let patAge = p.age;
+              let patGender = p.gender;
+              if (completedRpt.ageGender) {
+                const ageMatch = completedRpt.ageGender.match(/(\d+)/);
+                if (ageMatch) patAge = Number(ageMatch[1]);
+                if (completedRpt.ageGender.toLowerCase().includes('female')) patGender = 'Female';
+                else if (completedRpt.ageGender.toLowerCase().includes('other')) patGender = 'Other';
+                else if (completedRpt.ageGender.toLowerCase().includes('male')) patGender = 'Male';
+              }
+              return {
+                ...p,
+                name: completedRpt.patientName || p.name,
+                age: patAge,
+                gender: patGender,
+                mobile: completedRpt.mobile || p.mobile,
+                referringDoctor: completedRpt.doctor || p.referringDoctor,
+                reportId: completedRpt.reportId,
+              };
+            }
+            return p;
+          })
+        );
       }
     }
   };
@@ -5407,6 +5503,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         labStaffList.find(
           (s) =>
             cleanStr(s.username) === inputIdentifier ||
+            cleanStr(s.username).split('@')[0] === inputIdentifier ||
             (idDigits.length >= 7 && cleanDigits(s.phone).endsWith(idDigits)) ||
             cleanStr(s.id) === inputIdentifier ||
             cleanStr(s.name).toLowerCase().includes(inputIdentifier)
@@ -5414,6 +5511,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         allExpertStaff.find(
           (s) =>
             cleanStr(s.username) === inputIdentifier ||
+            cleanStr(s.username).split('@')[0] === inputIdentifier ||
             (idDigits.length >= 7 && cleanDigits(s.phone).endsWith(idDigits)) ||
             cleanStr(s.id) === inputIdentifier
         );
@@ -5422,6 +5520,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (inputIdentifier.includes('expert') || inputIdentifier.includes('supervisor') || inputIdentifier.includes('lead') || inputIdentifier.includes('rajinder')) {
           matchedStaff = labStaffList[0] || allExpertStaff[0];
         }
+      }
+
+      if (!matchedStaff) {
+        return {
+          success: false,
+          targetView: 'website',
+          error: `Expert Member account not found for "${email || inputIdentifier}". Please check your Login ID / username or phone number.`,
+        };
       }
 
       if (matchedStaff && matchedStaff.status === 'suspended') {
@@ -5436,13 +5542,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const isPassValid =
         inputPassword === expectedPassword ||
         inputPassword.toLowerCase() === expectedPassword.toLowerCase() ||
-        inputPassword === 'expert123';
+        (matchedStaff?.password === 'expert123' && inputPassword === 'expert123');
 
       if (!isPassValid) {
         return {
           success: false,
           targetView: 'website',
-          error: `Incorrect password for Expert Member (${matchedStaff?.name || 'Dual Department Lead'}). Default password is: expert123`,
+          error: `Incorrect password for Expert Member (${matchedStaff?.name || 'Dual Department Lead'}). Please use the updated password set in Vendor Dashboard Staff Management.`,
         };
       }
 

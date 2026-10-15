@@ -703,49 +703,8 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
           {/* ========================================================================= */}
           {effectiveIsVendor && (
             <div className="space-y-4">
-              {/* Architecture Breadcrumb Banner */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-[#123B6D] flex items-center gap-1.5">
-                    <Building className="w-3.5 h-3.5 text-[#123B6D]" />
-                    <span>LAB WEBSITE: {activeLabDisplayName}</span>
-                  </span>
-                  <span className="text-[10px] bg-[#123B6D] text-white px-2 py-0.5 rounded font-bold">
-                    Role-Based Access
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono">
-                  <span>Lab Website</span>
-                  <span>➔</span>
-                  <span className="font-bold text-slate-800">Login</span>
-                  <span>➔</span>
-                  <span className="text-[#123B6D] font-bold">
-                    {labRole === 'vendor'
-                      ? 'Lab Admin'
-                      : labRole === 'reception'
-                      ? 'Receptionist'
-                      : labRole === 'technician'
-                      ? 'Technician'
-                      : 'Expert Member'}
-                  </span>
-                  <span>➔</span>
-                  <span className="text-emerald-700 font-black">
-                    {labRole === 'vendor'
-                      ? 'Lab Admin Dashboard'
-                      : labRole === 'reception'
-                      ? 'Reception Dashboard'
-                      : labRole === 'technician'
-                      ? 'Technician Dashboard'
-                      : 'Expert Member Dashboard'}
-                  </span>
-                </div>
-              </div>
-
               {/* 4 Role Selection Cards: Lab Admin, Receptionist, Technician, Expert Member */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-2">
-                  Select Your Assigned Laboratory Role:
-                </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {/* Role 1: Lab Admin */}
                   <button

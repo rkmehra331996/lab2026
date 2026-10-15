@@ -3,11 +3,11 @@ import {
   X,
   Edit3,
   Trash2,
-  Lock,
 } from 'lucide-react';
 import { LabReport } from '../types';
 import { CanonicalPdfViewer } from './CanonicalPdfViewer';
 import { useCms } from '../context/CmsContext';
+import { CreateReportModal } from './CreateReportModal';
 
 interface ReportDetailModalProps {
   report: LabReport | null;
@@ -28,13 +28,16 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 }) => {
   const { deleteLabReport } = useCms();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [isInternalEditOpen, setIsInternalEditOpen] = useState(false);
 
   if (!isOpen || !report) return null;
 
   const handleEdit = () => {
-    onClose();
     if (onEditReport) {
+      onClose();
       onEditReport(report);
+    } else {
+      setIsInternalEditOpen(true);
     }
   };
 
@@ -65,27 +68,15 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {onEditReport && (
-              report.sentToReceptionDesk ? (
-                <div
-                  className="bg-slate-850 text-slate-400 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
-                  title="Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing is disabled."
-                >
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Editing Locked</span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleEdit}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                  title="Edit Report parameters or patient info"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit Report</span>
-                </button>
-              )
-            )}
+            <button
+              type="button"
+              onClick={handleEdit}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              title="Edit any mistake in this ready report (Patient details, doctor, parameters, observed values, flags, impressions)"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-slate-950" />
+              <span>Edit Report</span>
+            </button>
 
             <button
               type="button"
@@ -127,6 +118,16 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleEdit}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              title="Edit any mistake in this report (Patient details, doctor, parameters, observed values, flags, impressions)"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-slate-950" />
+              <span>Edit Any Mistake in Report</span>
+            </button>
+
             {/* Close Button */}
             <button
               type="button"
@@ -138,6 +139,19 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* DIRECT IN-MODAL EDIT IF onEditReport NOT PROVIDED BY PARENT */}
+      {isInternalEditOpen && (
+        <CreateReportModal
+          isOpen={isInternalEditOpen}
+          onClose={() => setIsInternalEditOpen(false)}
+          existingReport={report}
+          allowNewPatientEntry={true}
+          onReportCreated={() => {
+            setIsInternalEditOpen(false);
+          }}
+        />
+      )}
 
       {/* CONFIRM DELETE MODAL IF DIRECTLY DELETING */}
       {showConfirmDelete && (

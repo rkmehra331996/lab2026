@@ -2025,7 +2025,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                     >
                       <div className="flex items-center gap-2 truncate">
                         <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'staff' && staffSubTab === 'list' ? 'text-amber-400' : 'text-teal-600'}`} />
-                        <span className="truncate">Staff List (Edit / Delete)</span>
+                        <span className="truncate">Staff List (Edit ID, Pass &amp; Roles)</span>
                       </div>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                         activeTab === 'staff' && staffSubTab === 'list'

@@ -523,12 +523,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
   }, [workstationPatientId, patients]);
 
   const handleOpenCreateReportModal = (patient?: Patient, report?: LabReport) => {
-    // Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing must be disabled.
-    if (patient?.sentToReceptionDesk || report?.sentToReceptionDesk) {
-      setToastNotice('Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing is disabled.');
-      setTimeout(() => setToastNotice(null), 4000);
-      return;
-    }
     setSelectedPatientForReport(patient || null);
     if (report) {
       setSelectedReportToEdit(report);
@@ -545,12 +539,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
     const pat = patients.find(
       (p) => p.reportId === report.reportId || p.uhid === report.uhid || p.mobile === report.mobile
     );
-    // Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing must be disabled.
-    if (pat?.sentToReceptionDesk || report.sentToReceptionDesk) {
-      setToastNotice('Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing is disabled.');
-      setTimeout(() => setToastNotice(null), 4000);
-      return;
-    }
     setIsPreviewModalOpen(false);
     setSelectedPatientForReport(pat || null);
     setSelectedReportToEdit(report);
