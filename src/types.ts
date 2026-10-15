@@ -413,6 +413,7 @@ export interface VendorLabSettings {
   // Payment Method Logic (Mutual Exclusion: Manual UPI vs PhonePe)
   activeOnlinePaymentMethod?: 'manual_upi' | 'phonepe'; // Only 1 Online Payment Method can be active at a time!
   isPayOnSpotEnabled?: boolean; // Separate option, can remain ON in both cases (defaults to true)
+  customDomain?: string;
   isCustomDomainActive?: boolean; // Vendor custom domain active status
   // PhonePe Payment Gateway Credentials
   phonepeMerchantId?: string;
@@ -701,6 +702,9 @@ export interface VendorLabDirectoryItem {
   paymentNotes?: string;
   joinedDate?: string;
   domainPreview?: string;
+  websiteDomain?: string;
+  customDomain?: string;
+  isCustomDomainActive?: boolean;
   slug?: string;
   establishedYear?: number;
   reviewsCount?: number;

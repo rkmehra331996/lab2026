@@ -284,6 +284,9 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
   announcementText: '🌟 Special Notice: Free Blood Glucose and Hemoglobin checkup on Saturday morning!',
   email: 'care@apexdiagnostics.in',
   domainPreview: 'indianlalaji.com/shop/lab-apex',
+  websiteDomain: 'trustedweb.online',
+  customDomain: 'trustedweb.online',
+  isCustomDomainActive: true,
   merchantName: 'Apex Diagnostic Lab Pvt Ltd',
   upiId1: 'apexlab@icici',
   qrCode1Label: 'Counter Billing QR (Google Pay / PhonePe / Paytm / BHIM)',
@@ -1589,6 +1592,28 @@ export const DEFAULT_CONTACT_SUBMISSIONS: ContactSubmission[] = [
 ];
 
 export const DEFAULT_DOMAIN_REQUESTS: DomainRequest[] = [
+  {
+    id: 'dom-req-trustedweb',
+    labId: 'lab-apex',
+    labName: 'Apex Diagnostic & Imaging Center',
+    domainType: 'custom_domain',
+    requestedDomain: 'trustedweb.online',
+    currentDomain: 'indianlalaji.com/shop/lab-apex',
+    contactPerson: 'Dr. R. K. Sharma',
+    contactPhone: '+91 7087033009',
+    contactEmail: 'care@apexdiagnostics.in',
+    registrar: 'Hostinger / GoDaddy',
+    cnameTarget: 'indianlalaji.com',
+    aRecordIp: '34.149.120.45',
+    dnsStatus: 'Configured & Verified',
+    sslStatus: 'Active',
+    notes: 'Custom domain connected for trustedweb.online.',
+    status: 'Approved',
+    adminRemarks: 'DNS verified. Custom domain mapped to vendor lab website.',
+    createdAt: 'Today',
+    approvedAt: 'Today',
+    approvedBy: 'Super Admin',
+  },
   {
     id: 'dom-req-101',
     labId: 'lab-apex',

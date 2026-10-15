@@ -48,19 +48,38 @@ const RESERVED_PATH_SEGMENTS = [
   'demo',
   'index',
   'index.html',
+  'index.php',
+  'default.php',
   'home',
   'main',
   'root',
+  'shop',
+  'shops',
+  'lab',
+  'labs',
+  'vendor',
+  'vendors',
+  'contact',
+  'about',
+  'services',
+  'features',
+  'faq',
+  'privacy',
+  'terms',
+  'blog',
+  'post',
+  'articles',
 ];
 
 function findMatchingLabId(
   rawTarget: string,
-  vendorLabsList?: Array<{ id: string; domainPreview?: string; phone?: string; slug?: string; name?: string; status?: string }>
+  vendorLabsList?: Array<{ id: string; domainPreview?: string; phone?: string; slug?: string; name?: string; status?: string }>,
+  strict: boolean = false
 ): string {
   if (!rawTarget) return '';
   const cleanTarget = rawTarget.toLowerCase().trim().replace(/^https?:\/\//, '');
   if (!vendorLabsList || vendorLabsList.length === 0) {
-    return cleanTarget;
+    return strict ? '' : cleanTarget;
   }
 
   const targetDigits = cleanTarget.replace(/\D/g, '');
@@ -86,7 +105,7 @@ function findMatchingLabId(
     return false;
   });
 
-  return match ? match.id : cleanTarget;
+  return match ? match.id : (strict ? '' : cleanTarget);
 }
 
 /**
@@ -204,11 +223,14 @@ export function resolveAppRoute(
   if (singleSlugMatch && singleSlugMatch[1]) {
     const rawSlug = singleSlugMatch[1].toLowerCase().trim();
     if (!RESERVED_PATH_SEGMENTS.includes(rawSlug)) {
-      const matchedId = findMatchingLabId(rawSlug, vendorLabsList);
-      return {
-        view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
-        targetLab: matchedId || rawSlug,
-      };
+      const matchedId = findMatchingLabId(rawSlug, vendorLabsList, true);
+      // ONLY route to vendor_website if an actual laboratory was explicitly matched in the directory
+      if (matchedId) {
+        return {
+          view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
+          targetLab: matchedId,
+        };
+      }
     }
   }
 
@@ -233,11 +255,15 @@ export function resolveAppRoute(
   }
 
   // 1. Check for platform root domain (indianalala.com, indianlalaji.com, or www.*)
+  const normalizedHost = cleanHost.replace(/^www\./, '');
   const isMainRootDomain =
-    cleanHost === 'indianalala.com' ||
-    cleanHost === 'www.indianalala.com' ||
-    cleanHost === 'indianlalaji.com' ||
-    cleanHost === 'www.indianlalaji.com';
+    !cleanHost ||
+    normalizedHost === 'indianlalaji.com' ||
+    normalizedHost === 'indianalala.com' ||
+    cleanHost.includes('localhost') ||
+    cleanHost.includes('127.0.0.1') ||
+    cleanHost.includes('.run.app') ||
+    cleanHost.includes('.aistudio-preview.com');
 
   // 2. Check for subdomains on indianalala.com or indianlalaji.com
   let hostSubdomain: string | null = null;
@@ -287,59 +313,49 @@ export function resolveAppRoute(
     };
   }
 
-  // 5. Vendor direct link fallback parameter (?lab=<subdomain> or ?subdomain=<slug>)
-  if (labParam) {
+  // 5. Vendor direct link parameter (?lab=<subdomain> or ?subdomain=<slug> or ?shop=<slug>)
+  if (labParam || shopParam) {
+    const target = (labParam || shopParam)!.trim();
     return {
       view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
-      targetLab: labParam,
+      targetLab: target,
     };
   }
 
-  // 6. Custom Domain Mapping check (e.g. Hostinger custom domains, citycarelabs.com or apexpathology.in)
+  // 6. Custom Domain Mapping check (e.g. citycarelabs.com or apexpathology.in configured by vendor)
   if (
     !isMainRootDomain &&
-    cleanHost !== 'localhost' &&
-    cleanHost !== '127.0.0.1' &&
-    !cleanHost.includes('.run.app') &&
-    !cleanHost.includes('.aistudio-preview.com')
+    vendorLabsList &&
+    vendorLabsList.length > 0
   ) {
-    if (vendorLabsList && vendorLabsList.length > 0) {
-      const matchedLab = vendorLabsList.find((l) => {
-        const dp = (l.domainPreview || '').toLowerCase().trim();
-        const wd = ((l as any).websiteDomain || '').toLowerCase().trim();
-        const cd = ((l as any).customDomain || '').toLowerCase().trim();
-        const ch = cleanHost.replace(/^www\./, '');
-        return (
-          dp === cleanHost ||
-          (dp.length > 0 && dp.replace(/^www\./, '') === ch) ||
-          wd === cleanHost ||
-          (wd.length > 0 && wd.replace(/^www\./, '') === ch) ||
-          cd === cleanHost ||
-          (cd.length > 0 && cd.replace(/^www\./, '') === ch)
-        );
-      });
-      if (matchedLab) {
-        return {
-          view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
-          targetLab: matchedLab.id,
-        };
-      }
-
-      // If hosted on a custom domain (e.g. on Hostinger) and no specific domain mapping was set,
-      // default directly to the active laboratory portal so the user's lab website opens automatically!
-      const activeLab = vendorLabsList.find((l) => (l.status || '').toLowerCase() === 'active') || vendorLabsList[0];
-      if (activeLab) {
-        return {
-          view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
-          targetLab: labParam || activeLab.id,
-        };
-      }
+    const matchedLab = vendorLabsList.find((l) => {
+      const dp = (l.domainPreview || '').toLowerCase().trim();
+      const wd = ((l as any).websiteDomain || '').toLowerCase().trim();
+      const cd = ((l as any).customDomain || '').toLowerCase().trim();
+      const ch = cleanHost.replace(/^www\./, '');
+      return (
+        dp === cleanHost ||
+        (dp.length > 0 && dp.replace(/^www\./, '') === ch) ||
+        wd === cleanHost ||
+        (wd.length > 0 && wd.replace(/^www\./, '') === ch) ||
+        cd === cleanHost ||
+        (cd.length > 0 && cd.replace(/^www\./, '') === ch)
+      );
+    });
+    if (matchedLab) {
+      return {
+        view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
+        targetLab: matchedLab.id,
+      };
     }
+  }
 
-    // Default for custom domains on Hostinger before lab list finishes loading
+  // 6b. Customer Custom Domain (e.g. trustedweb.online) direct mapping
+  const hostWithoutWww = cleanHost.replace(/^www\./, '');
+  if (!isMainRootDomain && (hostWithoutWww === 'trustedweb.online' || hostWithoutWww.endsWith('.trustedweb.online'))) {
     return {
       view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
-      targetLab: labParam || 'lab-apex',
+      targetLab: 'lab-apex',
     };
   }
 
@@ -348,18 +364,11 @@ export function resolveAppRoute(
     return { view: viewParam };
   }
 
-  // 8. Main Root Domain (indianlalaji.com) without ?lab or ?view:
-  // ALWAYS opens the main company website ('website'). NEVER opens vendor_website!
-  if (isMainRootDomain) {
-    return {
-      view: 'website',
-      isExplicitMainPlatform: true,
-    };
-  }
-
-  // 9. Default fallback (Preview / Localhost without query params)
-  // Default is 'website' (The official INDIANLALAJI.COM Portal Homepage)
+  // 8. Main Root Domain (indianlalaji.com / www.indianlalaji.com) and Default Fallback:
+  // HIGHEST PRIORITY: ALWAYS opens the Main Company Homepage ('website').
+  // NEVER defaults to vendor_website!
   return {
     view: 'website',
+    isExplicitMainPlatform: true,
   };
 }

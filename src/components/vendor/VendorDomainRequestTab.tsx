@@ -124,6 +124,7 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = () 
         websiteDomain: cleanDomain,
         domainPreview: cleanDomain,
         websiteUrl: `https://${cleanDomain}`,
+        isCustomDomainActive: true,
       });
 
       setIsSubmitting(false);
@@ -159,6 +160,7 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = () 
       websiteDomain: '',
       domainPreview: `indianlalaji.com/shop/${resetTarget}`,
       websiteUrl: `https://indianlalaji.com/shop/${resetTarget}`,
+      isCustomDomainActive: false,
     });
 
     setIsDeletingDomain(false);

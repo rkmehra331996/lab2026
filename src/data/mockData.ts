@@ -3436,6 +3436,8 @@ export const VENDOR_LABS_DIRECTORY: VendorLabDirectoryItem[] = [
     paymentReference: 'UPI-REF-9021849201',
     joinedDate: '12 Jan 2026',
     domainPreview: 'indianlalaji.com/shop/lab-apex',
+    websiteDomain: 'trustedweb.online',
+    customDomain: 'trustedweb.online',
     establishedYear: 2012,
     features: ['Free Home Sample Pickup', 'Automated WhatsApp PDF', 'UPI Dynamic QR', 'Barcoded Tubes'],
   },

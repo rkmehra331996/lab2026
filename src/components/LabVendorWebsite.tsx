@@ -588,10 +588,30 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   // Format: https://indianlalaji.com/shop/baburamlab or https://indianlalaji.com/shop/lab-apex
   // NEVER subdomain like https://baburamlab.indianlalaji.com
   const vendorCanonicalWebsiteUrl = React.useMemo(() => {
-    // 1. If verified external 3rd-party custom domain is active (e.g. baburamlab.in or apexdiag.com)
-    // Must NOT contain indianlalaji.com or indianalala.com!
-    if (vendorLabSettings?.isCustomDomainActive && vendorLabSettings?.websiteDomain) {
-      const cleanDom = vendorLabSettings.websiteDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    // 0. If current browser hostname is a customer custom domain (e.g. trustedweb.online, www.trustedweb.online)
+    if (typeof window !== 'undefined' && window.location.hostname) {
+      const h = window.location.hostname.toLowerCase();
+      if (
+        !h.includes('indianlalaji.com') &&
+        !h.includes('indianalala.com') &&
+        !h.includes('run.app') &&
+        !h.includes('localhost') &&
+        !h.includes('127.0.0.1') &&
+        h.includes('.')
+      ) {
+        return `${window.location.protocol}//${window.location.host}`;
+      }
+    }
+
+    // 1. If customer custom domain is active on currentLabItem or vendorLabSettings
+    const candidateDomain =
+      currentLabItem?.websiteDomain ||
+      (currentLabItem as any)?.customDomain ||
+      vendorLabSettings?.websiteDomain ||
+      (vendorLabSettings as any)?.customDomain;
+
+    if (candidateDomain) {
+      const cleanDom = candidateDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
       if (
         cleanDom &&
         !cleanDom.includes('indianlalaji.com') &&
@@ -602,6 +622,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         return `https://${cleanDom}`;
       }
     }
+
     // 2. If explicit external 3rd-party custom domain set in websiteUrl (e.g. https://baburamlab.in)
     if (vendorLabSettings?.websiteUrl && !vendorLabSettings.websiteUrl.includes('labname.com')) {
       const cleanUrl = vendorLabSettings.websiteUrl.trim();
@@ -613,6 +634,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         return cleanUrl;
       }
     }
+
     // 3. Central Official Canonical Shop URL on indianlalaji.com:
     // ALWAYS Directory format: https://indianlalaji.com/shop/[id] (NEVER subdomain!)
     return normalizeToDirectoryUrl(
@@ -629,8 +651,14 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const websiteDirectUrl = React.useMemo(() => {
     if (typeof window !== 'undefined' && window.location.origin) {
       // If vendor custom domain is configured:
-      if (vendorLabSettings?.isCustomDomainActive && vendorLabSettings?.websiteDomain) {
-        const cleanDom = vendorLabSettings.websiteDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+      const candidateDomain =
+        currentLabItem?.websiteDomain ||
+        (currentLabItem as any)?.customDomain ||
+        vendorLabSettings?.websiteDomain ||
+        (vendorLabSettings as any)?.customDomain;
+
+      if (candidateDomain) {
+        const cleanDom = candidateDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
         if (cleanDom && !cleanDom.includes('indianlalaji.com') && !cleanDom.includes('indianalala.com') && cleanDom.includes('.')) {
           return `https://${cleanDom}`;
         }
@@ -646,7 +674,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   }, [vendorCanonicalWebsiteUrl, vendorLabSettings, cleanShopIdentifier, currentLabItem, effectiveSlug]);
 
   // The QR Code URL for "Visit Website": Always routes to the canonical public shop directory URL
-  // e.g. https://indianlalaji.com/shop/baburamlab
+  // e.g. https://trustedweb.online or https://indianlalaji.com/shop/lab-apex
   // Ensures any patient scanning from a smartphone in the real world reaches the exact vendor shop!
   const qrWebsiteUrl = React.useMemo(() => {
     return normalizeToDirectoryUrl(vendorCanonicalWebsiteUrl);
@@ -664,23 +692,33 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const [websiteQrDataUrl, setWebsiteQrDataUrl] = useState<string>('');
   useEffect(() => {
     let isMounted = true;
-    if (qrWebsiteUrl) {
-      QRCode.toDataURL(qrWebsiteUrl, {
-        width: 280,
-        margin: 1,
-        color: { dark: '#123B6D', light: '#FFFFFF' },
-      })
-        .then((dataUri) => {
-          if (isMounted) setWebsiteQrDataUrl(dataUri);
-        })
-        .catch(() => {
-          if (isMounted) {
-            setWebsiteQrDataUrl(
-              `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrWebsiteUrl)}`
-            );
+    if (!qrWebsiteUrl) return;
+
+    const generateQrCode = async () => {
+      try {
+        const qrFn = (QRCode as any)?.toDataURL || (QRCode as any)?.default?.toDataURL;
+        if (typeof qrFn === 'function') {
+          const dataUri = await qrFn(qrWebsiteUrl, {
+            width: 320,
+            margin: 1,
+            color: { dark: '#123B6D', light: '#FFFFFF' },
+          });
+          if (isMounted && dataUri) {
+            setWebsiteQrDataUrl(dataUri);
+            return;
           }
-        });
-    }
+        }
+      } catch (err) {
+        console.warn('Local QRCode generator fallback:', err);
+      }
+      if (isMounted) {
+        setWebsiteQrDataUrl(
+          `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrWebsiteUrl)}`
+        );
+      }
+    };
+
+    generateQrCode();
     return () => {
       isMounted = false;
     };
@@ -2314,6 +2352,125 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     );
   };
 
+  // Render Visit Website QR Modal
+  const renderWebsiteQrModal = () => {
+    if (!isWebsiteQrModalOpen) return null;
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="website-qr-modal-title"
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+        onClick={() => setIsWebsiteQrModalOpen(false)}
+      >
+        <div
+          className="bg-white rounded-3xl max-w-sm w-full p-6 relative shadow-2xl border border-slate-100 flex flex-col items-center text-center animate-in zoom-in-95 duration-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => setIsWebsiteQrModalOpen(false)}
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
+            aria-label="Close Visit Website QR Modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center mb-3">
+            <QrCode className="w-6 h-6" />
+          </div>
+
+          <h3 id="website-qr-modal-title" className="text-base font-extrabold text-slate-900 leading-tight mb-1">
+            Visit Website (Official Lab QR)
+          </h3>
+          <p className="text-xs text-slate-500 mb-4 line-clamp-1">
+            {labName}
+          </p>
+
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4 shadow-inner flex flex-col items-center w-full">
+            <img
+              src={websiteQrDataUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrWebsiteUrl)}`}
+              onError={(e) => {
+                const target = e.currentTarget;
+                const fallbackUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrWebsiteUrl)}`;
+                if (target.src !== fallbackUrl) {
+                  target.src = fallbackUrl;
+                }
+              }}
+              alt={`${labName} Website QR`}
+              className="w-48 h-48 rounded-xl object-contain bg-white p-2 border border-slate-200 shadow-xs"
+            />
+            <span className="text-[11px] font-semibold text-slate-500 mt-2 flex items-center gap-1">
+              <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
+              Scan with phone camera to open website
+            </span>
+          </div>
+
+          <div className="w-full bg-slate-50 rounded-xl p-2.5 border border-slate-200 mb-4 flex items-center justify-between text-xs font-mono text-slate-700">
+            <span className="truncate pr-2 select-all font-bold text-[#123B6D]">{qrWebsiteUrl}</span>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(qrWebsiteUrl);
+                setCopiedWebsiteUrl(true);
+                setTimeout(() => setCopiedWebsiteUrl(false), 2000);
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold shrink-0 transition flex items-center gap-1 cursor-pointer"
+            >
+              {copiedWebsiteUrl ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedWebsiteUrl ? 'Copied' : 'Copy Link'}</span>
+            </button>
+          </div>
+
+          <div className="w-full grid grid-cols-3 gap-1.5 text-xs">
+            <a
+              href={qrWebsiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                if (typeof window !== 'undefined' && (window.location.href === qrWebsiteUrl || qrWebsiteUrl.endsWith(window.location.pathname))) {
+                  e.preventDefault();
+                  setHasEnteredWebsite(true);
+                  setIsWebsiteQrModalOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+              className="bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-2 rounded-xl font-bold flex items-center justify-center gap-1 transition shadow-xs text-[11px] cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span className="truncate">Visit Website</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = websiteQrDataUrl || `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrWebsiteUrl)}`;
+                link.download = `QR-${(labName || 'Lab').replace(/\s+/g, '-')}-Official.png`;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="bg-slate-800 hover:bg-slate-900 text-white py-2 px-2 rounded-xl font-bold flex items-center justify-center gap-1 transition text-[11px] cursor-pointer"
+              title="Download QR code image for standee / print"
+            >
+              <Download className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+              <span>Save QR</span>
+            </button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`Visit ${labName} Official Website: ${qrWebsiteUrl}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-2 rounded-xl font-bold flex items-center justify-center gap-1 transition text-[11px]"
+            >
+              <Share2 className="w-3.5 h-3.5 shrink-0" />
+              <span>Share</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // 1. ISOLATED FIRST SCREEN GATEWAY (Pure Welcome Screen - No Scrolling into Website)
   // Shown exclusively until user clicks "Visit Website", "Book Test", or "Check Report"
   if (!hasEnteredWebsite) {
@@ -2364,6 +2521,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
         {/* Full-Screen Diagnostic Report Preview Modal */}
         {renderReportPreviewModal()}
+
+        {/* Visit Website QR Modal */}
+        {renderWebsiteQrModal()}
       </div>
     );
   }
@@ -2558,6 +2718,17 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
           {/* Action Items: Mobile (Report + Test + Menu) | Desktop (QR + Report + Test + Login) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+
+            {/* Desktop Visit Website QR Button */}
+            <button
+              onClick={() => setIsWebsiteQrModalOpen(true)}
+              className="hidden lg:inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0"
+              id="header-website-qr-btn"
+              title="Visit Website QR Code (Scan to open on mobile)"
+            >
+              <QrCode className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span>Website QR</span>
+            </button>
 
             {/* Desktop Payment QR Button */}
             <button
@@ -4966,88 +5137,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       />
 
       {/* Visit Website QR Modal */}
-      {isWebsiteQrModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="website-qr-modal-title"
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
-          onClick={() => setIsWebsiteQrModalOpen(false)}
-        >
-          <div
-            className="bg-white rounded-3xl max-w-sm w-full p-6 relative shadow-2xl border border-slate-100 flex flex-col items-center text-center animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setIsWebsiteQrModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
-              aria-label="Close Visit Website QR Modal"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center mb-3">
-              <QrCode className="w-6 h-6" />
-            </div>
-
-            <h3 id="website-qr-modal-title" className="text-base font-extrabold text-slate-900 leading-tight mb-1">
-              Visit Website (Official Lab QR)
-            </h3>
-            <p className="text-xs text-slate-500 mb-4 line-clamp-1">
-              {labName}
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4 shadow-inner flex flex-col items-center">
-              <img
-                src={websiteQrDataUrl || `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrWebsiteUrl)}`}
-                alt={`${labName} Website QR`}
-                className="w-48 h-48 rounded-xl object-contain bg-white p-2 border border-slate-200 shadow-xs"
-              />
-              <span className="text-[11px] font-semibold text-slate-500 mt-2 flex items-center gap-1">
-                <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
-                Scan to open vendor lab website page
-              </span>
-            </div>
-
-            <div className="w-full bg-slate-50 rounded-xl p-2.5 border border-slate-200 mb-4 flex items-center justify-between text-xs font-mono text-slate-700">
-              <span className="truncate pr-2 select-all font-bold text-[#123B6D]">{qrWebsiteUrl}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(qrWebsiteUrl);
-                  setCopiedWebsiteUrl(true);
-                  setTimeout(() => setCopiedWebsiteUrl(false), 2000);
-                }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold shrink-0 transition flex items-center gap-1 cursor-pointer"
-              >
-                {copiedWebsiteUrl ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedWebsiteUrl ? 'Copied' : 'Copy Link'}</span>
-              </button>
-            </div>
-
-            <div className="w-full grid grid-cols-2 gap-2 text-xs">
-              <a
-                href={qrWebsiteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition shadow-xs"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-amber-300" />
-                <span>Visit Website</span>
-              </a>
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Visit ${labName} Official Website: ${qrWebsiteUrl}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Share QR</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderWebsiteQrModal()}
 
       {/* Test Information & Fasting Preparation Modal */}
       {selectedTestInfoModal && (() => {
