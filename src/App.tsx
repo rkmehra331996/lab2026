@@ -36,6 +36,7 @@ import { CmsAuthModal } from './components/CmsAuthModal';
 import { CacheManagerModal } from './components/CacheManagerModal';
 import { BranchManagerDashboard } from './components/BranchManagerDashboard';
 import { PathologistDashboard } from './components/PathologistDashboard';
+import { ExpertMemberDashboard } from './components/ExpertMemberDashboard';
 import { RoleContextBanner } from './components/RoleContextBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Footer } from './components/Footer';
@@ -269,6 +270,7 @@ export default function App() {
         'technician_dashboard',
         'reception_dashboard',
         'pathologist_dashboard',
+        'expert_dashboard',
         'branch_manager_dashboard',
         'lab_app',
       ].includes(currentView);
@@ -398,6 +400,7 @@ export default function App() {
       'technician_dashboard',
       'reception_dashboard',
       'pathologist_dashboard',
+      'expert_dashboard',
       'branch_manager_dashboard',
       'lab_app',
       'seo_post',
@@ -960,6 +963,58 @@ export default function App() {
           fallbackMessage="Pathologist dashboard load karte waqt ek error aayi. Please Retry karein."
         >
           <PathologistDashboard
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onOpenReportPortal={handleViewPatientPortal}
+          />
+        </ErrorBoundary>
+        <CmsAuthModal
+          isOpen={isAuthModalOpen}
+          isVendorContext={true}
+          onClose={() => setIsAuthModalOpen(false)}
+          onNavigateView={(v) => {
+            setCurrentView(v);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 4e. Dedicated Experience: Expert Member Dashboard – Reception & Technician Department Management
+  if (currentView === 'expert_dashboard') {
+    if (!isAuthorizedForView('expert_dashboard')) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+          <DashboardAuthGuard
+            view="expert_dashboard"
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+          <CmsAuthModal
+            isOpen={isAuthModalOpen}
+            isVendorContext={true}
+            onClose={() => setIsAuthModalOpen(false)}
+            onNavigateView={(v) => {
+              setCurrentView(v);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+        <ErrorBoundary
+          fallbackTitle="Expert Member Dashboard"
+          fallbackMessage="Expert member dashboard load karte waqt ek error aayi. Please Retry karein."
+        >
+          <ExpertMemberDashboard
             onNavigateView={(view) => {
               setCurrentView(view);
               window.scrollTo({ top: 0, behavior: 'smooth' });

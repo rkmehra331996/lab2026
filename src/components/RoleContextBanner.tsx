@@ -70,6 +70,7 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
   let roleKey: keyof typeof ALL_ROLES_CONFIG = 'receptionist';
   if (role === 'admin') roleKey = 'super_admin';
   else if (role === 'vendor') roleKey = 'lab_admin';
+  else if (role === 'expert') roleKey = 'expert_member';
   else if (role === 'branch_manager') roleKey = 'branch_manager';
   else if (role === 'reception') roleKey = 'receptionist';
   else if (role === 'technician') roleKey = 'technician';
@@ -182,7 +183,7 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
         <div className="flex items-center gap-2 ml-auto">
           {/* PWA Install Button for Staff Workstations */}
           <PWAInstallButton variant="minimal" />
-          {/* Dashboard Quick Switcher if user has multi-dashboard privilege */}
+          {/* Dashboard Quick Switcher for Super Admin */}
           {role === 'admin' && (
             <div className="hidden lg:flex items-center gap-1">
               <button
@@ -221,6 +222,18 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
               </button>
               <button
                 type="button"
+                onClick={() => onNavigateView('expert_dashboard')}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                  currentView === 'expert_dashboard'
+                    ? 'bg-indigo-600 text-white ring-1 ring-amber-400'
+                    : 'text-slate-300 hover:text-white bg-slate-800'
+                }`}
+                title="Expert Member: Dual Reception & Tech Management"
+              >
+                ⭐ Expert Dept
+              </button>
+              <button
+                type="button"
                 onClick={() => onNavigateView('reception_dashboard')}
                 className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
                   currentView === 'reception_dashboard'
@@ -244,6 +257,114 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
             </div>
           )}
 
+          {/* Dashboard Quick Switcher for Lab Owner / Vendor */}
+          {role === 'vendor' && (
+            <div className="hidden md:flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onNavigateView('vendor_dashboard')}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                  currentView === 'vendor_dashboard'
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'text-slate-300 hover:text-white bg-slate-800'
+                }`}
+                title="Lab Owner Master Dashboard"
+              >
+                👑 Owner
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateView('expert_dashboard')}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                  currentView === 'expert_dashboard'
+                    ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black'
+                    : 'text-amber-300 hover:text-white bg-slate-800'
+                }`}
+                title="Expert Member: Reception & Technician Dual Management Hub"
+              >
+                ⭐ Expert Hub
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateView('reception_dashboard')}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                  currentView === 'reception_dashboard'
+                    ? 'bg-teal-500 text-white'
+                    : 'text-slate-300 hover:text-white bg-slate-800'
+                }`}
+                title="Reception & Billing Counter"
+              >
+                🖥️ Reception
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateView('technician_dashboard')}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                  currentView === 'technician_dashboard'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-slate-300 hover:text-white bg-slate-800'
+                }`}
+                title="Technician Lab Workstation"
+              >
+                🔬 Technician
+              </button>
+            </div>
+          )}
+
+          {/* Dashboard Quick Switcher for Expert Member */}
+          {role === 'expert' && (
+            <div className="hidden sm:flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onNavigateView('expert_dashboard')}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                  currentView === 'expert_dashboard'
+                    ? 'bg-amber-400 text-slate-950 font-black'
+                    : 'text-amber-300 hover:text-white bg-slate-800'
+                }`}
+                title="Unified Dual Department Command Center"
+              >
+                ⭐ Dual Command Hub
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateView('reception_dashboard')}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                  currentView === 'reception_dashboard'
+                    ? 'bg-teal-500 text-white'
+                    : 'text-slate-300 hover:text-white bg-slate-800'
+                }`}
+                title="Reception Department Workspace"
+              >
+                🖥️ Reception
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateView('technician_dashboard')}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                  currentView === 'technician_dashboard'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-slate-300 hover:text-white bg-slate-800'
+                }`}
+                title="Technician Department Testing Bench"
+              >
+                🔬 Technician
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateView('vendor_dashboard')}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                  currentView === 'vendor_dashboard'
+                    ? 'bg-amber-500 text-slate-950 font-bold'
+                    : 'text-slate-300 hover:text-white bg-slate-800'
+                }`}
+                title="Lab Admin Portal"
+              >
+                👑 Owner View
+              </button>
+            </div>
+          )}
+
           {/* Back button */}
           <button
             type="button"
@@ -253,7 +374,8 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
                 currentView === 'reception_dashboard' ||
                 currentView === 'technician_dashboard' ||
                 currentView === 'pathologist_dashboard' ||
-                currentView === 'branch_manager_dashboard'
+                currentView === 'branch_manager_dashboard' ||
+                currentView === 'expert_dashboard'
               ) {
                 onNavigateView(currentUser?.role === 'vendor' ? 'vendor_dashboard' : 'vendor_website');
               } else if (currentView === 'vendor_dashboard') {

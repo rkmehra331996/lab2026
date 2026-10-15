@@ -41,7 +41,7 @@ interface CmsAuthModalProps {
 }
 
 export type MainAuthRole = 'super_admin' | 'vendor_owner';
-export type LabAuthRole = 'vendor' | 'reception' | 'technician';
+export type LabAuthRole = 'vendor' | 'reception' | 'technician' | 'expert';
 
 export const INDIAN_STATES = [
   'Punjab',
@@ -217,6 +217,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
     if (effectiveIsVendor) {
       if (targetLoginRole === 'reception') setLabRole('reception');
       else if (targetLoginRole === 'technician') setLabRole('technician');
+      else if (targetLoginRole === 'expert') setLabRole('expert');
       else setLabRole('vendor');
 
       setLoginError('');
@@ -723,7 +724,9 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       ? 'Lab Admin'
                       : labRole === 'reception'
                       ? 'Receptionist'
-                      : 'Technician'}
+                      : labRole === 'technician'
+                      ? 'Technician'
+                      : 'Expert Member'}
                   </span>
                   <span>➔</span>
                   <span className="text-emerald-700 font-black">
@@ -731,17 +734,19 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       ? 'Lab Admin Dashboard'
                       : labRole === 'reception'
                       ? 'Reception Dashboard'
-                      : 'Technician Dashboard'}
+                      : labRole === 'technician'
+                      ? 'Technician Dashboard'
+                      : 'Expert Member Dashboard'}
                   </span>
                 </div>
               </div>
 
-              {/* 3 Role Selection Cards: Lab Admin, Receptionist, Technician */}
+              {/* 4 Role Selection Cards: Lab Admin, Receptionist, Technician, Expert Member */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-2">
                   Select Your Assigned Laboratory Role:
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {/* Role 1: Lab Admin */}
                   <button
                     type="button"
@@ -764,8 +769,8 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       </span>
                     </div>
                     <div className="font-bold text-xs text-slate-900 mt-1">Lab Admin</div>
-                    <div className="text-[11px] text-slate-500 leading-tight">
-                      Full center control, pricing, staff & P&L
+                    <div className="text-[10px] text-slate-500 leading-tight">
+                      Center control &amp; pricing
                     </div>
                   </button>
 
@@ -790,9 +795,9 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                         Billing
                       </span>
                     </div>
-                    <div className="font-bold text-xs text-slate-900 mt-1">Receptionist</div>
-                    <div className="text-[11px] text-slate-500 leading-tight">
-                      Front desk counter, patient UHID & receipts
+                    <div className="font-bold text-xs text-slate-900 mt-1">Reception</div>
+                    <div className="text-[10px] text-slate-500 leading-tight">
+                      Tokens, bills &amp; queue
                     </div>
                   </button>
 
@@ -817,9 +822,38 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                         Testing
                       </span>
                     </div>
-                    <div className="font-bold text-xs text-slate-900 mt-1">Lab Technician</div>
-                    <div className="text-[11px] text-slate-500 leading-tight">
-                      Analyzer entry, specimens & test findings
+                    <div className="font-bold text-xs text-slate-900 mt-1">Technician</div>
+                    <div className="text-[10px] text-slate-500 leading-tight">
+                      Analyzers &amp; test entry
+                    </div>
+                  </button>
+
+                  {/* Role 4: Expert Member */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLabRole('expert');
+                      setLoginError('');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                      labRole === 'expert'
+                        ? 'border-indigo-600 bg-indigo-50 shadow-xs ring-2 ring-indigo-500'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                        <Sparkles className="w-4 h-4 text-amber-300" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-200 text-indigo-950 font-mono">
+                        Dual Dept
+                      </span>
+                    </div>
+                    <div className="font-bold text-xs text-indigo-950 mt-1 flex items-center gap-1">
+                      <span>⭐ Expert Member</span>
+                    </div>
+                    <div className="text-[10px] text-slate-600 leading-tight font-medium">
+                      Reception &amp; Tech Hub
                     </div>
                   </button>
                 </div>
@@ -842,7 +876,9 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       ? 'Lab Owner Mobile Number (10 Digits) or Email *'
                       : labRole === 'reception'
                       ? 'Receptionist Staff ID / Mobile / Username *'
-                      : 'Technician Staff ID / Mobile / Username *'}
+                      : labRole === 'technician'
+                      ? 'Technician Staff ID / Mobile / Username *'
+                      : 'Expert Member ID / Mobile / Username *'}
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -866,7 +902,9 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                           ? 'e.g. 7087033009 or owner email'
                           : labRole === 'reception'
                           ? 'e.g. reception.apex or staff mobile'
-                          : 'e.g. tech.apex or staff mobile'
+                          : labRole === 'technician'
+                          ? 'e.g. tech.apex or staff mobile'
+                          : 'e.g. expert@apexlab.com or 9815099988'
                       }
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none placeholder:text-slate-400"
                     />
@@ -894,7 +932,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       spellCheck={false}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter password"
+                      placeholder={labRole === 'expert' ? 'Enter password (Default: expert123)' : 'Enter password'}
                       className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none placeholder:text-slate-400"
                     />
                     <button
@@ -907,8 +945,8 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                   </div>
                 </div>
 
-                {/* 6-Digit PIN (Only for Lab Admin / Owner - Optional) */}
-                {labRole === 'vendor' && (
+                {/* 6-Digit PIN (For Lab Admin & Expert Member - Optional) */}
+                {(labRole === 'vendor' || labRole === 'expert') && (
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                       <span className="flex items-center gap-1">
@@ -932,7 +970,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       spellCheck={false}
                       value={pinCode}
                       onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
-                      placeholder="Enter 6-digit security PIN"
+                      placeholder={labRole === 'expert' ? 'Enter 6-digit PIN (Default: 998877)' : 'Enter 6-digit security PIN'}
                       className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono tracking-widest placeholder:text-slate-400"
                     />
                   </div>
@@ -959,7 +997,9 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                             ? 'Lab Admin'
                             : labRole === 'reception'
                             ? 'Reception'
-                            : 'Technician'
+                            : labRole === 'technician'
+                            ? 'Technician'
+                            : 'Expert Member'
                         } Dashboard`}
                   </span>
                   <ArrowRight className="w-4 h-4 text-amber-400" />

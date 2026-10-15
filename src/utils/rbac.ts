@@ -1,7 +1,7 @@
 import { UserRole, RolePermissions, AppView, CmsUser } from '../types';
 
 export interface RoleConfig {
-  role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist';
+  role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert';
   title: string;
   hindiTitle: string;
   subtitle: string;
@@ -22,7 +22,7 @@ export interface RoleConfig {
 }
 
 export const ALL_ROLES_CONFIG: Record<
-  'super_admin' | 'lab_admin' | 'branch_manager' | 'receptionist' | 'technician' | 'pathologist',
+  'super_admin' | 'lab_admin' | 'branch_manager' | 'receptionist' | 'technician' | 'pathologist' | 'expert_member',
   RoleConfig
 > = {
   super_admin: {
@@ -222,6 +222,43 @@ export const ALL_ROLES_CONFIG: Record<
       'Cannot alter company-level SaaS portal subscriptions',
     ],
   },
+  expert_member: {
+    role: 'expert',
+    title: 'Expert Member (Reception & Technician Supervisor)',
+    hindiTitle: 'एक्सपर्ट मेंबर (रिसेप्शन एवं टेक्नीशियन संयुक्त विभाग प्रबंधन)',
+    subtitle: 'Unified dual-department command center: manage and monitor both front-desk billing and technician testing analyzers simultaneously',
+    emoji: '⭐',
+    badgeColor: 'bg-gradient-to-r from-teal-600 via-indigo-600 to-purple-600 text-white border-indigo-700',
+    defaultIdentifier: 'expert@apexlab.com',
+    identifierLabel: 'Expert Staff ID or Mobile',
+    identifierType: 'text',
+    defaultPassword: 'expert123',
+    hasPin: true,
+    defaultPin: '998877',
+    defaultLabId: 'lab-apex',
+    defaultBranchId: 'branch-1',
+    defaultView: 'expert_dashboard',
+    allowedViews: [
+      'expert_dashboard',
+      'reception_dashboard',
+      'technician_dashboard',
+      'lab_app',
+      'vendor_dashboard',
+      'vendor_website',
+      'patient_portal',
+    ],
+    permissionsDescription: [
+      'Unified dual-department workstation: monitor Reception and Technician queues simultaneously',
+      'Register walk-in patients, generate tokens, collect cash & UPI payments',
+      'Accession specimens, enter test parameter findings, and flag abnormal biological values',
+      'Track turnaround times (TAT) and streamline sample handovers between counters',
+      '1-Click thermal receipt printing, sample barcode tagging & WhatsApp invoice delivery',
+    ],
+    restrictedDescription: [
+      'Cannot modify master SaaS portal subscriptions or remove other lab registrations',
+      'Official report sign-off requires doctor/pathologist digital signature verification',
+    ],
+  },
 };
 
 export interface LabOption {
@@ -385,6 +422,23 @@ export function getPermissionsForRole(role: string): RolePermissions {
         canDispatchWhatsApp: true,
         canReconcileCash: false,
       };
+    case 'expert':
+    case 'expert_member':
+      return {
+        canAccessSuperAdmin: false,
+        canManageLabSettings: true,
+        canManageBranches: true,
+        canManageStaff: false,
+        canViewAllBranchesData: true,
+        canRegisterPatients: true,
+        canCollectBilling: true,
+        canEnterLabResults: true,
+        canSignAndApproveReports: false,
+        canViewFinancials: true,
+        canDispatchWhatsApp: true,
+        canReconcileCash: true,
+        canManageExpertDashboard: true,
+      };
     default:
       return {
         canAccessSuperAdmin: false,
@@ -399,6 +453,7 @@ export function getPermissionsForRole(role: string): RolePermissions {
         canViewFinancials: false,
         canDispatchWhatsApp: false,
         canReconcileCash: false,
+        canManageExpertDashboard: false,
       };
   }
 }
@@ -415,6 +470,10 @@ export function isUserAuthorizedForView(user: CmsUser | null, view: AppView): bo
     return role === 'vendor' || role === 'admin';
   }
 
+  if (view === 'expert_dashboard') {
+    return role === 'expert' || role === 'vendor' || role === 'admin';
+  }
+
   if (view === 'branch_manager_dashboard') {
     return role === 'branch_manager' || role === 'vendor' || role === 'admin';
   }
@@ -422,6 +481,7 @@ export function isUserAuthorizedForView(user: CmsUser | null, view: AppView): bo
   if (view === 'reception_dashboard') {
     return (
       role === 'reception' ||
+      role === 'expert' ||
       role === 'branch_manager' ||
       role === 'vendor' ||
       role === 'admin'
@@ -431,6 +491,7 @@ export function isUserAuthorizedForView(user: CmsUser | null, view: AppView): bo
   if (view === 'technician_dashboard') {
     return (
       role === 'technician' ||
+      role === 'expert' ||
       role === 'pathologist' ||
       role === 'vendor' ||
       role === 'admin'

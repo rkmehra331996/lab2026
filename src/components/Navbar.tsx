@@ -44,6 +44,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         return 'Super Admin';
       case 'vendor':
         return 'Lab Admin';
+      case 'expert':
+        return 'Expert Member';
       case 'branch_manager':
         return 'Branch Mgr';
       case 'reception':
@@ -63,6 +65,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         return 'admin_dashboard';
       case 'vendor':
         return 'vendor_dashboard';
+      case 'expert':
+        return 'expert_dashboard';
       case 'reception':
         return 'reception_dashboard';
       case 'technician':

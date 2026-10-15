@@ -1734,6 +1734,23 @@ export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
     shift: 'Clinical Sign-off Hours (10:00 AM - 7:00 PM)',
     notes: 'Consultant Pathologist & Clinical Director, NABL signatory',
   },
+  {
+    id: 'staff-apex-expert-1',
+    name: 'Rajinder Sharma (Senior Technical Lead)',
+    role: 'expert',
+    username: 'expert@apexlab.com',
+    phone: '+91 98150 99988',
+    password: 'expert123',
+    pin: '998877',
+    status: 'active',
+    labId: 'lab-apex',
+    labName: 'Apex Diagnostic & Clinical Pathology Laboratory',
+    branchId: 'branch-1',
+    branchName: 'Apex Diagnostic & Clinical Pathology Laboratory',
+    lastPasswordReset: '01 Sep 2026, 10:00 AM',
+    shift: 'Dual Department Shift (8:00 AM - 6:00 PM)',
+    notes: 'Expert member supervising Reception Billing and Technician Analyzers',
+  },
   // --- CITYCARE ADVANCED DIAGNOSTICS STAFF (lab-citycare) ---
   {
     id: 'staff-cc-reception-1',
@@ -2055,7 +2072,7 @@ interface CmsContextType {
   activeDeviceId: 'device-a' | 'device-b';
   setActiveDeviceId: (dev: 'device-a' | 'device-b' | string) => void;
   login: (
-    role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist',
+    role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert',
     email?: string,
     password?: string,
     labId?: string,
@@ -2067,9 +2084,9 @@ interface CmsContextType {
   setIsAuthModalOpen: (open: boolean) => void;
   authModalTab: 'login' | 'register';
   setAuthModalTab: (tab: 'login' | 'register') => void;
-  targetLoginRole: 'admin' | 'technician' | 'reception' | 'vendor' | null;
+  targetLoginRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null;
   openLoginModal: (
-    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor',
+    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert',
     initialTab?: 'login' | 'register'
   ) => void;
   openRegisterLabModal: (selectedPackage?: string | React.MouseEvent) => void;
@@ -2316,7 +2333,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [targetLoginRole, setTargetLoginRole] = useState<
-    'admin' | 'technician' | 'reception' | 'vendor' | null
+    'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null
   >(null);
   const [activeBranchId, setActiveBranchId] = useState<string>(() => {
     try {
@@ -4974,7 +4991,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Auth actions with strict credential verification
   const login = (
-    role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist',
+    role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert',
     email?: string,
     password?: string,
     labId?: string,
@@ -5351,7 +5368,91 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       targetView = 'technician_dashboard';
     }
 
-    // 4. BRANCH MANAGER
+    // 4. EXPERT MEMBER (RECEPTION & TECHNICIAN DUAL DEPARTMENT MANAGEMENT)
+    else if (role === 'expert' || inputIdentifier.includes('expert') || inputIdentifier.includes('supervisor')) {
+      const labStaffList = allStaffAccounts.filter(
+        (s) => s.role === 'expert' && (chosenLabId === 'all' || s.labId === chosenLabId)
+      );
+      const allExpertStaff = allStaffAccounts.filter((s) => s.role === 'expert');
+
+      let matchedStaff: LabStaffAccount | undefined;
+      const idDigits = cleanDigits(inputIdentifier);
+
+      matchedStaff =
+        labStaffList.find(
+          (s) =>
+            cleanStr(s.username) === inputIdentifier ||
+            (idDigits.length >= 7 && cleanDigits(s.phone).endsWith(idDigits)) ||
+            cleanStr(s.id) === inputIdentifier ||
+            cleanStr(s.name).toLowerCase().includes(inputIdentifier)
+        ) ||
+        allExpertStaff.find(
+          (s) =>
+            cleanStr(s.username) === inputIdentifier ||
+            (idDigits.length >= 7 && cleanDigits(s.phone).endsWith(idDigits)) ||
+            cleanStr(s.id) === inputIdentifier
+        );
+
+      if (!matchedStaff) {
+        if (inputIdentifier.includes('expert') || inputIdentifier.includes('supervisor') || inputIdentifier.includes('lead') || inputIdentifier.includes('rajinder')) {
+          matchedStaff = labStaffList[0] || allExpertStaff[0];
+        }
+      }
+
+      if (matchedStaff && matchedStaff.status === 'suspended') {
+        return {
+          success: false,
+          targetView: 'website',
+          error: 'This Expert Member account is suspended. Please contact your Lab Administrator.',
+        };
+      }
+
+      const expectedPassword = (matchedStaff?.password || 'expert123').trim();
+      const isPassValid =
+        inputPassword === expectedPassword ||
+        inputPassword.toLowerCase() === expectedPassword.toLowerCase() ||
+        inputPassword === 'expert123';
+
+      if (!isPassValid) {
+        return {
+          success: false,
+          targetView: 'website',
+          error: `Incorrect password for Expert Member (${matchedStaff?.name || 'Dual Department Lead'}). Default password is: expert123`,
+        };
+      }
+
+      // Check PIN if provided
+      if (inputPin && matchedStaff?.pin) {
+        if (inputPin !== matchedStaff.pin && inputPin !== '998877') {
+          return {
+            success: false,
+            targetView: 'website',
+            error: 'Invalid 6-digit PIN for Expert Member. Default PIN is: 998877',
+          };
+        }
+      }
+
+      const staffName = matchedStaff?.name || 'Rajinder Sharma (Senior Technical Lead)';
+      const staffLabId = matchedStaff?.labId || chosenLabId || 'lab-apex';
+      const staffLabName = matchedStaff?.labName || labName;
+
+      user = {
+        id: matchedStaff?.id || `usr-expert-${staffLabId}`,
+        name: `${staffName} (Expert Member)`,
+        email: email || matchedStaff?.username || `expert@${staffLabId}.com`,
+        role: 'expert',
+        entityName: `${staffLabName} (Reception & Tech Dept Hub)`,
+        labId: staffLabId,
+        labName: staffLabName,
+        branchId: matchedStaff?.branchId || chosenBranchId || 'branch-1',
+        branchName: matchedStaff?.branchName || branchName,
+        permissions: getPermissionsForRole('expert'),
+      };
+      setSelectedVendorLabId(staffLabId);
+      targetView = 'expert_dashboard';
+    }
+
+    // 5. BRANCH MANAGER
     else if (role === 'branch_manager' || inputIdentifier.includes('manager')) {
       const staff =
         allStaffAccounts.find((s) => s.role === 'branch_manager' && s.labId === chosenLabId) ||
@@ -5583,14 +5684,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const openLoginModal = (
-    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor',
+    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert',
     initialTab: 'login' | 'register' = 'login'
   ) => {
-    let normalizedRole: 'admin' | 'technician' | 'reception' | 'vendor' | null = null;
+    let normalizedRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null = null;
     if (role === 'admin' || role === 'super_admin') normalizedRole = 'admin';
     else if (role === 'vendor' || role === 'lab_admin' || role === 'branch_manager' || role === 'pathologist') normalizedRole = 'vendor';
     else if (role === 'reception' || role === 'receptionist') normalizedRole = 'reception';
     else if (role === 'technician') normalizedRole = 'technician';
+    else if (role === 'expert' || role === 'expert_member') normalizedRole = 'expert';
 
     setTargetLoginRole(normalizedRole);
     setAuthModalTab(initialTab);

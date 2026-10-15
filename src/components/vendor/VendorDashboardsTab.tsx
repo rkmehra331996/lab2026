@@ -137,6 +137,33 @@ export const VendorDashboardsTab: React.FC<VendorDashboardsTabProps> = ({
             </div>
           </div>
 
+          {/* Expert Member Dashboard Banner: Reception & Technician Department Management */}
+          <div className="bg-gradient-to-r from-[#0F284E] via-[#123B6D] to-[#2E1065] text-white p-5 rounded-2xl shadow-md border border-indigo-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xl">⭐</span>
+                <h3 className="font-black text-sm sm:text-base text-white">
+                  Expert Member Dashboard – Reception &amp; Technician Department Management
+                </h3>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
+                  Dual Department
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 max-w-2xl">
+                Manage and monitor both the Reception Department (patient billing, tokens, receipts, dues) and Technician Department (analyzers, parameter findings, abnormal flags, TAT handover) from one unified dashboard.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onNavigateView('expert_dashboard')}
+              className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs transition shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Sparkles className="w-4 h-4 text-slate-950" />
+              <span>Launch Expert Dashboard →</span>
+            </button>
+          </div>
+
           {/* Quick Launch Cards for Both Desks */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Reception Desk Quick Card */}

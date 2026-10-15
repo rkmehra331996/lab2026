@@ -9,6 +9,7 @@ export type AppView =
   | 'reception_dashboard'
   | 'technician_dashboard'
   | 'pathologist_dashboard'
+  | 'expert_dashboard'
   | 'seo_post';
 
 export type UserRole =
@@ -21,6 +22,8 @@ export type UserRole =
   | 'receptionist'
   | 'technician'
   | 'pathologist'
+  | 'expert'
+  | 'expert_member'
   | null;
 
 export interface RolePermissions {
@@ -36,13 +39,14 @@ export interface RolePermissions {
   canViewFinancials: boolean;
   canDispatchWhatsApp: boolean;
   canReconcileCash: boolean;
+  canManageExpertDashboard?: boolean;
 }
 
 export interface CmsUser {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist';
+  role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert';
   avatar?: string;
   entityName: string;
   labId?: string;
@@ -55,7 +59,7 @@ export interface CmsUser {
 export interface LabStaffAccount {
   id: string;
   name: string;
-  role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist';
+  role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert';
   username: string; // or email / phone
   email?: string;
   phone?: string;

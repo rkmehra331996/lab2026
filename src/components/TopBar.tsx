@@ -66,6 +66,9 @@ export const TopBar: React.FC<TopBarProps> = ({
         return '🔬 Tech';
       case 'pathologist':
         return '🩺 Pathologist';
+      case 'expert':
+      case 'expert_member':
+        return '⭐ Expert Dept';
       default:
         return role;
     }
@@ -191,10 +194,54 @@ export const TopBar: React.FC<TopBarProps> = ({
                   >
                     <span>Tech</span>
                   </button>
+                  <button
+                    onClick={() => onSelectView('expert_dashboard')}
+                    className={`hidden md:inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                      currentView === 'expert_dashboard'
+                        ? 'bg-indigo-400 text-slate-950 ring-2 ring-white/50'
+                        : 'bg-indigo-400/80 hover:bg-indigo-400 text-slate-950'
+                    }`}
+                    title="Expert Member: Dual Reception & Technician Dept Hub"
+                  >
+                    <span>⭐ Expert</span>
+                  </button>
                 </div>
               )}
 
               {/* Dedicated role button for non-admin staff */}
+              {currentUser.role === 'expert' && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => onSelectView('expert_dashboard')}
+                    className="px-2.5 py-0.5 bg-gradient-to-r from-teal-400 via-indigo-400 to-purple-400 text-slate-950 font-black rounded-full text-[11px] flex items-center gap-1 transition cursor-pointer shadow-xs"
+                    title="Dual Department Dashboard"
+                  >
+                    <LayoutDashboard className="w-3 h-3" />
+                    <span>⭐ Expert Dashboard</span>
+                  </button>
+                  <button
+                    onClick={() => onSelectView('reception_dashboard')}
+                    className={`px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                      currentView === 'reception_dashboard'
+                        ? 'bg-teal-400 text-slate-950 ring-2 ring-white/50'
+                        : 'bg-white/20 hover:bg-white/30 text-white'
+                    }`}
+                  >
+                    Reception
+                  </button>
+                  <button
+                    onClick={() => onSelectView('technician_dashboard')}
+                    className={`px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                      currentView === 'technician_dashboard'
+                        ? 'bg-purple-400 text-slate-950 ring-2 ring-white/50'
+                        : 'bg-white/20 hover:bg-white/30 text-white'
+                    }`}
+                  >
+                    Tech
+                  </button>
+                </div>
+              )}
+
               {currentUser.role === 'reception' && (
                 <button
                   onClick={() => onSelectView('reception_dashboard')}
