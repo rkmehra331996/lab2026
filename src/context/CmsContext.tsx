@@ -4225,36 +4225,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return mapped;
         });
 
-        // Also sync patient details in patients list
-        setAllPatients((prev) =>
-          prev.map((p) => {
-            if (
-              (p.reportId && p.reportId.toLowerCase() === completedRpt.reportId.toLowerCase()) ||
-              (p.uhid && completedRpt.uhid && p.uhid.toLowerCase() === completedRpt.uhid.toLowerCase()) ||
-              (p.name && completedRpt.patientName && p.name.trim().toLowerCase() === completedRpt.patientName.trim().toLowerCase())
-            ) {
-              let patAge = p.age;
-              let patGender = p.gender;
-              if (completedRpt.ageGender) {
-                const ageMatch = completedRpt.ageGender.match(/(\d+)/);
-                if (ageMatch) patAge = Number(ageMatch[1]);
-                if (completedRpt.ageGender.toLowerCase().includes('female')) patGender = 'Female';
-                else if (completedRpt.ageGender.toLowerCase().includes('other')) patGender = 'Other';
-                else if (completedRpt.ageGender.toLowerCase().includes('male')) patGender = 'Male';
-              }
-              return {
-                ...p,
-                name: completedRpt.patientName || p.name,
-                age: patAge,
-                gender: patGender,
-                mobile: completedRpt.mobile || p.mobile,
-                referringDoctor: completedRpt.doctor || p.referringDoctor,
-                reportId: completedRpt.reportId,
-              };
-            }
-            return p;
-          })
-        );
+
       }
     }
   };

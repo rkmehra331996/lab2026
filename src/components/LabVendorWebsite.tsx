@@ -4951,43 +4951,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
               return (
                 <div className="w-full space-y-3 mt-2">
-                  {/* Dynamic Amount Badge */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between text-left">
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 block">
-                        Pre-Filled Dynamic Amount
-                      </span>
-                      <span className="text-xl font-black text-slate-900">
-                        ₹{websiteDynamicAmount.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span>Auto Filled</span>
-                    </span>
-                  </div>
-
-                  {/* Preset Amount Chips & Custom Input */}
+                  {/* Test Bill Amount & Reference Input */}
                   <div className="space-y-1.5 text-left">
                     <label className="block text-[11px] font-bold text-slate-700">
-                      Select or Enter Test Bill Amount (₹)
+                      Enter Test Bill Amount (₹)
                     </label>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {[200, 500, 1000, 2500].map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => setWebsiteDynamicAmount(preset)}
-                          className={`py-1 px-2 rounded-lg text-xs font-black transition cursor-pointer border ${
-                            websiteDynamicAmount === preset
-                              ? 'bg-[#123B6D] text-white border-[#123B6D] shadow-xs'
-                              : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
-                          }`}
-                        >
-                          ₹{preset}
-                        </button>
-                      ))}
-                    </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <div className="relative">
@@ -5061,14 +5029,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     </div>
                   </div>
 
-                  {/* Mobile Deep Link */}
-                  <a
-                    href={dynamicWebsiteUpiUri}
-                    className="w-full py-2.5 px-3 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm"
-                  >
-                    <span>Pay ₹{websiteDynamicAmount.toLocaleString('en-IN')} on UPI App</span>
-                  </a>
-
                   {/* Supported UPI Apps Strip */}
                   <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 font-semibold">
                     <span className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 font-bold">GPay</span>
@@ -5077,10 +5037,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     <span className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 font-bold">BHIM</span>
                     <span className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 font-bold">Any UPI</span>
                   </div>
-
-                  <p className="text-[10px] text-slate-400">
-                    Scanning automatically sets ₹{websiteDynamicAmount} in your Google Pay, PhonePe, or Paytm app.
-                  </p>
 
                   <button
                     type="button"
