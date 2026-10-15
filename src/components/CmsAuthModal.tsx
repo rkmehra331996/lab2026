@@ -126,7 +126,6 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
     selectVendorLab,
     selectedRegistrationPackage,
     setSelectedRegistrationPackage,
-    allStaffAccounts,
   } = useCms();
 
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
@@ -467,27 +466,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
         }
       }
 
-      // Smart role detection: auto-route based on identifier or staff record
-      let targetRole: LabAuthRole = labRole;
-      if (cleanInput.includes('reception') || cleanInput.includes('billing') || cleanInput.includes('frontdesk')) {
-        targetRole = 'reception';
-      } else if (cleanInput.includes('tech') || cleanInput.includes('dmlt') || cleanInput.includes('analyzer')) {
-        targetRole = 'technician';
-      } else if (cleanInput.includes('expert') || cleanInput.includes('supervisor') || cleanInput.includes('lead')) {
-        targetRole = 'expert';
-      } else if (allStaffAccounts && allStaffAccounts.length > 0) {
-        const staff = allStaffAccounts.find(
-          (s) =>
-            (s.username && s.username.toLowerCase() === cleanInput) ||
-            (s.phone && s.phone.replace(/\D/g, '').length >= 7 && s.phone.replace(/\D/g, '').slice(-10) === last10) ||
-            (s.id && s.id.toLowerCase() === cleanInput)
-        );
-        if (staff) {
-          if (staff.role === 'reception') targetRole = 'reception';
-          else if (staff.role === 'technician') targetRole = 'technician';
-          else if (staff.role === 'expert') targetRole = 'expert';
-        }
-      }
+      const targetRole = labRole; // 'vendor' | 'reception' | 'technician'
 
       // Auto-resolve laboratory if owner or staff credentials belong to a different registered lab
       const matchedLab = vendorLabsList.find((l) => {
@@ -623,7 +602,12 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
             <div>
               <h3 className="font-black text-base sm:text-lg tracking-tight leading-tight text-white flex items-center gap-2">
                 {effectiveIsVendor ? (
-                  <span>Lab Portal Login</span>
+                  <>
+                    <span>Lab Portal Login</span>
+                    <span className="text-[11px] bg-white/20 px-2 py-0.5 rounded-full font-bold">
+                      {activeLabDisplayName.slice(0, 20)}...
+                    </span>
+                  </>
                 ) : activeTab === 'register' ? (
                   <>
                     <span>Create Laboratory</span>
@@ -719,7 +703,163 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
           {/* ========================================================================= */}
           {effectiveIsVendor && (
             <div className="space-y-4">
-              {/* Login Form for Lab Portal */}
+              {/* Architecture Breadcrumb Banner */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-[#123B6D] flex items-center gap-1.5">
+                    <Building className="w-3.5 h-3.5 text-[#123B6D]" />
+                    <span>LAB WEBSITE: {activeLabDisplayName}</span>
+                  </span>
+                  <span className="text-[10px] bg-[#123B6D] text-white px-2 py-0.5 rounded font-bold">
+                    Role-Based Access
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono">
+                  <span>Lab Website</span>
+                  <span>➔</span>
+                  <span className="font-bold text-slate-800">Login</span>
+                  <span>➔</span>
+                  <span className="text-[#123B6D] font-bold">
+                    {labRole === 'vendor'
+                      ? 'Lab Admin'
+                      : labRole === 'reception'
+                      ? 'Receptionist'
+                      : labRole === 'technician'
+                      ? 'Technician'
+                      : 'Expert Member'}
+                  </span>
+                  <span>➔</span>
+                  <span className="text-emerald-700 font-black">
+                    {labRole === 'vendor'
+                      ? 'Lab Admin Dashboard'
+                      : labRole === 'reception'
+                      ? 'Reception Dashboard'
+                      : labRole === 'technician'
+                      ? 'Technician Dashboard'
+                      : 'Expert Member Dashboard'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 4 Role Selection Cards: Lab Admin, Receptionist, Technician, Expert Member */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-2">
+                  Select Your Assigned Laboratory Role:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {/* Role 1: Lab Admin */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLabRole('vendor');
+                      setLoginError('');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                      labRole === 'vendor'
+                        ? 'border-amber-500 bg-amber-50/70 shadow-xs ring-1 ring-amber-500'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center">
+                        <Building className="w-4 h-4 text-amber-700" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-900">
+                        Owner
+                      </span>
+                    </div>
+                    <div className="font-bold text-xs text-slate-900 mt-1">Lab Admin</div>
+                    <div className="text-[10px] text-slate-500 leading-tight">
+                      Center control &amp; pricing
+                    </div>
+                  </button>
+
+                  {/* Role 2: Receptionist */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLabRole('reception');
+                      setLoginError('');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                      labRole === 'reception'
+                        ? 'border-teal-500 bg-teal-50/70 shadow-xs ring-1 ring-teal-500'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 rounded-lg bg-teal-100 text-teal-900 flex items-center justify-center">
+                        <Receipt className="w-4 h-4 text-teal-700" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-teal-200/80 text-teal-900">
+                        Billing
+                      </span>
+                    </div>
+                    <div className="font-bold text-xs text-slate-900 mt-1">Reception</div>
+                    <div className="text-[10px] text-slate-500 leading-tight">
+                      Tokens, bills &amp; queue
+                    </div>
+                  </button>
+
+                  {/* Role 3: Technician */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLabRole('technician');
+                      setLoginError('');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                      labRole === 'technician'
+                        ? 'border-purple-500 bg-purple-50/70 shadow-xs ring-1 ring-purple-500'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-900 flex items-center justify-center">
+                        <FlaskConical className="w-4 h-4 text-purple-700" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-200/80 text-purple-900">
+                        Testing
+                      </span>
+                    </div>
+                    <div className="font-bold text-xs text-slate-900 mt-1">Technician</div>
+                    <div className="text-[10px] text-slate-500 leading-tight">
+                      Analyzers &amp; test entry
+                    </div>
+                  </button>
+
+                  {/* Role 4: Expert Member */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLabRole('expert');
+                      setLoginError('');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                      labRole === 'expert'
+                        ? 'border-indigo-600 bg-indigo-50 shadow-xs ring-2 ring-indigo-500'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                        <Sparkles className="w-4 h-4 text-amber-300" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-200 text-indigo-950 font-mono">
+                        Dual Dept
+                      </span>
+                    </div>
+                    <div className="font-bold text-xs text-indigo-950 mt-1 flex items-center gap-1">
+                      <span>⭐ Expert Member</span>
+                    </div>
+                    <div className="text-[10px] text-slate-600 leading-tight font-medium">
+                      Reception &amp; Tech Hub
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Login Form for Selected Lab Role */}
               <form
                 onSubmit={handleLabWebsiteLogin}
                 className="space-y-3.5 pt-1"
@@ -732,7 +872,13 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
               >
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Mobile Number (10 Digits), Email or Staff Username *
+                    {labRole === 'vendor'
+                      ? 'Lab Owner Mobile Number (10 Digits) or Email *'
+                      : labRole === 'reception'
+                      ? 'Receptionist Staff ID / Mobile / Username *'
+                      : labRole === 'technician'
+                      ? 'Technician Staff ID / Mobile / Username *'
+                      : 'Expert Member ID / Mobile / Username *'}
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -751,7 +897,15 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       spellCheck={false}
                       value={emailOrPhone}
                       onChange={(e) => setEmailOrPhone(e.target.value)}
-                      placeholder="e.g. 7087033009, reception.apex, tech.apex or expert@apexlab.com"
+                      placeholder={
+                        labRole === 'vendor'
+                          ? 'e.g. 7087033009 or owner email'
+                          : labRole === 'reception'
+                          ? 'e.g. reception.apex or staff mobile'
+                          : labRole === 'technician'
+                          ? 'e.g. tech.apex or staff mobile'
+                          : 'e.g. expert@apexlab.com or 9815099988'
+                      }
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none placeholder:text-slate-400"
                     />
                   </div>
@@ -791,34 +945,36 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                   </div>
                 </div>
 
-                {/* 6-Digit PIN (Optional) */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                    <span className="flex items-center gap-1">
-                      <Hash className="w-3 h-3 text-[#123B6D]" />
-                      <span>6-Digit Security PIN</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400">Optional for Staff</span>
-                  </label>
-                  <input
-                    type="password"
-                    name="lab_security_pin"
-                    maxLength={6}
-                    autoComplete="new-password"
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-bwignore="true"
-                    data-dashlane-ignore="true"
-                    data-form-type="other"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    value={pinCode}
-                    onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Enter 6-digit security PIN (if configured)"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono tracking-widest placeholder:text-slate-400"
-                  />
-                </div>
+                {/* 6-Digit PIN (For Lab Admin & Expert Member - Optional) */}
+                {(labRole === 'vendor' || labRole === 'expert') && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <Hash className="w-3 h-3 text-[#123B6D]" />
+                        <span>6-Digit Security PIN</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400">Optional</span>
+                    </label>
+                    <input
+                      type="password"
+                      name="lab_security_pin"
+                      maxLength={6}
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-dashlane-ignore="true"
+                      data-form-type="other"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      value={pinCode}
+                      onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder={labRole === 'expert' ? 'Enter 6-digit PIN (Default: 998877)' : 'Enter 6-digit security PIN'}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono tracking-widest placeholder:text-slate-400"
+                    />
+                  </div>
+                )}
 
                 {loginError && (
                   <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
@@ -834,7 +990,17 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                   className="w-full bg-[#123B6D] hover:bg-[#0e2c52] disabled:opacity-50 text-white py-3 rounded-xl text-xs font-black transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
                   <span>
-                    {isSubmitting ? 'Verifying Credentials...' : 'Sign In to Dashboard'}
+                    {isSubmitting
+                      ? 'Verifying Credentials...'
+                      : `Sign In to ${
+                          labRole === 'vendor'
+                            ? 'Lab Admin'
+                            : labRole === 'reception'
+                            ? 'Reception'
+                            : labRole === 'technician'
+                            ? 'Technician'
+                            : 'Expert Member'
+                        } Dashboard`}
                   </span>
                   <ArrowRight className="w-4 h-4 text-amber-400" />
                 </button>
