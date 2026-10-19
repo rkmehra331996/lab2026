@@ -75,6 +75,7 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
     activeTenantId,
     selectedVendorLabId,
     vendorLabsList,
+    vendorTests,
     updateReceptionEntry,
   } = useCms();
 
@@ -286,20 +287,51 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
           }
         });
       } else {
-        // Standalone investigation from patient receipt
-        const key = `custom-${testName.toLowerCase()}`;
-        if (!addedParamKeys.has(key)) {
-          addedParamKeys.add(key);
-          newParams.push({
-            id: `receipt-test-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-            testName: testName,
-            parameter: testName,
-            result: 'Normal',
-            unit: '',
-            referenceRange: 'Normal / Biological Reference Interval',
-            isAbnormal: false,
-            notes: 'Investigation from patient receipt',
+        // Check if test exists in vendorTests with structured parameters
+        const foundTest = vendorTests?.find(
+          (vt) =>
+            String(vt.name || '').toLowerCase().trim() === testName.toLowerCase().trim() ||
+            String(vt.code || '').toLowerCase().trim() === testName.toLowerCase().trim()
+        );
+        if (foundTest && Array.isArray(foundTest.parameters) && foundTest.parameters.length > 0) {
+          foundTest.parameters.forEach((param: any, pIdx: number) => {
+            const pName = typeof param === 'string' ? param : (param?.name || '');
+            const pUnit = typeof param === 'string' ? (foundTest.unit || '') : (param?.unit || foundTest.unit || '');
+            const pRange = typeof param === 'string' ? (foundTest.normalRange || 'Normal') : (param?.normalRange || foundTest.normalRange || 'Normal');
+            const key = `master-${foundTest.code}-${pName.toLowerCase()}`;
+            if (!addedParamKeys.has(key)) {
+              addedParamKeys.add(key);
+              newParams.push({
+                id: `param-${foundTest.id}-${pIdx}-${Date.now()}`,
+                testName: foundTest.name,
+                parameter: pName,
+                result: typeof param === 'object' && param?.defaultNormalValue ? param.defaultNormalValue : 'Normal',
+                unit: pUnit,
+                referenceRange: pRange,
+                isAbnormal: false,
+                notes: typeof param === 'object' ? param?.notes : undefined,
+                minNormal: typeof param === 'object' ? param?.minNormal : undefined,
+                maxNormal: typeof param === 'object' ? param?.maxNormal : undefined,
+                isNumeric: typeof param === 'object' ? param?.isNumeric : undefined,
+              });
+            }
           });
+        } else {
+          // Standalone investigation from patient receipt
+          const key = `custom-${testName.toLowerCase()}`;
+          if (!addedParamKeys.has(key)) {
+            addedParamKeys.add(key);
+            newParams.push({
+              id: `receipt-test-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              testName: testName,
+              parameter: testName,
+              result: 'Normal',
+              unit: '',
+              referenceRange: 'Normal / Biological Reference Interval',
+              isAbnormal: false,
+              notes: 'Investigation from patient receipt',
+            });
+          }
         }
       }
     });

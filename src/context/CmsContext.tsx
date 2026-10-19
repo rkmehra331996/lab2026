@@ -3309,14 +3309,32 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('cms_vendor_tests');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
           const existingIds = new Set(parsed.map((t: any) => t.id));
-          const existingCodes = new Set(parsed.map((t: any) => String(t.code || '').toLowerCase()));
+          const existingCodes = new Set(parsed.map((t: any) => String(t.code || '').toLowerCase().trim()));
+          const existingNames = new Set(parsed.map((t: any) => String(t.name || '').toLowerCase().trim()));
           const missingMaster = MASTER_CLINICAL_TESTS.filter(
-            (t) => !existingIds.has(t.id) && !existingCodes.has(String(t.code || '').toLowerCase())
+            (t) =>
+              !existingIds.has(t.id) &&
+              !existingCodes.has(String(t.code || '').toLowerCase().trim()) &&
+              !existingNames.has(String(t.name || '').toLowerCase().trim())
           );
-          return [...parsed.map((t: any) => ({ ...t, labId: t.labId || 'lab-apex' })), ...missingMaster];
-        }
+          const updatedParsed = parsed.map((t: any) => {
+            const masterMatch = MASTER_CLINICAL_TESTS.find(
+              (m) => m.id === t.id || m.code.toLowerCase() === String(t.code || '').toLowerCase().trim()
+            );
+            if (masterMatch) {
+              return {
+                ...masterMatch,
+                ...t,
+                category: masterMatch.category,
+                subcategory: masterMatch.subcategory || t.subcategory,
+                parameters: masterMatch.parameters || t.parameters,
+                labId: t.labId || 'lab-apex',
+              };
+            }
+            return { ...t, labId: t.labId || 'lab-apex' };
+          });
+          return [...updatedParsed, ...missingMaster];
       }
       return [...MOCK_TESTS, ...MASTER_CLINICAL_TESTS];
     } catch {

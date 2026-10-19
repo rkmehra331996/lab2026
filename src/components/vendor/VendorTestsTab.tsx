@@ -46,10 +46,13 @@ import {
   LAB_TEST_CATEGORIES,
   LabTestCategory,
   CATEGORY_METADATA,
+  DEFAULT_CATEGORY_META,
+  CategoryMeta,
   STANDARD_SAMPLE_TYPES,
   STANDARD_TEST_METHODS,
   REPORT_TIME_PRESETS,
   MASTER_CLINICAL_TESTS,
+  isCategoryMatch,
 } from '../../data/masterClinicalTests';
 import { VendorPackagesTab } from './VendorPackagesTab';
 
@@ -270,7 +273,7 @@ export const VendorTestsTab: React.FC<VendorTestsTabProps> = ({
 
       // 2. Category filter
       const matchCategory =
-        selectedCategory === 'All' || test.category.toLowerCase() === selectedCategory.toLowerCase();
+        selectedCategory === 'All' || isCategoryMatch(test.category, selectedCategory);
 
       // 3. Status filter
       let matchStatus = true;
@@ -334,7 +337,7 @@ export const VendorTestsTab: React.FC<VendorTestsTabProps> = ({
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { All: vendorTests.length };
     LAB_TEST_CATEGORIES.forEach((cat) => {
-      counts[cat] = vendorTests.filter((t) => t.category.toLowerCase() === cat.toLowerCase()).length;
+      counts[cat] = vendorTests.filter((t) => isCategoryMatch(t.category, cat)).length;
     });
     return counts;
   }, [vendorTests]);
@@ -1739,8 +1742,8 @@ export const VendorTestsTab: React.FC<VendorTestsTabProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {LAB_TEST_CATEGORIES.map((cat) => {
-              const meta = CATEGORY_METADATA[cat];
-              const testsInCat = vendorTests.filter((t) => t.category.toLowerCase() === cat.toLowerCase());
+              const meta: CategoryMeta = CATEGORY_METADATA[cat] || DEFAULT_CATEGORY_META;
+              const testsInCat = vendorTests.filter((t) => isCategoryMatch(t.category, cat));
               const activeCount = testsInCat.filter((t) => t.status === 'Active' || t.isActive !== false).length;
               const prices = testsInCat.map((t) => t.discountPriceINR || t.priceINR);
               const minPrice = prices.length > 0 ? Math.min(...prices) : 0;

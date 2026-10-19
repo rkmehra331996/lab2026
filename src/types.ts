@@ -515,8 +515,8 @@ export interface TestParameterItem {
   unit?: string;
   normalRange?: string;
   method?: string;
-  criticalLow?: string;
-  criticalHigh?: string;
+  criticalLow?: string | number;
+  criticalHigh?: string | number;
 }
 
 export interface TestItem {
