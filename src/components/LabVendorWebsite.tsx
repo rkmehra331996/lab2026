@@ -62,6 +62,8 @@ import {
   Printer,
   Camera,
   BookmarkPlus,
+  LogIn,
+  LayoutDashboard,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useCms, DEFAULT_ALL_VENDOR_DOCTORS } from '../context/CmsContext';
@@ -90,6 +92,7 @@ interface LabVendorWebsiteProps {
   onOpenVendorDashboard?: () => void;
   onOpenReceptionDashboard?: () => void;
   onOpenAdminDashboard?: () => void;
+  onNavigateView?: (view: any) => void;
 }
 
 export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
@@ -102,6 +105,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   onOpenVendorDashboard,
   onOpenReceptionDashboard,
   onOpenAdminDashboard,
+  onNavigateView,
 }) => {
   const {
     currentUser,
@@ -301,6 +305,33 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       if (onOpenLabSoftware) onOpenLabSoftware();
     } else {
       openLoginModal('technician');
+    }
+  };
+
+  const handleOpenExpert = () => {
+    if (currentUser && (currentUser.role === 'expert' || currentUser.role === 'vendor' || currentUser.role === 'admin')) {
+      if (onNavigateView) onNavigateView('expert_dashboard');
+    } else {
+      openLoginModal('expert');
+    }
+  };
+
+  const handleOpenUserDashboard = () => {
+    if (!currentUser) {
+      openLoginModal('auto');
+      return;
+    }
+    const role = currentUser.role;
+    if (onNavigateView) {
+      if (role === 'reception') onNavigateView('reception_dashboard');
+      else if (role === 'technician') onNavigateView('technician_dashboard');
+      else if (role === 'expert') onNavigateView('expert_dashboard');
+      else if (role === 'admin') onNavigateView('admin_dashboard');
+      else onNavigateView('vendor_dashboard');
+    } else {
+      if (role === 'reception' && onOpenReceptionDashboard) onOpenReceptionDashboard();
+      else if (role === 'admin' && onOpenAdminDashboard) onOpenAdminDashboard();
+      else if (onOpenVendorDashboard) onOpenVendorDashboard();
     }
   };
 
@@ -2763,26 +2794,37 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <span className="sm:hidden text-[11px]">Report</span>
             </button>
 
-            {/* 2. Test Button (Scrolls to Lab Test & Health Booking Form Section) */}
-            <button
-              onClick={() => {
-                const el = document.getElementById('lab-test-health-booking');
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                  setSelectedTestOrPackage(
-                    vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
-                  );
-                  setIsBookingModalOpen(true);
-                }
-              }}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
-              id="header-book-test-btn"
-              title="Book Lab Test & Health Booking"
-            >
-              <Calendar className="w-3.5 h-3.5 text-slate-950 shrink-0" />
-              <span>Test</span>
-            </button>
+            {/* 2. Expert Login / Dashboard Button (Per user request: 'export login uper hona chahiye header me') */}
+            {currentUser ? (
+              <button
+                onClick={handleOpenUserDashboard}
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
+                id="header-vendor-dashboard-btn"
+                title={`Open ${
+                  currentUser.role === 'reception'
+                    ? 'Reception'
+                    : currentUser.role === 'technician'
+                    ? 'Technician'
+                    : currentUser.role === 'expert'
+                    ? 'Expert Member'
+                    : 'Lab Admin'
+                } Dashboard (${currentUser.name || 'User'})`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span>Dashboard</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => openLoginModal('expert')}
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95 border border-indigo-500/40"
+                id="header-vendor-expert-login-btn"
+                title="⭐ Expert Member Portal Login (Reception & Tech Hub)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span className="hidden sm:inline">⭐ Expert Login</span>
+                <span className="sm:hidden text-[11px]">Expert Login</span>
+              </button>
+            )}
 
             {/* 3. Menu Icon (Hamburger: opens Side Drawer on Mobile) */}
             <button
@@ -2974,20 +3016,78 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
                 {/* Drawer Footer Actions (Staff Login, T&C, Call Support) */}
                 <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-2.5">
-                  {/* Staff Login - Text Only */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      openLoginModal('vendor');
-                    }}
-                    className="w-full py-2.5 px-3.5 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs flex items-center justify-between shadow-xs transition cursor-pointer"
-                  >
-                    <span>Staff Login (Admin / Tech / Rec)</span>
-                    <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded font-black">
-                      Portal
-                    </span>
-                  </button>
+                  {/* Staff Login / Dashboard Button in Drawer */}
+                  {currentUser ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleOpenUserDashboard();
+                      }}
+                      className="w-full py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-between shadow-xs transition cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <LayoutDashboard className="w-4 h-4 text-amber-300" />
+                        <span>Go to Dashboard ({currentUser.name})</span>
+                      </span>
+                      <span className="text-[10px] bg-emerald-800 text-white px-2 py-0.5 rounded font-black uppercase">
+                        Active
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          openLoginModal('expert');
+                        }}
+                        className="w-full py-2.5 px-3.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs flex items-center justify-between shadow-xs transition cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-amber-300" />
+                          <span>⭐ Expert Member Login</span>
+                        </span>
+                        <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded font-black">
+                          Dual Hub
+                        </span>
+                      </button>
+
+                      {/* Quick 3 Staff Buttons */}
+                      <div className="grid grid-cols-3 gap-1.5 text-[10px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            handleOpenAdmin();
+                          }}
+                          className="py-1.5 px-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-blue-700 text-center truncate cursor-pointer shadow-2xs"
+                        >
+                          🏢 Admin
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            handleOpenReception();
+                          }}
+                          className="py-1.5 px-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-teal-700 text-center truncate cursor-pointer shadow-2xs"
+                        >
+                          🧾 Reception
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            handleOpenTechnician();
+                          }}
+                          className="py-1.5 px-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-purple-700 text-center truncate cursor-pointer shadow-2xs"
+                        >
+                          🔬 Tech
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Terms & Conditions Modal Opener - Text Only */}
                   <button
@@ -4841,10 +4941,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </ul>
             </div>
 
-            {/* Column 5: Login / Portal */}
+            {/* Column 5: Login / Portal (4 Logins: Admin, Reception, Technician, Expert) */}
             <div>
               <h4 className="font-extrabold text-[#123B6D] mb-4 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                <span>Login / Portal</span>
+                <span>Staff &amp; Portal Login</span>
               </h4>
               <ul className="space-y-2.5">
                 <li>
@@ -4873,8 +4973,18 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     onClick={handleOpenTechnician}
                     className="hover:text-[#123B6D] hover:font-bold text-slate-600 flex items-center gap-1.5 cursor-pointer text-left transition"
                   >
-                    <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0"></span>
+                    <span className="w-2 h-2 rounded-full bg-purple-600 shrink-0"></span>
                     <span>Technician Login</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleOpenExpert}
+                    className="hover:text-[#123B6D] hover:font-bold text-indigo-700 font-semibold flex items-center gap-1.5 cursor-pointer text-left transition"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0"></span>
+                    <span>⭐ Expert Member Login</span>
                   </button>
                 </li>
               </ul>

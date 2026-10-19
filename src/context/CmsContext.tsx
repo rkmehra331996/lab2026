@@ -2149,7 +2149,7 @@ interface CmsContextType {
   activeDeviceId: 'device-a' | 'device-b';
   setActiveDeviceId: (dev: 'device-a' | 'device-b' | string) => void;
   login: (
-    role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert',
+    role: 'auto' | 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert',
     email?: string,
     password?: string,
     labId?: string,
@@ -2161,9 +2161,9 @@ interface CmsContextType {
   setIsAuthModalOpen: (open: boolean) => void;
   authModalTab: 'login' | 'register';
   setAuthModalTab: (tab: 'login' | 'register') => void;
-  targetLoginRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null;
+  targetLoginRole: 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null;
   openLoginModal: (
-    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert',
+    role?: UserRole | 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert',
     initialTab?: 'login' | 'register'
   ) => void;
   openRegisterLabModal: (selectedPackage?: string | React.MouseEvent) => void;
@@ -2410,7 +2410,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [targetLoginRole, setTargetLoginRole] = useState<
-    'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null
+    'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null
   >(null);
   const [activeBranchId, setActiveBranchId] = useState<string>(() => {
     try {
@@ -5657,13 +5657,135 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       targetView = 'pathologist_dashboard';
     }
 
-    // 6. LAB OWNER / VENDOR (Default)
+    // 6. UNIFIED AUTO-DETECT & LAB OWNER / VENDOR
     else {
-      // Find the matched laboratory using our smart resolver or chosenLabId
+      // Step A: Check if input matches any Staff Account (Reception, Technician, Expert Member)
+      const matchedStaffList = allStaffAccounts.filter((s) => {
+        const sDigits = cleanDigits(s.phone);
+        const sLast10 = sDigits.length >= 10 ? sDigits.slice(-10) : sDigits;
+        const isUserMatch =
+          cleanStr(s.username) === inputIdentifier ||
+          cleanStr(s.username).split('@')[0] === inputIdentifier;
+        const isEmailMatch = s.email && cleanStr(s.email) === inputIdentifier;
+        const isIdMatch = cleanStr(s.id) === inputIdentifier;
+        const isPhoneMatch =
+          idDigits.length >= 7 &&
+          (sLast10 === idLast10 || sDigits.endsWith(idDigits) || idDigits.endsWith(sDigits));
+        const isNameMatch = cleanStr(s.name).toLowerCase() === inputIdentifier;
+        return isUserMatch || isEmailMatch || isIdMatch || isPhoneMatch || isNameMatch;
+      });
+
+      // Shorthand aliases if no direct staff found
+      let effectiveStaff = matchedStaffList;
+      if (effectiveStaff.length === 0) {
+        if (inputIdentifier.includes('expert') || inputIdentifier.includes('supervisor')) {
+          effectiveStaff = allStaffAccounts.filter((s) => s.role === 'expert');
+        } else if (
+          inputIdentifier.includes('reception') ||
+          inputIdentifier.includes('billing') ||
+          inputIdentifier.includes('frontdesk') ||
+          inputIdentifier.includes('pooja') ||
+          inputIdentifier.includes('jasleen')
+        ) {
+          effectiveStaff = allStaffAccounts.filter((s) => s.role === 'reception');
+        } else if (
+          inputIdentifier.includes('tech') ||
+          inputIdentifier.includes('analyzer') ||
+          inputIdentifier.includes('amit') ||
+          inputIdentifier.includes('satnam')
+        ) {
+          effectiveStaff = allStaffAccounts.filter((s) => s.role === 'technician');
+        }
+      }
+
+      // Check if any matched staff has matching password!
+      const validStaff = effectiveStaff.find((s) => {
+        const p = (s.password || '').trim();
+        return p === inputPassword || p.toLowerCase() === inputPassword.toLowerCase();
+      });
+
+      if (validStaff) {
+        if (validStaff.status === 'suspended') {
+          return {
+            success: false,
+            targetView: 'website',
+            error: `This ${validStaff.role} account is marked suspended. Please contact your Lab Admin.`,
+          };
+        }
+
+        const staffLabId = validStaff.labId || chosenLabId || 'lab-apex';
+        const staffLabObj =
+          vendorLabsList.find((l) => l.id === staffLabId) ||
+          VENDOR_LABS_DIRECTORY.find((l) => l.id === staffLabId);
+        const staffLabName = validStaff.labName || staffLabObj?.name || labName;
+
+        if (validStaff.role === 'expert') {
+          user = {
+            id: validStaff.id || `usr-expert-${staffLabId}`,
+            name: `${validStaff.name} (Expert Member)`,
+            email: email || validStaff.username || `expert@${staffLabId}.com`,
+            role: 'expert',
+            entityName: `${staffLabName} (Reception & Tech Dept Hub)`,
+            labId: staffLabId,
+            labName: staffLabName,
+            branchId: validStaff.branchId || chosenBranchId || 'branch-1',
+            branchName: validStaff.branchName || branchName,
+            permissions: getPermissionsForRole('expert'),
+          };
+          setSelectedVendorLabId(staffLabId);
+          targetView = 'expert_dashboard';
+          setCurrentUser(user);
+          setActiveBranchId(validStaff.branchId || 'branch-1');
+          setIsAuthModalOpen(false);
+          return { success: true, targetView };
+        } else if (validStaff.role === 'reception') {
+          user = {
+            id: validStaff.id || `usr-reception-${staffLabId}`,
+            name: `${validStaff.name} (Front Desk)`,
+            email: email || validStaff.username || `reception@${staffLabId}.com`,
+            role: 'reception',
+            entityName: `${staffLabName} (Billing & Counter)`,
+            labId: staffLabId,
+            labName: staffLabName,
+            branchId: validStaff.branchId || chosenBranchId || 'branch-1',
+            branchName: validStaff.branchName || branchName,
+            permissions: getPermissionsForRole('reception'),
+          };
+          setSelectedVendorLabId(staffLabId);
+          targetView = 'reception_dashboard';
+          setCurrentUser(user);
+          setActiveBranchId(validStaff.branchId || 'branch-1');
+          setIsAuthModalOpen(false);
+          return { success: true, targetView };
+        } else if (validStaff.role === 'technician') {
+          user = {
+            id: validStaff.id || `usr-tech-${staffLabId}`,
+            name: `${validStaff.name} (Diagnostic Technician)`,
+            email: email || validStaff.username || `tech@${staffLabId}.com`,
+            role: 'technician',
+            entityName: `${staffLabName} (Analyzers & Workstation)`,
+            labId: staffLabId,
+            labName: staffLabName,
+            branchId: validStaff.branchId || chosenBranchId || 'branch-1',
+            branchName: validStaff.branchName || branchName,
+            permissions: getPermissionsForRole('technician'),
+          };
+          setSelectedVendorLabId(staffLabId);
+          targetView = 'technician_dashboard';
+          setCurrentUser(user);
+          setActiveBranchId(validStaff.branchId || 'branch-1');
+          setIsAuthModalOpen(false);
+          return { success: true, targetView };
+        }
+      }
+
+      // Step B: Find matched laboratory for Lab Admin / Owner
       const matchedLab = findLabByAnyField(inputIdentifier);
       const effectiveLabId = matchedLab
         ? matchedLab.id
-        : (chosenLabId !== 'all' ? chosenLabId : (selectedVendorLabId || 'lab-apex'));
+        : chosenLabId !== 'all'
+        ? chosenLabId
+        : selectedVendorLabId || 'lab-apex';
 
       const currentLab =
         matchedLab ||
@@ -5674,28 +5796,49 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // 1. Verify Identifier (mobile / email / ID / demo phone / owner name)
       const labPhoneDigits = cleanDigits(currentLab?.phone);
-      const labPhoneLast10 = labPhoneDigits.length >= 10 ? labPhoneDigits.slice(-10) : labPhoneDigits;
-      const isPhoneMatch = idDigits.length >= 7 && (
-        labPhoneLast10 === idLast10 ||
-        labPhoneDigits.endsWith(idDigits) ||
-        idDigits.endsWith(labPhoneDigits) ||
-        labPhoneDigits.includes(idDigits) ||
-        idDigits.includes(labPhoneDigits)
-      );
+      const labPhoneLast10 =
+        labPhoneDigits.length >= 10 ? labPhoneDigits.slice(-10) : labPhoneDigits;
+      const isPhoneMatch =
+        idDigits.length >= 7 &&
+        (labPhoneLast10 === idLast10 ||
+          labPhoneDigits.endsWith(idDigits) ||
+          idDigits.endsWith(labPhoneDigits) ||
+          labPhoneDigits.includes(idDigits) ||
+          idDigits.includes(labPhoneDigits));
       const isEmailMatch = currentLab?.email && cleanStr(currentLab.email) === inputIdentifier;
-      const isIdMatch = currentLab?.id && (
-        cleanStr(currentLab.id) === inputIdentifier ||
-        cleanStr(currentLab.id).replace('lab-', '') === inputIdentifier.replace('lab-', '')
-      );
-      const isSlugMatch = currentLab?.domainPreview && cleanStr(currentLab.domainPreview).split('.')[0] === inputIdentifier;
-      const isNameMatch = currentLab?.name && (
-        cleanStr(currentLab.name).includes(inputIdentifier) ||
-        inputIdentifier.includes(cleanStr(currentLab.name))
-      );
-      const isOwnerKeyword = ['owner', 'admin', 'vendor', 'dr. rajesh', 'dr. narang', 'dr. arunava', 'director', 'sharma'].some((k) => inputIdentifier.includes(k));
+      const isIdMatch =
+        currentLab?.id &&
+        (cleanStr(currentLab.id) === inputIdentifier ||
+          cleanStr(currentLab.id).replace('lab-', '') === inputIdentifier.replace('lab-', ''));
+      const isSlugMatch =
+        currentLab?.domainPreview &&
+        cleanStr(currentLab.domainPreview).split('.')[0] === inputIdentifier;
+      const isNameMatch =
+        currentLab?.name &&
+        (cleanStr(currentLab.name).includes(inputIdentifier) ||
+          inputIdentifier.includes(cleanStr(currentLab.name)));
+      const isOwnerKeyword = [
+        'owner',
+        'admin',
+        'vendor',
+        'dr. rajesh',
+        'dr. narang',
+        'dr. arunava',
+        'director',
+        'sharma',
+      ].some((k) => inputIdentifier.includes(k));
       const isDemoPhoneMatch =
-        ['9876543210', '7087033009', '9815012345', '9417098765', '9872011223', '9779034567'].includes(idDigits) ||
-        ['9876543210', '7087033009', '9815012345', '9417098765', '9872011223', '9779034567'].some((dp) => dp.endsWith(idLast10) || idLast10.endsWith(dp));
+        ['9876543210', '7087033009', '9815012345', '9417098765', '9872011223', '9779034567'].includes(
+          idDigits
+        ) ||
+        [
+          '9876543210',
+          '7087033009',
+          '9815012345',
+          '9417098765',
+          '9872011223',
+          '9779034567',
+        ].some((dp) => dp.endsWith(idLast10) || idLast10.endsWith(dp));
 
       const isIdentifierValid =
         matchedLab != null ||
@@ -5708,10 +5851,26 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isDemoPhoneMatch;
 
       if (!isIdentifierValid) {
+        if (effectiveStaff.length > 0) {
+          const s = effectiveStaff[0];
+          const roleLabel =
+            s.role === 'reception'
+              ? 'Reception desk'
+              : s.role === 'technician'
+              ? 'Technician workstation'
+              : s.role === 'expert'
+              ? 'Expert Member'
+              : s.role;
+          return {
+            success: false,
+            targetView: 'website',
+            error: `Incorrect password for ${roleLabel} (${s.name}). Please enter your password.`,
+          };
+        }
         return {
           success: false,
           targetView: 'website',
-          error: `Lab Admin account not found with mobile/email: "${email || inputIdentifier}". Please enter your registered 10-digit Mobile Number (रजिस्टर्ड मोबाइल नंबर दर्ज करें).`,
+          error: `Account not found with mobile/email: "${email || inputIdentifier}". Please enter your registered 10-digit Mobile Number or Staff ID (रजिस्टर्ड मोबाइल नंबर दर्ज करें).`,
         };
       }
 
@@ -5827,11 +5986,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const openLoginModal = (
-    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert',
+    role?: UserRole | 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert',
     initialTab: 'login' | 'register' = 'login'
   ) => {
-    let normalizedRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null = null;
-    if (role === 'admin' || role === 'super_admin') normalizedRole = 'admin';
+    let normalizedRole: 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null = null;
+    if (role === 'auto') normalizedRole = 'auto';
+    else if (role === 'admin' || role === 'super_admin') normalizedRole = 'admin';
     else if (role === 'vendor' || role === 'lab_admin' || role === 'branch_manager' || role === 'pathologist') normalizedRole = 'vendor';
     else if (role === 'reception' || role === 'receptionist') normalizedRole = 'reception';
     else if (role === 'technician') normalizedRole = 'technician';

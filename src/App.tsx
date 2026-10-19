@@ -665,6 +665,10 @@ export default function App() {
             onOpenVendorDashboard={() => setCurrentView('vendor_dashboard')}
             onOpenReceptionDashboard={() => setCurrentView('reception_dashboard')}
             onOpenAdminDashboard={() => setCurrentView('vendor_dashboard')}
+            onNavigateView={(v) => {
+              setCurrentView(v);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         </ErrorBoundary>
         <CmsAuthModal
