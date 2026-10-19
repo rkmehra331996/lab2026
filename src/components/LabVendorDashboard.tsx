@@ -140,7 +140,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const [websiteSubTab, setWebsiteSubTab] = useState<
     'banners' | 'about' | 'founder' | 'team' | 'contact' | 'social' | 'legal' | 'sections' | 'section_content'
   >('banners');
-  const [testSubTab, setTestSubTab] = useState<'list' | 'add'>('list');
+  const [testSubTab, setTestSubTab] = useState<'list' | 'add' | 'categories' | 'packages'>('list');
   const [packageSubTab, setPackageSubTab] = useState<'list' | 'add'>('list');
   const [formSubTab, setFormSubTab] = useState<'bookings' | 'contacts'>('contacts');
   const [dashboardSubTab, setDashboardSubTab] = useState<'reception' | 'technician' | 'overview'>('reception');
@@ -1162,7 +1162,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <FlaskConical className={`w-4 h-4 shrink-0 ${activeTab === 'tests' ? 'text-amber-300' : 'text-teal-700'}`} />
-                    <span className="text-xs font-black truncate">2. Online Test</span>
+                    <span className="text-xs font-black truncate">2. Lab Test Management</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -1178,37 +1178,10 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                   </div>
                 </button>
 
-                {/* Sub-Items: 1. Add >, 2. List > Edit/Delete */}
+                {/* Sub-Items: 1. All Tests, 2. Add Test, 3. Test Categories, 4. Test Packages */}
                 {isTestsMenuOpen && (
                   <div className="p-1.5 space-y-1 bg-white/95 border-t border-teal-200/70">
-                    {/* 1. Add > */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('tests');
-                        setTestSubTab('add');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'tests' && testSubTab === 'add'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
-                        <span className="truncate">1. Add Test</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'tests' && testSubTab === 'add'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      }`}>
-                        Add &gt;
-                      </span>
-                    </button>
-
-                    {/* 2. List > Edit/Delete */}
+                    {/* 1. All Tests */}
                     <button
                       type="button"
                       onClick={() => {
@@ -1224,14 +1197,95 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                     >
                       <div className="flex items-center gap-2 truncate">
                         <ListFilter className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'list' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
-                        <span className="truncate">2. Test List</span>
+                        <span className="truncate">1. All Tests</span>
                       </div>
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                         activeTab === 'tests' && testSubTab === 'list'
                           ? 'bg-white/20 text-white'
                           : 'bg-blue-50 text-blue-800 border border-blue-200'
                       }`}>
-                        Edit / Delete
+                        View / Edit
+                      </span>
+                    </button>
+
+                    {/* 2. Add Test */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('tests');
+                        setTestSubTab('add');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'tests' && testSubTab === 'add'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-teal-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                        <span className="truncate">2. Add Test</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'tests' && testSubTab === 'add'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      }`}>
+                        + New
+                      </span>
+                    </button>
+
+                    {/* 3. Test Categories */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('tests');
+                        setTestSubTab('categories');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'tests' && testSubTab === 'categories'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-teal-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Layers className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'categories' ? 'text-amber-400' : 'text-indigo-600'}`} />
+                        <span className="truncate">3. Test Categories</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'tests' && testSubTab === 'categories'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-indigo-50 text-indigo-800 border border-indigo-200'
+                      }`}>
+                        13 Types
+                      </span>
+                    </button>
+
+                    {/* 4. Test Packages */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('tests');
+                        setTestSubTab('packages');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'tests' && testSubTab === 'packages'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-teal-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Package className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'packages' ? 'text-amber-400' : 'text-amber-600'}`} />
+                        <span className="truncate">4. Test Packages</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'tests' && testSubTab === 'packages'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                      }`}>
+                        Bundles
                       </span>
                     </button>
                   </div>

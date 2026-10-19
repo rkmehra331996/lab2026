@@ -509,6 +509,16 @@ export interface ContactSubmission {
 
 export type Language = 'en' | 'hi' | 'pa';
 
+export interface TestParameterItem {
+  id?: string;
+  name: string;
+  unit?: string;
+  normalRange?: string;
+  method?: string;
+  criticalLow?: string;
+  criticalHigh?: string;
+}
+
 export interface TestItem {
   id: string;
   name: string;
@@ -516,21 +526,36 @@ export interface TestItem {
   price?: number;
   code: string;
   category: string;
+  subcategory?: string;
   sampleType: string;
   unit: string;
   normalRange: string;
   priceINR: number;
   mrpINR?: number;
+  vendorPriceINR?: number;
+  costPriceINR?: number;
+  discountPriceINR?: number;
   turnaroundTime?: string;
   turnaroundHours?: number | string;
   tatHours?: number;
+  reportTime?: string;
   description?: string;
+  testMethod?: string;
+  method?: string;
   isPopular?: boolean;
   labId?: string;
   status?: 'Active' | 'Inactive';
   isActive?: boolean;
   fastingRequired?: boolean;
+  fastingHours?: string;
   instructions?: string;
+  preparationInstructions?: string;
+  homeCollection?: boolean;
+  homeCollectionAvailable?: boolean;
+  parameters?: (TestParameterItem | string)[];
+  testParameters?: string[] | string;
+  image?: string;
+  imageUrl?: string;
 }
 
 export type LabTest = TestItem;

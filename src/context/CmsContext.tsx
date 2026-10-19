@@ -32,6 +32,7 @@ import {
 } from '../types';
 import { DEFAULT_SEO_POSTS } from '../data/defaultSeoPosts';
 import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES, DEFAULT_LAB_MANAGEMENT_FEATURES } from '../data/mockData';
+import { MASTER_CLINICAL_TESTS } from '../data/masterClinicalTests';
 export { VENDOR_LABS_DIRECTORY };
 import { getPermissionsForRole, LAB_OPTIONS } from '../utils/rbac';
 import { isTenantMatch, verifyTenantOwnership, stampTenant } from '../utils/tenantSecurity';
@@ -3310,14 +3311,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const existingIds = new Set(parsed.map((t: any) => t.id));
-          const existingLabIds = new Set(parsed.map((t: any) => t.labId));
-          const missingTests = MOCK_TESTS.filter((t) => !existingIds.has(t.id) && !existingLabIds.has(t.labId));
-          return [...parsed.map((t: any) => ({ ...t, labId: t.labId || 'lab-apex' })), ...missingTests];
+          const existingCodes = new Set(parsed.map((t: any) => String(t.code || '').toLowerCase()));
+          const missingMaster = MASTER_CLINICAL_TESTS.filter(
+            (t) => !existingIds.has(t.id) && !existingCodes.has(String(t.code || '').toLowerCase())
+          );
+          return [...parsed.map((t: any) => ({ ...t, labId: t.labId || 'lab-apex' })), ...missingMaster];
         }
       }
-      return MOCK_TESTS;
+      return [...MOCK_TESTS, ...MASTER_CLINICAL_TESTS];
     } catch {
-      return MOCK_TESTS;
+      return [...MOCK_TESTS, ...MASTER_CLINICAL_TESTS];
     }
   });
 
@@ -4051,15 +4054,35 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const targetLab = (currentUser && currentUser.role !== 'admin' && currentUser.labId && currentUser.labId !== 'all')
       ? currentUser.labId
       : (superAdminTenantScope && superAdminTenantScope !== 'all' ? superAdminTenantScope : (selectedVendorLabId && selectedVendorLabId !== 'all' ? selectedVendorLabId : 'lab-apex'));
-    const matched = allVendorTests.filter((t) => isTenantMatch(t, targetLab));
-    if (matched.length > 0) return matched;
-    // Smart Fallback: Provide complete starter clinical tests stamped for this lab
-    const baseTests = allVendorTests.filter((t) => isTenantMatch(t, 'lab-apex'));
-    return baseTests.map((t, idx) => ({
-      ...t,
-      id: `test-${targetLab}-${idx + 1}`,
+
+    // 1. Tests customized or added specifically for this lab
+    const labSpecific = allVendorTests.filter((t) => isTenantMatch(t, targetLab));
+    const labCodes = new Set(labSpecific.map((t) => String(t.code || '').toLowerCase().trim()));
+    const labNames = new Set(labSpecific.map((t) => String(t.name || '').toLowerCase().trim()));
+
+    // 2. Master permanent tests across all 13 categories (ensuring every vendor dashboard has all tests permanently)
+    const masterPool = MASTER_CLINICAL_TESTS.filter(
+      (m) => !labCodes.has(String(m.code || '').toLowerCase().trim()) && !labNames.has(String(m.name || '').toLowerCase().trim())
+    ).map((m) => ({
+      ...m,
+      id: m.id.includes(targetLab) ? m.id : `tst-${targetLab}-${m.id}`,
       labId: targetLab,
     }));
+
+    // 3. Fallback tests from general allVendorTests (like apex baseline) if not duplicate
+    const baseTests = allVendorTests.filter(
+      (t) => isTenantMatch(t, 'lab-apex') &&
+             !labCodes.has(String(t.code || '').toLowerCase().trim()) &&
+             !labNames.has(String(t.name || '').toLowerCase().trim()) &&
+             !MASTER_CLINICAL_TESTS.some((m) => m.code.toLowerCase() === String(t.code || '').toLowerCase())
+    ).map((t, idx) => ({
+      ...t,
+      id: `tst-base-${targetLab}-${idx + 1}`,
+      labId: targetLab,
+    }));
+
+    // Every vendor dashboard permanently displays all tests across all categories for easy booking
+    return [...labSpecific, ...masterPool, ...baseTests];
   }, [allVendorTests, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   // Tenant-Isolated Query Helpers
@@ -6192,19 +6215,40 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateVendorTest = (id: string, test: Partial<TestItem>) => {
     let syncedTest: TestItem | null = null;
-    setAllVendorTests((prev) =>
-      prev.map((t) => {
-        if (t.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(t, activeTenantId, currentUser)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant test update for ${id}`);
-            return t;
+    const effectiveTenant = activeTenantId === 'all' ? (selectedVendorLabId || 'lab-apex') : activeTenantId;
+
+    setAllVendorTests((prev) => {
+      const exists = prev.some((t) => t.id === id);
+      if (exists) {
+        return prev.map((t) => {
+          if (t.id === id) {
+            syncedTest = { ...t, ...test };
+            return syncedTest;
           }
-          syncedTest = { ...t, ...test };
-          return syncedTest;
-        }
-        return t;
-      })
-    );
+          return t;
+        });
+      }
+
+      // If test came from master pool or virtual stamped test, instantiate as a lab-specific override
+      const baseMaster = MASTER_CLINICAL_TESTS.find((m) => id.includes(m.id)) || MOCK_TESTS.find((m) => id.includes(m.id));
+      const newOverride: TestItem = {
+        ...(baseMaster || {
+          name: test.name || 'Clinical Test',
+          code: test.code || `TST-${Date.now().toString().slice(-4)}`,
+          category: test.category || 'Biochemistry',
+          sampleType: test.sampleType || 'Serum',
+          unit: test.unit || 'mg/dL',
+          normalRange: test.normalRange || '',
+          priceINR: 350,
+        }),
+        ...test,
+        id,
+        labId: effectiveTenant,
+      };
+      syncedTest = newOverride;
+      return [newOverride, ...prev];
+    });
+
     if (syncedTest) {
       syncTestToCloud(syncedTest);
     }
