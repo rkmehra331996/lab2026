@@ -467,38 +467,19 @@ export const VendorPatientsTab: React.FC<VendorPatientsTabProps> = ({ onOpenRepo
                         </button>
                       )}
 
-                      {/* Edit Button (Locked if sent to lab or report ready) */}
-                      {(() => {
-                        const isLocked = Boolean(
-                          entry.sentToTechnician ||
-                          entry.technicianStatus === 'Sent to Lab' ||
-                          entry.technicianStatus === 'Accepted' ||
-                          entry.technicianStatus === 'Report Generated' ||
-                          entry.status === 'In Lab' ||
-                          entry.status === 'Report Ready' ||
-                          entry.reportId
-                        );
-                        return !isLocked ? (
-                          <button
-                            onClick={() => setEditingEntry(entry)}
-                            className="p-1.5 text-slate-600 hover:text-[#123B6D] hover:bg-slate-100 rounded-md transition cursor-pointer"
-                            title="Edit patient details, tests or billing"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                        ) : (
-                          <span
-                            className="p-1.5 text-slate-300 cursor-not-allowed inline-flex"
-                            title={
-                              entry.status === 'Report Ready' || entry.reportId
-                                ? 'Report Ready (Locked: Edit not allowed)'
-                                : 'Sent to Lab (Locked: Edit not allowed)'
-                            }
-                          >
-                            <Lock className="w-3.5 h-3.5 text-slate-400" />
-                          </span>
-                        );
-                      })()}
+                      {/* Edit Button: Always allow editing to correct any mistake in patient details or ready report */}
+                      <button
+                        type="button"
+                        onClick={() => setEditingEntry(entry)}
+                        className="p-1.5 text-slate-600 hover:text-[#123B6D] hover:bg-blue-50 rounded-md transition cursor-pointer"
+                        title={
+                          entry.status === 'Report Ready' || entry.reportId
+                            ? 'Edit details & correct any mistake in ready report'
+                            : 'Edit patient details, tests or billing'
+                        }
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
 
                       {/* Delete Button */}
                       <button

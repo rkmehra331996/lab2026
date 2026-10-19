@@ -226,7 +226,7 @@ export const ALL_ROLES_CONFIG: Record<
     role: 'expert',
     title: 'Expert Member (Reception & Technician Supervisor)',
     hindiTitle: 'एक्सपर्ट मेंबर (रिसेप्शन एवं टेक्नीशियन संयुक्त विभाग प्रबंधन)',
-    subtitle: 'Unified dual-department command center: manage and monitor both front-desk billing and technician testing analyzers simultaneously',
+    subtitle: 'Manage and monitor both front-desk billing and technician testing analyzers simultaneously',
     emoji: '⭐',
     badgeColor: 'bg-gradient-to-r from-teal-600 via-indigo-600 to-purple-600 text-white border-indigo-700',
     defaultIdentifier: 'expert@apexlab.com',

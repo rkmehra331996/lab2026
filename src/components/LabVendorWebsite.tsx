@@ -2794,11 +2794,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <span className="sm:hidden text-[11px]">Report</span>
             </button>
 
-            {/* 2. Expert Login / Dashboard Button (Per user request: 'export login uper hona chahiye header me') */}
+            {/* 2. Desktop: Expert Login / Dashboard Button */}
             {currentUser ? (
               <button
                 onClick={handleOpenUserDashboard}
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
                 id="header-vendor-dashboard-btn"
                 title={`Open ${
                   currentUser.role === 'reception'
@@ -2816,15 +2816,26 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             ) : (
               <button
                 onClick={() => openLoginModal('expert')}
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95 border border-indigo-500/40"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95 border border-indigo-500/40"
                 id="header-vendor-expert-login-btn"
                 title="⭐ Expert Member Portal Login (Reception & Tech Hub)"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                <span className="hidden sm:inline">⭐ Expert Login</span>
-                <span className="sm:hidden text-[11px]">Expert Login</span>
+                <span>⭐ Expert Login</span>
               </button>
             )}
+
+            {/* Mobile View: Lab Payment Button (Per user request: Mobile view pe Expert button ki jagah lab payment button, rupees symbol ₹ hi rakhna bas) */}
+            <button
+              type="button"
+              onClick={() => setIsPaymentQrModalOpen(true)}
+              className="sm:hidden inline-flex items-center justify-center w-8 h-8 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm shadow-xs border border-amber-400/80 transition active:scale-95 shrink-0"
+              id="header-mobile-lab-payment-btn"
+              title="Lab Payment (Scan UPI QR Code & Pay)"
+              aria-label="Lab Payment (UPI QR)"
+            >
+              <span className="text-sm font-extrabold leading-none">₹</span>
+            </button>
 
             {/* 3. Menu Icon (Hamburger: opens Side Drawer on Mobile) */}
             <button

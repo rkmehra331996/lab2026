@@ -322,7 +322,7 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
                     ? 'bg-amber-400 text-slate-950 font-black'
                     : 'text-amber-300 hover:text-white bg-slate-800'
                 }`}
-                title="Unified Dual Department Command Center"
+                title="Expert Member Dashboard"
               >
                 ⭐ Dual Command Hub
               </button>

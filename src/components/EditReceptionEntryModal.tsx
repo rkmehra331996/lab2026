@@ -11,8 +11,12 @@ import {
   Search,
   Trash2,
   FlaskConical,
+  Edit3,
+  CheckCircle2,
 } from 'lucide-react';
 import { ReceptionPatientEntry, VendorDoctor } from '../types';
+import { useCms } from '../context/CmsContext';
+import { CreateReportModal } from './CreateReportModal';
 
 export interface TestOption {
   name: string;
@@ -88,12 +92,25 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
     (entry.dueAmount === 0 || entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid') &&
     (entry.paidAmount || 0) >= initialNetPayable;
 
-  // Demographics and tests are strictly locked once sent to lab or report is ready
-  const isDemographicsLocked = isReportReady || isSentToLab;
-  // Payment is strictly locked once full payment is completed
-  const isPaymentLocked = isEntryFullyPaid;
-  // Entire modal is locked from editing if both demographics AND payment are locked
-  const isLockedForEdit = isDemographicsLocked && isPaymentLocked;
+  // User requirement: If any mistake in ready report, all details can be changed by edit button
+  const isDemographicsLocked = false;
+  const isPaymentLocked = false;
+  const isLockedForEdit = false;
+
+  const { allReports, updateLabReport } = useCms();
+  const [isReportEditorOpen, setIsReportEditorOpen] = useState(false);
+
+  const linkedReport = useMemo(() => {
+    if (!entry) return null;
+    return (
+      allReports.find(
+        (r) =>
+          (entry.reportId && r.reportId.toLowerCase() === entry.reportId.toLowerCase()) ||
+          (entry.uhid && r.uhid && r.uhid.toLowerCase() === entry.uhid.toLowerCase()) ||
+          (entry.id && r.reportId.toLowerCase().includes(entry.id.toLowerCase()))
+      ) || null
+    );
+  }, [entry, allReports]);
 
   const [patientName, setPatientName] = useState(entry.patientName);
   const [age, setAge] = useState(String(entry.age));
@@ -282,45 +299,6 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   };
 
   const handleSaveInternal = (sendToLab: boolean = false) => {
-    if (isReportReady) {
-      if (isEntryFullyPaid) {
-        alert('Full payment is completed and report is issued. Payment cannot be edited again.');
-        return;
-      }
-
-      // ONLY payment information is updated!
-      const finalPaidAmount = Math.min(netPayable, paidAmount);
-      const finalDueAmount = Math.max(0, netPayable - finalPaidAmount);
-      const finalPaymentStatus: ReceptionPatientEntry['paymentStatus'] =
-        finalDueAmount === 0 ? 'Full Payment' : finalPaidAmount > 0 ? 'Advance' : 'Pending';
-
-      const updated: ReceptionPatientEntry = {
-        ...entry,
-        paidAmount: finalPaidAmount,
-        dueAmount: finalDueAmount,
-        paymentMode,
-        paymentStatus: finalPaymentStatus,
-        balancePaidAmount: (entry.balancePaidAmount || 0) + Math.max(0, finalPaidAmount - entry.paidAmount),
-        balancePaymentMode: paymentMode,
-        balancePaidAt: `Today, ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`,
-        isReportPublished: finalDueAmount === 0 ? true : entry.isReportPublished,
-        publishedAt: finalDueAmount === 0 ? `Today, ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : entry.publishedAt,
-      };
-
-      onSave(updated);
-      onClose();
-      return;
-    }
-
-    if (isLockedForEdit) {
-      alert(
-        isReportReady
-          ? 'Report ready hone ke baad entry edit nahi ki ja sakti.'
-          : '"Send to Lab" hone ke baad entry edit nahi ki ja sakti.'
-      );
-      return;
-    }
-
     if (!patientName.trim()) {
       alert('Patient name is required');
       return;
@@ -343,20 +321,19 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
 
     const updated: ReceptionPatientEntry = {
       ...entry,
-      patientName: isReportReady ? entry.patientName : patientName.trim(),
-      age: isReportReady ? entry.age : age.trim() || '30',
-      gender: isReportReady ? entry.gender : gender,
-      mobile: isReportReady ? entry.mobile : mobile.trim(),
-      referringDoctor: isReportReady ? entry.referringDoctor : referringDoctor,
-      tests: isReportReady ? entry.tests : selectedTests.length > 0 ? selectedTests : ['Complete Blood Count (CBC)'],
-      sampleType: isReportReady ? entry.sampleType : sampleType,
-      totalAmount: isReportReady ? entry.totalAmount : totalAmount,
-      discountINR: isReportReady ? entry.discountINR : discountINR,
+      patientName: patientName.trim(),
+      age: age.trim() || '30',
+      gender: gender,
+      mobile: mobile.trim(),
+      referringDoctor: referringDoctor,
+      tests: selectedTests.length > 0 ? selectedTests : ['Complete Blood Count (CBC)'],
+      sampleType: sampleType,
+      totalAmount: totalAmount,
+      discountINR: discountINR,
       paidAmount,
       dueAmount,
       paymentMode,
       paymentStatus: finalPaymentStatus,
-      // If report is already ready, keep status and technicianStatus unchanged
       status: isReportReady ? entry.status : sendToLab ? 'In Lab' : status,
       sentToTechnician: isReportReady ? entry.sentToTechnician : sendToLab ? true : entry.sentToTechnician,
       technicianStatus: isReportReady
@@ -371,6 +348,17 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
         : entry.sentToLabAt,
       notes: notes.trim() || undefined,
     };
+
+    // If report is already generated/ready or linked, automatically sync demographic corrections into the lab report
+    const targetReportId = entry.reportId || linkedReport?.reportId;
+    if (targetReportId) {
+      updateLabReport(targetReportId, {
+        patientName: patientName.trim(),
+        ageGender: `${age.trim() || '30'}Y / ${gender}`,
+        mobile: mobile.trim(),
+        doctor: referringDoctor,
+      });
+    }
 
     if (sendToLab && onSaveAndSendToLab && !isReportReady) {
       onSaveAndSendToLab(updated);
@@ -393,17 +381,11 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black tracking-tight">
                   {isReportReady
-                    ? 'Patient Entry (Report Ready - Locked)'
+                    ? 'Edit Patient Entry & Correct Report'
                     : isSentToLab
-                    ? 'Patient Entry (Sent to Lab - Locked)'
+                    ? 'Edit Patient Entry (In Lab)'
                     : 'Edit Patient Entry & Billing'}
                 </h2>
-                {isLockedForEdit && (
-                  <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <Lock className="w-3 h-3" />
-                    <span>LOCKED</span>
-                  </span>
-                )}
               </div>
               <p className="text-xs text-blue-100">
                 UHID: {entry.uhid} • Registered: {entry.registeredAt}
@@ -418,29 +400,41 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
           </button>
         </div>
 
-        {/* Lock Banner if Report is Ready or Sent to Lab */}
-        {isLockedForEdit && (
-          <div className="bg-amber-50 border-b border-amber-200 p-3 sm:px-6 flex items-start gap-2.5 text-amber-950 text-xs">
-            <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <div className="font-black text-amber-900 flex items-center gap-1.5">
-                <span>
-                  {isReportReady
-                    ? `Diagnostic Report Issued (${entry.reportId || 'Report Ready'})`
-                    : 'Dispatched to Laboratory (Sent to Lab)'}
-                </span>
-                <span className="bg-amber-200 text-amber-900 text-[10px] font-black px-1.5 py-0.2 rounded">
-                  Entry Locked
+        {/* Banner if Report is Ready: Allow correcting anything */}
+        {isReportReady ? (
+          <div className="bg-emerald-50 border-b border-emerald-200 p-3 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-emerald-950 text-xs">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div>
+                <span className="font-extrabold text-emerald-900">Report Ready • Correction Mode:</span>
+                <span className="text-emerald-800 ml-1">
+                  You can correct any mistake in patient details, doctor, tests, or billing. Changes are automatically updated in the diagnostic report.
                 </span>
               </div>
-              <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
-                {isReportReady
-                  ? 'Kyuki laboratory report ban chuki hai / report ready hai, isliye yeh entry edit nahi ki ja sakti.'
-                  : 'Kyuki yeh entry lab technician ko dispatch ki ja chuki hai ("Send to Lab"), isliye ab ise edit nahi kiya ja sakta.'}
-              </p>
+            </div>
+            {linkedReport && (
+              <button
+                type="button"
+                onClick={() => setIsReportEditorOpen(true)}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-1.5 rounded-lg transition shrink-0 flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 text-xs"
+                title="Edit parameters, test values, reference intervals, or pathologist in this report"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-slate-950" />
+                <span>Edit Test Results in Report</span>
+              </button>
+            )}
+          </div>
+        ) : isSentToLab ? (
+          <div className="bg-blue-50 border-b border-blue-200 p-3 sm:px-6 flex items-center gap-2.5 text-blue-950 text-xs">
+            <FlaskConical className="w-4 h-4 text-[#123B6D] shrink-0" />
+            <div>
+              <span className="font-extrabold text-[#123B6D]">In Lab Processing • Editable:</span>
+              <span className="text-blue-800 ml-1">
+                You can correct patient name, phone, doctor, or test choices before final report verification.
+              </span>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Form Body */}
         <div className="p-4 sm:p-6 space-y-4 max-h-[72vh] overflow-y-auto">
@@ -891,14 +885,9 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                 <label className="block text-[11px] font-bold text-slate-600 mb-1">Total Bill (₹)</label>
                 <input
                   type="number"
-                  disabled={isReportReady}
                   value={totalAmount}
                   onChange={(e) => setTotalAmount(Number(e.target.value) || 0)}
-                  className={`w-full px-2.5 py-1.5 border rounded-lg text-xs font-bold focus:ring-2 focus:ring-teal-500 focus:outline-hidden ${
-                    isReportReady
-                      ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
-                      : 'bg-white text-slate-900 border-slate-300'
-                  }`}
+                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold focus:ring-2 focus:ring-teal-500 focus:outline-hidden bg-white text-slate-900"
                 />
               </div>
 
@@ -906,14 +895,9 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                 <label className="block text-[11px] font-bold text-slate-600 mb-1">Discount (₹)</label>
                 <input
                   type="number"
-                  disabled={isReportReady}
                   value={discountINR}
                   onChange={(e) => setDiscountINR(Number(e.target.value) || 0)}
-                  className={`w-full px-2.5 py-1.5 border rounded-lg text-xs font-bold focus:ring-2 focus:ring-teal-500 focus:outline-hidden ${
-                    isReportReady
-                      ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
-                      : 'bg-white text-slate-900 border-slate-300'
-                  }`}
+                  className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold focus:ring-2 focus:ring-teal-500 focus:outline-hidden bg-white text-slate-900"
                 />
               </div>
 
@@ -991,30 +975,32 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             onClick={onClose}
             className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
           >
-            {isLockedForEdit ? 'Close' : 'Cancel'}
+            Cancel
           </button>
 
-          {isLockedForEdit ? (
-            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-3.5 py-2 rounded-xl">
-              <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-              <span>
-                {isReportReady
-                  ? 'Locked: Report ready hone ke baad edit nahi ho sakta'
-                  : 'Locked: Lab bhejne ke baad edit nahi ho sakta'}
-              </span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => handleSaveInternal(false)}
-              className="px-5 py-2 bg-[#123B6D] hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>Save Changes</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => handleSaveInternal(false)}
+            className="px-5 py-2 bg-[#123B6D] hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>Save Changes</span>
+          </button>
         </div>
       </div>
+
+      {/* Direct Full Diagnostic Report Editor (to edit parameters, observed values, flags, impressions) */}
+      {isReportEditorOpen && linkedReport && (
+        <CreateReportModal
+          isOpen={isReportEditorOpen}
+          onClose={() => setIsReportEditorOpen(false)}
+          existingReport={linkedReport}
+          allowNewPatientEntry={true}
+          onReportCreated={() => {
+            setIsReportEditorOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };

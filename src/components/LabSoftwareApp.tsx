@@ -563,7 +563,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
       });
     }
 
-    setToastNotice(`Report for ${patient.name} (${patient.tokenNumber || patient.uhid}) sent to Reception Desk. Editing is now locked.`);
+    setToastNotice(`Report for ${patient.name} (${patient.tokenNumber || patient.uhid}) sent to Reception Desk. Ready report can be edited anytime if any mistake is found.`);
     setTimeout(() => setToastNotice(null), 4500);
   };
 
@@ -1712,6 +1712,17 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
                                       >
                                         <Eye className="w-3.5 h-3.5 text-white" />
                                         <span>View Report</span>
+                                      </button>
+
+                                      {/* Edit Report Button: Correct any mistake in ready report */}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenCreateReportModal(p)}
+                                        className="px-2 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
+                                        title="Edit Report: Correct any mistake in ready report (Patient details, Doctor, Parameters, Observed Values, Flags, Impressions)"
+                                      >
+                                        <Edit2 className="w-3.5 h-3.5 text-slate-950" />
+                                        <span>Edit</span>
                                       </button>
 
                                       {/* Quick Thermal / PDF print */}
