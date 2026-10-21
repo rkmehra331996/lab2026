@@ -49,6 +49,7 @@ interface WebsiteTokenReceiptCardProps {
   onClose?: () => void;
   onBookAnother?: () => void;
   showDoneButton?: boolean;
+  showPrices?: boolean;
 }
 
 export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = ({
@@ -56,6 +57,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
   onClose,
   onBookAnother,
   showDoneButton = true,
+  showPrices = true,
 }) => {
   const [copiedShare, setCopiedShare] = useState(false);
 
@@ -77,10 +79,10 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
     mobile: receipt.mobile,
     referringDoctor: receipt.referringDoctor || 'Self / Direct',
     tests: testNames,
-    totalAmount: receipt.totalAmount,
-    discountINR: receipt.discountINR || 0,
-    paidAmount: receipt.paidAmount,
-    dueAmount: receipt.dueAmount,
+    totalAmount: showPrices ? receipt.totalAmount : 0,
+    discountINR: showPrices ? (receipt.discountINR || 0) : 0,
+    paidAmount: showPrices ? receipt.paidAmount : 0,
+    dueAmount: showPrices ? receipt.dueAmount : 0,
     paymentMode: receipt.paymentMode,
     registeredAt: receipt.registeredAt,
     bookingSource: 'Website',
@@ -101,6 +103,12 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
 
   const handleShareWhatsApp = () => {
     const testsFormatted = testNames.map((t, i) => `  ${i + 1}. ${t}`).join('\n');
+    const billingLines = showPrices
+      ? `💰 Total: ₹${receipt.totalAmount}\n` +
+        `💵 Paid: ₹${receipt.paidAmount} (${receipt.paymentMode})\n` +
+        (receipt.dueAmount > 0 ? `⚠️ Balance Due: ₹${receipt.dueAmount} (Pay on Spot)\n` : `✅ Payment: Full Cleared\n`)
+      : `📋 Billing: Will be finalized at Lab Counter / Department\n`;
+
     const msg =
       `*━━━━━━━━━━━━━━━━━━━━━*\n` +
       `🏥 *${receipt.labName}*\n` +
@@ -112,9 +120,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
       `🩺 Ref Doctor: ${receipt.referringDoctor || 'Direct / Self'}\n` +
       `📅 Booking Date: ${receipt.registeredAt}\n\n` +
       `🧪 *Prescribed Tests:*\n${testsFormatted}\n\n` +
-      `💰 Total: ₹${receipt.totalAmount}\n` +
-      `💵 Paid: ₹${receipt.paidAmount} (${receipt.paymentMode})\n` +
-      (receipt.dueAmount > 0 ? `⚠️ Balance Due: ₹${receipt.dueAmount} (Pay on Spot)\n` : `✅ Payment: Full Cleared\n`) +
+      billingLines +
       (receipt.upiTransactionRef ? `🔢 UTR / UPI Ref: ${receipt.upiTransactionRef}\n` : '') +
       (receipt.visitType ? `📍 Visit: ${receipt.visitType}\n` : '') +
       (receipt.address ? `🏠 Address: ${receipt.address}\n` : '') +
@@ -228,7 +234,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
                   <span className="text-slate-800 truncate pr-2 font-medium">
                     {i + 1}. {name}
                   </span>
-                  {price !== null && (
+                  {showPrices && price !== null && (
                     <span className="font-mono text-slate-600 font-semibold shrink-0">
                       ₹{price}
                     </span>
@@ -241,41 +247,55 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
 
         {/* Bill Financial Breakdown */}
         <div className="pt-2 border-t border-slate-100 space-y-1.5">
-          <div className="flex justify-between text-xs text-slate-600">
-            <span>Gross Test Amount:</span>
-            <span className="font-mono font-semibold text-slate-900">₹{receipt.totalAmount}</span>
-          </div>
+          {showPrices ? (
+            <>
+              <div className="flex justify-between text-xs text-slate-600">
+                <span>Gross Test Amount:</span>
+                <span className="font-mono font-semibold text-slate-900">₹{receipt.totalAmount}</span>
+              </div>
 
-          {(receipt.discountINR || 0) > 0 && (
-            <div className="flex justify-between text-xs text-emerald-700 font-medium">
-              <span>Discount / Concession:</span>
-              <span className="font-mono">-₹{receipt.discountINR}</span>
-            </div>
-          )}
+              {(receipt.discountINR || 0) > 0 && (
+                <div className="flex justify-between text-xs text-emerald-700 font-medium">
+                  <span>Discount / Concession:</span>
+                  <span className="font-mono">-₹{receipt.discountINR}</span>
+                </div>
+              )}
 
-          <div className="flex justify-between text-xs font-bold text-slate-900 pt-1 border-t border-slate-100">
-            <span>Net Payable:</span>
-            <span className="font-mono text-sm font-black text-[#123B6D]">
-              ₹{receipt.totalAmount - (receipt.discountINR || 0)}
-            </span>
-          </div>
+              <div className="flex justify-between text-xs font-bold text-slate-900 pt-1 border-t border-slate-100">
+                <span>Net Payable:</span>
+                <span className="font-mono text-sm font-black text-[#123B6D]">
+                  ₹{receipt.totalAmount - (receipt.discountINR || 0)}
+                </span>
+              </div>
 
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-emerald-700 font-semibold">
-              Amount Paid ({receipt.paymentMode}):
-            </span>
-            <span className="font-mono font-bold text-emerald-700">₹{receipt.paidAmount}</span>
-          </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-emerald-700 font-semibold">
+                  Amount Paid ({receipt.paymentMode}):
+                </span>
+                <span className="font-mono font-bold text-emerald-700">₹{receipt.paidAmount}</span>
+              </div>
 
-          {receipt.dueAmount > 0 ? (
-            <div className="flex justify-between items-center text-xs pt-1 border-t border-rose-100 text-rose-700 font-bold">
-              <span>Balance Due (Pay on Spot):</span>
-              <span className="font-mono text-sm">₹{receipt.dueAmount}</span>
-            </div>
+              {receipt.dueAmount > 0 ? (
+                <div className="flex justify-between items-center text-xs pt-1 border-t border-rose-100 text-rose-700 font-bold">
+                  <span>Balance Due (Pay on Spot):</span>
+                  <span className="font-mono text-sm">₹{receipt.dueAmount}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between items-center text-[11px] pt-1 border-t border-emerald-100 text-emerald-700 font-bold">
+                  <span>Payment Status:</span>
+                  <span>✓ Full Advance Payment Received</span>
+                </div>
+              )}
+            </>
           ) : (
-            <div className="flex justify-between items-center text-[11px] pt-1 border-t border-emerald-100 text-emerald-700 font-bold">
-              <span>Payment Status:</span>
-              <span>✓ Full Advance Payment Received</span>
+            <div className="p-2.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-xs">
+              <div className="font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-teal-600" />
+                <span>Booking Token Registered with Lab</span>
+              </div>
+              <p className="text-[11px] text-teal-800 mt-1 leading-snug">
+                Your test appointment has been registered. The final bill and invoice will be issued directly at the laboratory reception counter / department.
+              </p>
             </div>
           )}
 

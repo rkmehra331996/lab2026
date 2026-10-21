@@ -1416,6 +1416,37 @@ export const VendorTestsTab: React.FC<VendorTestsTabProps> = ({
                     className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
                   />
                 </div>
+
+                {/* Test Image */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
+                    <span>Test Image (Photo URL / Banner)</span>
+                    <span className="text-[10px] text-slate-400">Displays on booking card &amp; public catalog</span>
+                  </label>
+                  <div className="flex items-center gap-3">
+                    {testForm.image ? (
+                      <img
+                        src={testForm.image}
+                        alt="Test Preview"
+                        className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 bg-slate-100 shadow-2xs"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=600&q=80';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-slate-400 shrink-0 text-[10px] font-bold bg-slate-50">
+                        No Img
+                      </div>
+                    )}
+                    <input
+                      type="url"
+                      placeholder="https://images.unsplash.com/... or paste image URL"
+                      value={testForm.image || ''}
+                      onChange={(e) => setTestForm({ ...testForm, image: e.target.value })}
+                      className="flex-1 p-2.5 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* SECTION B: CLINICAL METHOD, SPECIMEN & REPORTING TIME */}
@@ -2264,6 +2295,64 @@ export const VendorTestsTab: React.FC<VendorTestsTabProps> = ({
                     onChange={(e) => setEditingTest({ ...editingTest, vendorPriceINR: Number(e.target.value) })}
                     className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
                   />
+                </div>
+              </div>
+
+              {/* Description, Preparation Instructions & Image */}
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">Clinical Description &amp; Indications</label>
+                  <textarea
+                    rows={2}
+                    value={editingTest.description || ''}
+                    onChange={(e) => setEditingTest({ ...editingTest, description: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs"
+                    placeholder="Clinical purpose and health indications..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">Patient Preparation Instructions</label>
+                  <textarea
+                    rows={2}
+                    value={editingTest.preparationInstructions || editingTest.instructions || ''}
+                    onChange={(e) =>
+                      setEditingTest({
+                        ...editingTest,
+                        preparationInstructions: e.target.value,
+                        instructions: e.target.value,
+                      })
+                    }
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs"
+                    placeholder="e.g. Fasting guidelines, medication notices..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">Test Image (Photo URL / Banner)</label>
+                  <div className="flex items-center gap-3">
+                    {editingTest.image ? (
+                      <img
+                        src={editingTest.image}
+                        alt="Test Preview"
+                        className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 bg-slate-100 shadow-2xs"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=600&q=80';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-slate-400 shrink-0 text-[10px] font-bold bg-slate-50">
+                        No Img
+                      </div>
+                    )}
+                    <input
+                      type="url"
+                      placeholder="https://images.unsplash.com/... or paste image URL"
+                      value={editingTest.image || ''}
+                      onChange={(e) => setEditingTest({ ...editingTest, image: e.target.value })}
+                      className="flex-1 p-2.5 rounded-xl border border-slate-300 text-xs font-medium"
+                    />
+                  </div>
                 </div>
               </div>
 

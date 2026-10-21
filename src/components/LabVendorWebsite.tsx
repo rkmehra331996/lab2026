@@ -123,6 +123,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     allReceptionEntries,
     updateVendorLabSettings,
     addContactSubmission,
+    getLabSettings,
   } = useCms();
 
   const safeVendorPackages = React.useMemo(() => {
@@ -155,7 +156,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   }, [vendorTests]);
 
   const effectiveLabId = targetLabId || selectedVendorLabId || vendorLabSettings?.labId;
-  const showWebsitePrices = vendorLabSettings?.showPricesOnWebsite !== false;
+  const effectiveLabSettings = (getLabSettings && effectiveLabId ? getLabSettings(effectiveLabId) : null) || vendorLabSettings;
+  const showWebsitePrices = effectiveLabSettings?.showPricesOnWebsite !== false;
 
   const currentLabItem = React.useMemo(() => {
     if (effectiveLabId) {
@@ -1613,7 +1615,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const handleWhatsAppBooking = (testName: string, price?: number) => {
     const text = encodeURIComponent(
       `Hello ${labName}, I would like to book "${testName}"${
-        price ? ` (₹${price})` : ''
+        price && showWebsitePrices ? ` (₹${price})` : ''
       }. Please confirm home sample collection slot.`
     );
     const cleanWa = (labWhatsapp || '7087033009').replace(/\D/g, '');
@@ -2525,7 +2527,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
           onBookTest={() => {
             setHasEnteredWebsite(true);
             setSelectedTestOrPackage(
-              vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
+              vendorPackages[0]
+                ? (showWebsitePrices ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : vendorPackages[0].name)
+                : (showWebsitePrices ? 'Full Body Health Checkup (₹999)' : 'Full Body Health Checkup')
             );
             setIsBookingModalOpen(true);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3968,6 +3972,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 onOpenReportPortal={() => handleCheckReport()}
                 cartItems={cartItems}
                 onBookingSuccess={handleClearCart}
+                targetLabId={effectiveLabId}
               />
             </div>
           </div>
@@ -5198,6 +5203,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             ? cartItems.map((ci) => ({ name: ci.name, price: ci.price, type: 'test' as const }))
             : undefined
         }
+        targetLabId={effectiveLabId}
         onOpenReportPortal={handleCheckReport}
         onBookingSuccess={handleClearCart}
       />
@@ -5582,7 +5588,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
           if (preselectedTestId) {
             const found = (vendorTests || []).find((t) => t.id === preselectedTestId);
             if (found) {
-              setSelectedTestOrPackage(`${found.name || found.testName} (₹${found.priceINR || found.price || 0})`);
+              setSelectedTestOrPackage(
+                showWebsitePrices
+                  ? `${found.name || found.testName} (₹${found.priceINR || found.price || 0})`
+                  : (found.name || found.testName)
+              );
             }
           }
           setIsBookingModalOpen(true);

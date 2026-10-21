@@ -38,21 +38,27 @@ interface HeroBookingFormProps {
   onOpenReportPortal?: () => void;
   cartItems?: Array<{ id: string; name: string; price: number }>;
   onBookingSuccess?: () => void;
+  targetLabId?: string;
 }
 
 export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
   onOpenReportPortal,
   cartItems,
   onBookingSuccess,
+  targetLabId,
 }) => {
   const {
     vendorTests,
     vendorLabSettings,
+    selectedVendorLabId,
+    getLabSettings,
     addReceptionEntry,
     addHomeCollectionBooking,
   } = useCms();
 
-  const showWebsitePrices = vendorLabSettings?.showPricesOnWebsite !== false;
+  const effectiveLabId = targetLabId || selectedVendorLabId || vendorLabSettings?.labId;
+  const effectiveLabSettings = (getLabSettings && effectiveLabId ? getLabSettings(effectiveLabId) : null) || vendorLabSettings;
+  const showWebsitePrices = effectiveLabSettings?.showPricesOnWebsite !== false;
 
   // Form Step:
   // 1 = Patient Details & Collection Mode
@@ -692,7 +698,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
               </h2>
               <p className="text-[11px] text-slate-200 font-medium">
                 {formStep === 1 && 'Step 1 of 3: Patient & Collection Mode'}
-                {formStep === 2 && 'Step 2 of 3: Select Tests & Subtotal'}
+                {formStep === 2 && (showWebsitePrices ? 'Step 2 of 3: Select Tests & Subtotal' : 'Step 2 of 3: Select Diagnostic Tests')}
                 {formStep === 3 && 'Step 3 of 3: Payment & Verification'}
                 {formStep === 4 && 'Confirmed Lab Booking Receipt'}
               </p>
@@ -913,7 +919,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                     <span>Visit Branch</span>
                   </span>
                   <span className="text-[9px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.5 rounded">
-                    ₹0 Fee
+                    {showWebsitePrices ? '₹0 Fee' : 'Free Visit'}
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-500">
@@ -937,7 +943,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                     <span>Home Sample</span>
                   </span>
                   <span className="text-[9px] bg-amber-200 text-amber-950 font-black px-1.5 py-0.5 rounded">
-                    +₹{vendorLabSettings?.homeCollectionCharge ?? 100}
+                    {showWebsitePrices ? `+₹${vendorLabSettings?.homeCollectionCharge ?? 100}` : 'Doorstep Pickup'}
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-500">
@@ -1157,9 +1163,11 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
 
                       {/* Right: Price (hidden on mobile) & Multi-Select Tag */}
                       <div className="text-right shrink-0">
-                        <div className="text-xs font-black text-[#123B6D] hidden sm:block">
-                          ₹{t.priceINR}
-                        </div>
+                        {showWebsitePrices && (
+                          <div className="text-xs font-black text-[#123B6D] hidden sm:block">
+                            ₹{t.priceINR}
+                          </div>
+                        )}
                         {isSelected && (
                           <span className="text-[9px] bg-teal-100 text-teal-900 font-bold px-1.5 py-0.2 rounded block mt-0.5">
                             Selected
@@ -1178,7 +1186,9 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
             <div className="space-y-1 pt-0.5">
               <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700">
                 <span>Selected Tests ({selectedTestsList.length}):</span>
-                <span className="text-[#0F766E] font-bold hidden sm:inline">₹{testsTotal}</span>
+                {showWebsitePrices && (
+                  <span className="text-[#0F766E] font-bold hidden sm:inline">₹{testsTotal}</span>
+                )}
               </div>
               <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
                 {selectedTestsList.map((t) => (
@@ -1187,7 +1197,9 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                     className="inline-flex items-center gap-1 bg-teal-50 border border-teal-200 text-teal-950 px-2 py-0.5 rounded text-[10px] font-semibold"
                   >
                     <span className="truncate max-w-[130px]">{t.name}</span>
-                    <span className="font-bold text-[#0F766E] hidden sm:inline">₹{t.priceINR}</span>
+                    {showWebsitePrices && (
+                      <span className="font-bold text-[#0F766E] hidden sm:inline">₹{t.priceINR}</span>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -1205,25 +1217,37 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
           )}
 
           {/* Amount Calculation Strip (Hidden on mobile) */}
-          <div className="hidden sm:block bg-slate-100 p-2.5 rounded-xl border border-slate-200 space-y-1 text-xs">
-            <div className="flex items-center justify-between text-slate-600">
-              <span>Tests Subtotal:</span>
-              <span className="font-semibold text-slate-900">₹{testsTotal}</span>
+          {showWebsitePrices ? (
+            <div className="hidden sm:block bg-slate-100 p-2.5 rounded-xl border border-slate-200 space-y-1 text-xs">
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Tests Subtotal:</span>
+                <span className="font-semibold text-slate-900">₹{testsTotal}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span>
+                  Home Collection Fee (
+                  {collectionType === 'Home' ? 'Doorstep' : 'Branch Walk-in'}):
+                </span>
+                <span className="font-semibold text-slate-900">
+                  {collectionType === 'Home' ? `+₹${homeCollectionCharge}` : '₹0 (Branch Visit)'}
+                </span>
+              </div>
+              <div className="pt-1 border-t border-slate-200 flex items-center justify-between font-black">
+                <span className="text-[#123B6D]">Total Payable Amount:</span>
+                <span className="text-sm font-extrabold text-emerald-700">₹{grandTotal}</span>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-slate-600">
-              <span>
-                Home Collection Fee (
-                {collectionType === 'Home' ? 'Doorstep' : 'Branch Walk-in'}):
-              </span>
-              <span className="font-semibold text-slate-900">
-                {collectionType === 'Home' ? `+₹${homeCollectionCharge}` : '₹0 (Branch Visit)'}
-              </span>
+          ) : (
+            <div className="hidden sm:block bg-teal-50/80 p-2.5 rounded-xl border border-teal-200 text-xs text-teal-950 font-medium">
+              <div className="flex items-center justify-between">
+                <span className="font-bold">Total Tests Selected:</span>
+                <span className="font-black text-teal-800 bg-white px-2 py-0.5 rounded border border-teal-200">{selectedTestsList.length} Tests</span>
+              </div>
+              <div className="text-[11px] text-teal-700 mt-1">
+                {collectionType === 'Home' ? 'Doorstep Home Sample Pickup' : 'Direct Lab Walk-in Collection'} • Final billing details at counter
+              </div>
             </div>
-            <div className="pt-1 border-t border-slate-200 flex items-center justify-between font-black">
-              <span className="text-[#123B6D]">Total Payable Amount:</span>
-              <span className="text-sm font-extrabold text-emerald-700">₹{grandTotal}</span>
-            </div>
-          </div>
+          )}
 
           {/* Navigation Buttons: Back to Step 1 & Proceed to Step 3 */}
           <div className="flex items-center gap-2 pt-1">
@@ -1270,8 +1294,16 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
               </span>
             </div>
             <div className="text-right hidden sm:block">
-              <span className="text-[10px] text-slate-500 block">Total Due:</span>
-              <span className="text-base font-black text-emerald-700">₹{grandTotal}</span>
+              {showWebsitePrices ? (
+                <>
+                  <span className="text-[10px] text-slate-500 block">Total Due:</span>
+                  <span className="text-base font-black text-emerald-700">₹{grandTotal}</span>
+                </>
+              ) : (
+                <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200 block">
+                  {selectedTestsList.length} Tests Selected
+                </span>
+              )}
             </div>
           </div>
 
@@ -1372,9 +1404,11 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-base font-black text-purple-950">₹{grandTotal}</span>
-                  </div>
+                  {showWebsitePrices && (
+                    <div className="text-right">
+                      <span className="text-base font-black text-purple-950">₹{grandTotal}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-purple-200 space-y-2 text-slate-700">
@@ -1398,7 +1432,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                   className="w-full py-2.5 px-4 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-98"
                 >
                   <CreditCard className="w-4 h-4 text-amber-300" />
-                  <span>Pay ₹{grandTotal} via PhonePe Gateway</span>
+                  <span>{showWebsitePrices ? `Pay ₹${grandTotal} via PhonePe Gateway` : 'Proceed to PhonePe Gateway'}</span>
                 </button>
               </div>
             ) : (
@@ -1437,7 +1471,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                       </button>
                     </div>
                     <div className="text-[9px] text-slate-400">
-                      Scan via any UPI App for ₹{grandTotal}
+                      {showWebsitePrices ? `Scan via any UPI App for ₹${grandTotal}` : 'Scan via any UPI App to Pay'}
                     </div>
                   </div>
                 </div>
@@ -1543,7 +1577,11 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                 <span>Pay at Spot / Cash or Card</span>
               </div>
               <p className="text-[11px] text-slate-600 leading-relaxed">
-                Zero prepayment needed. You can pay <strong>₹{grandTotal}</strong> in cash, card, or UPI directly at the branch counter or to the phlebotomist during home pickup.
+                {showWebsitePrices ? (
+                  <>Zero prepayment needed. You can pay <strong>₹{grandTotal}</strong> in cash, card, or UPI directly at the branch counter or to the phlebotomist during home pickup.</>
+                ) : (
+                  <>Zero prepayment needed. You can pay directly in cash, card, or UPI at the branch counter or to the phlebotomist during home pickup.</>
+                )}
               </p>
               <div className="text-[10px] text-slate-500 bg-slate-100 p-1.5 rounded border border-slate-200">
                 Queue status: <strong>Pay at Spot / Unpaid</strong>
@@ -1575,9 +1613,9 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
               <span>
                 {paymentMethod === 'Online'
                   ? activeOnlineMethod === 'phonepe'
-                    ? `Proceed to PhonePe Gateway (₹${grandTotal})`
-                    : `Confirm Booking & Generate Token (Paid ₹${grandTotal} via QR)`
-                  : `Confirm Booking & Generate Token (Pay ₹${grandTotal} at Spot)`}
+                    ? (showWebsitePrices ? `Proceed to PhonePe Gateway (₹${grandTotal})` : 'Proceed to PhonePe Gateway')
+                    : (showWebsitePrices ? `Confirm Booking & Generate Token (Paid ₹${grandTotal} via QR)` : 'Confirm Booking & Generate Token')
+                  : (showWebsitePrices ? `Confirm Booking & Generate Token (Pay ₹${grandTotal} at Spot)` : 'Confirm Booking & Generate Token (Pay at Counter)')}
               </span>
             </button>
           </div>
@@ -1590,6 +1628,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
       {formStep === 4 && createdReceipt && (
         <div className="p-3 sm:p-4">
           <WebsiteTokenReceiptCard
+            showPrices={showWebsitePrices}
             receipt={{
               tokenNumber: createdReceipt.tokenNumber || createdReceipt.receiptNo,
               uhid: createdReceipt.uhid,
@@ -1653,11 +1692,17 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
             {/* Amount Box */}
             <div className="bg-purple-50 p-3.5 rounded-2xl border border-purple-200 text-center">
               <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700 block">
-                Amount to Pay
+                {showWebsitePrices ? 'Amount to Pay' : 'Booking Confirmation'}
               </span>
-              <span className="text-2xl font-black text-purple-950 font-mono">
-                ₹{grandTotal}
-              </span>
+              {showWebsitePrices ? (
+                <span className="text-2xl font-black text-purple-950 font-mono">
+                  ₹{grandTotal}
+                </span>
+              ) : (
+                <span className="text-xl font-black text-purple-950">
+                  Registration Free
+                </span>
+              )}
               <span className="text-[10px] text-slate-500 block mt-0.5">
                 Order for: {patientName} ({selectedTestsList.length} Tests)
               </span>
@@ -1745,7 +1790,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
               ) : (
                 <>
                   <Lock className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Authorize & Pay ₹{grandTotal}</span>
+                  <span>{showWebsitePrices ? `Authorize & Pay ₹${grandTotal}` : 'Authorize & Confirm Booking'}</span>
                 </>
               )}
             </button>

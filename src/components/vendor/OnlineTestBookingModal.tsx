@@ -36,6 +36,7 @@ interface OnlineTestBookingModalProps {
   onClose: () => void;
   initialSelection?: string;
   initialTests?: { name: string; price: number; type: 'test' | 'package' }[];
+  targetLabId?: string;
   onOpenReportPortal?: (reportId?: string, mobile?: string) => void;
   onBookingSuccess?: () => void;
 }
@@ -45,6 +46,7 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
   onClose,
   initialSelection = '',
   initialTests,
+  targetLabId,
   onOpenReportPortal,
   onBookingSuccess,
 }) => {
@@ -56,9 +58,13 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
     addHomeCollectionBooking,
     activeTenantId,
     activeBranchId,
+    selectedVendorLabId,
+    getLabSettings,
   } = useCms();
 
-  const showWebsitePrices = vendorLabSettings?.showPricesOnWebsite !== false;
+  const effectiveLabId = targetLabId || selectedVendorLabId || vendorLabSettings?.labId;
+  const effectiveLabSettings = (getLabSettings && effectiveLabId ? getLabSettings(effectiveLabId) : null) || vendorLabSettings;
+  const showWebsitePrices = effectiveLabSettings?.showPricesOnWebsite !== false;
 
   // Current Step: 1 = Test Selection & Details, 2 = Payment Selection (QR / Pay at Branch), 3 = Booking Confirmed
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
@@ -441,6 +447,7 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
     return (
       <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
         <WebsiteTokenReceiptCard
+          showPrices={showWebsitePrices}
           receipt={{
             tokenNumber: confirmedEntry.tokenNumber || 'TK-101',
             uhid: confirmedEntry.uhid || 'UHID-1001',
@@ -1194,7 +1201,9 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
                     </div>
                     <div>
                       <h4 className="font-extrabold text-[#123B6D] text-sm">
-                        Pay ₹{totalAmount} at Lab Reception Counter / Spot
+                        {showWebsitePrices
+                          ? `Pay ₹${totalAmount} at Lab Reception Counter / Spot`
+                          : 'Pay at Lab Reception Counter / Spot'}
                       </h4>
                       <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
                         No advance online payment required. You can pay via Cash, Card, or UPI directly at the laboratory counter or during sample pickup upon arrival.
