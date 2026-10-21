@@ -6,7 +6,28 @@ export interface DomainRouteResolution {
   isPlatformSubdomain?: boolean;
   isExplicitMainPlatform?: boolean;
   targetPost?: string;
+  targetReport?: string;
 }
+
+/**
+ * Builds the unique patient report URL for QR codes and instant verification:
+ * Format: https://yourdomain.com/shopnumber/report/TK-102
+ */
+export function buildPatientReportUrl(
+  shopIdentifier?: string,
+  tokenOrReportId?: string,
+  customOrigin?: string
+): string {
+  const origin =
+    customOrigin ||
+    (typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://indianlalaji.com');
+  const cleanShop = (shopIdentifier || 'shop').trim();
+  const cleanToken = (tokenOrReportId || 'report').trim();
+  return `${origin}/${encodeURIComponent(cleanShop)}/report/${encodeURIComponent(cleanToken)}`;
+}
+
 
 const VALID_VIEWS: AppView[] = [
   'vendor_dashboard',
@@ -158,6 +179,79 @@ export function resolveAppRoute(
     return {
       view: 'seo_post',
       targetPost: decodeURIComponent(blogPathMatch[1]).trim(),
+    };
+  }
+
+  // 00. Unique Patient Report URL Pattern:
+  // Examples:
+  // - https://yourdomain.com/shopnumber/report/TK-102
+  // - https://yourdomain.com/shop/shopnumber/report/TK-102
+  // - https://yourdomain.com/report/TK-102
+  const reportWithShopMatch = effectivePath.match(
+    /^\/(?:(?:shop|lab|labs|vendor|v)\/)?([a-zA-Z0-9_\-]+)\/(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i
+  );
+  if (reportWithShopMatch && reportWithShopMatch[1] && reportWithShopMatch[2]) {
+    const rawShop = decodeURIComponent(reportWithShopMatch[1]).trim();
+    const rawToken = decodeURIComponent(reportWithShopMatch[2]).trim();
+    if (rawShop.toLowerCase() !== 'report' && rawShop.toLowerCase() !== 'reports') {
+      const resolvedVendorId = findMatchingLabId(rawShop, vendorLabsList);
+      return {
+        view: 'patient_portal',
+        targetLab: resolvedVendorId || rawShop,
+        targetReport: rawToken,
+      };
+    }
+  }
+
+  const directReportMatch = effectivePath.match(/^\/(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i);
+  if (directReportMatch && directReportMatch[1]) {
+    const rawToken = decodeURIComponent(directReportMatch[1]).trim();
+    const resolvedLab = labParam ? findMatchingLabId(labParam, vendorLabsList) : undefined;
+    return {
+      view: 'patient_portal',
+      targetReport: rawToken,
+      targetLab: resolvedLab,
+    };
+  }
+
+  // 00b. Hash-based report routing (e.g. #/shopnumber/report/TK-102 or #/report/TK-102)
+  if (effectiveHash) {
+    const cleanHash = effectiveHash.replace(/^#\/?/, '/');
+    const hashReportWithShopMatch = cleanHash.match(
+      /^\/?(?:(?:shop|lab|labs|vendor|v)\/)?([a-zA-Z0-9_\-]+)\/(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i
+    );
+    if (hashReportWithShopMatch && hashReportWithShopMatch[1] && hashReportWithShopMatch[2]) {
+      const rawShop = decodeURIComponent(hashReportWithShopMatch[1]).trim();
+      const rawToken = decodeURIComponent(hashReportWithShopMatch[2]).trim();
+      if (rawShop.toLowerCase() !== 'report' && rawShop.toLowerCase() !== 'reports') {
+        const resolvedVendorId = findMatchingLabId(rawShop, vendorLabsList);
+        return {
+          view: 'patient_portal',
+          targetLab: resolvedVendorId || rawShop,
+          targetReport: rawToken,
+        };
+      }
+    }
+
+    const hashDirectReportMatch = cleanHash.match(/^\/?(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i);
+    if (hashDirectReportMatch && hashDirectReportMatch[1]) {
+      const rawToken = decodeURIComponent(hashDirectReportMatch[1]).trim();
+      return {
+        view: 'patient_portal',
+        targetReport: rawToken,
+      };
+    }
+  }
+
+  // 00c. Direct query parameter report lookup: ?report=TK-102 or ?token=TK-102
+  const reportParam = params.get('report') || params.get('reportId') || params.get('token') || params.get('tokenNumber');
+  if (reportParam) {
+    const rawToken = decodeURIComponent(reportParam).trim();
+    const rawShop = shopParam || labParam;
+    return {
+      view: 'patient_portal',
+      targetReport: rawToken,
+      targetLab: rawShop ? findMatchingLabId(rawShop, vendorLabsList) : undefined,
     };
   }
 
