@@ -7,7 +7,6 @@ import {
   Save,
   Check,
   Eye,
-  LogOut,
   Search,
   Users,
   Building2,
@@ -775,39 +774,8 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                   <span>👑</span>
                   <span>Lab Owner & Admin Dashboard</span>
                 </span>
-                <span className="hidden sm:inline text-[11px] text-teal-100/90 font-medium">
-                  • Master Control Console
-                </span>
               </div>
             </div>
-          </div>
-
-          {/* Action Items: Vendor Home Website + Log Out Button */}
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            <button
-              type="button"
-              id="owner-btn-vendor-website"
-              onClick={() => onNavigateView('vendor_website')}
-              className="bg-white hover:bg-slate-100 text-[#123B6D] px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border border-white/30 whitespace-nowrap"
-              title="Go to Vendor Home Website"
-            >
-              <Globe className="w-3.5 h-3.5 text-[#123B6D]" />
-              <span>Vendor Home Website</span>
-            </button>
-
-            <button
-              type="button"
-              id="owner-btn-logout"
-              onClick={() => {
-                logout();
-                onNavigateView('vendor_website');
-              }}
-              className="bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap"
-              title="Log Out from Lab Owner Dashboard"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Log Out</span>
-            </button>
           </div>
         </div>
       </header>

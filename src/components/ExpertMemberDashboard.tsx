@@ -383,29 +383,6 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
         {/* ======================================================== */}
         {activeTab === 'reception' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shadow-xs">
-                  <Receipt className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-black text-sm sm:text-base text-teal-950">
-                    Reception Department Workspace (रिसेप्शन एवं बिलिंग काउंटर)
-                  </h3>
-                  <p className="text-xs text-teal-800">
-                    Register new walk-in patients, generate tokens, collect Cash &amp; UPI payments, and print thermal slips.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('technician')}
-                className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-teal-900 border border-teal-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <FlaskConical className="w-3.5 h-3.5 text-purple-600" />
-                <span>Switch to Technician Workstation</span>
-              </button>
-            </div>
 
             {/* Embedded Reception Entry Dashboard */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
