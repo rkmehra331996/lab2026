@@ -42,6 +42,9 @@ import {
   Calendar,
   RotateCcw,
   Hash,
+  FolderTree,
+  Layers,
+  ListFilter,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -217,6 +220,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Card'>('UPI');
   const [notes, setNotes] = useState('');
   const [testSearch, setTestSearch] = useState('');
+  const [selectedParentCategory, setSelectedParentCategory] = useState<string>('Popular');
 
   // Load unsaved active draft from localStorage on initial render
   useEffect(() => {
@@ -330,78 +334,180 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     return receptionEntries.filter((r) => r.returnedByTechnician);
   }, [receptionEntries]);
 
-  // Popular Quick-Click Tests
-  const quickTestPills = [
-    { name: 'Complete Blood Count (CBC)', price: 350, sample: 'EDTA Blood' },
-    { name: 'Fasting Blood Sugar (FBS)', price: 120, sample: 'Fluoride Plasma' },
-    { name: 'Kidney Function Test (KFT)', price: 600, sample: 'Serum Clot' },
-    { name: 'Liver Function Test (LFT)', price: 650, sample: 'Serum Clot' },
-    { name: 'Lipid Profile', price: 550, sample: 'Serum Clot' },
-    { name: 'Thyroid Profile (Total)', price: 450, sample: 'Serum Clot' },
-    { name: 'Full Body Health Checkup', price: 999, sample: 'EDTA + Serum + Urine' },
-    { name: 'Urine Routine & Microscopic', price: 150, sample: 'Sterile Urine' },
-    { name: 'HbA1c (Glycosylated Hb)', price: 450, sample: 'EDTA Whole Blood' },
-    { name: 'Dengue Serology (NS1 + Platelets)', price: 800, sample: 'Serum + EDTA' },
-  ];
+  // Normalize category names into standard parent categories
+  const normalizeParentCategory = (rawCat?: string): string => {
+    const c = String(rawCat || '').trim();
+    if (!c) return 'Clinical Biochemistry';
+    if (/hematology/i.test(c)) return 'Hematology (Blood Tests)';
+    if (/biochem/i.test(c)) return 'Clinical Biochemistry';
+    if (/pathology/i.test(c)) return 'Clinical Pathology';
+    if (/serology|immuno/i.test(c)) return 'Serology / Immunology';
+    if (/microbio/i.test(c)) return 'Microbiology';
+    if (/hormone|endo/i.test(c)) return 'Hormone / Endocrinology';
+    if (/coag/i.test(c)) return 'Coagulation';
+    if (/histo|cyto/i.test(c)) return 'Histopathology / Cytology';
+    if (/molecular|pcr/i.test(c)) return 'Molecular Biology / PCR';
+    if (/blood\s*bank/i.test(c)) return 'Blood Bank';
+    if (/tumor|marker/i.test(c)) return 'Tumor Markers';
+    if (/special|package|health/i.test(c)) return 'Special Tests';
+    return c;
+  };
 
-  // Unified searchable tests list combining quick pills + vendor tests
+  // Popular Quick-Click Tests with real categories
+  const quickTestPills = useMemo(() => [
+    { name: 'Complete Blood Count (CBC)', price: 350, sample: 'EDTA Blood', category: 'Hematology (Blood Tests)' },
+    { name: 'Fasting Blood Sugar (FBS)', price: 120, sample: 'Fluoride Plasma', category: 'Clinical Biochemistry' },
+    { name: 'Kidney Function Test (KFT)', price: 600, sample: 'Serum Clot', category: 'Clinical Biochemistry' },
+    { name: 'Liver Function Test (LFT)', price: 650, sample: 'Serum Clot', category: 'Clinical Biochemistry' },
+    { name: 'Lipid Profile', price: 550, sample: 'Serum Clot', category: 'Clinical Biochemistry' },
+    { name: 'Thyroid Profile (Total)', price: 450, sample: 'Serum Clot', category: 'Hormone / Endocrinology' },
+    { name: 'Full Body Health Checkup', price: 999, sample: 'EDTA + Serum + Urine', category: 'Special Tests' },
+    { name: 'Urine Routine & Microscopic', price: 150, sample: 'Sterile Urine', category: 'Clinical Pathology' },
+    { name: 'HbA1c (Glycosylated Hb)', price: 450, sample: 'EDTA Whole Blood', category: 'Clinical Biochemistry' },
+    { name: 'Dengue Serology (NS1 + Platelets)', price: 800, sample: 'Serum + EDTA', category: 'Serology / Immunology' },
+  ], []);
+
+  // Unified searchable tests list combining master clinical tests + vendor catalog tests
   const allAvailableTests = useMemo(() => {
-    const list: { name: string; price: number; sample?: string; category?: string }[] = [];
+    const list: {
+      name: string;
+      price: number;
+      sample?: string;
+      category: string;
+      isPopular?: boolean;
+      code?: string;
+    }[] = [];
     const seen = new Set<string>();
 
-    // 1. Add quick pills first
-    quickTestPills.forEach((p) => {
-      const pNameLower = String(p.name || '').toLowerCase().trim();
-      if (pNameLower) seen.add(pNameLower);
-      list.push({
-        name: p.name,
-        price: p.price,
-        sample: p.sample,
-        category: 'Popular',
-      });
-    });
+    const popularNames = new Set(quickTestPills.map((p) => p.name.toLowerCase().trim()));
 
-    // 2. Add vendor catalog tests
+    // 1. Add vendor catalog tests
     vendorTests.forEach((t) => {
       const tNameLower = String(t.name || '').toLowerCase().trim();
       if (tNameLower && !seen.has(tNameLower)) {
         seen.add(tNameLower);
+        const resolvedCategory = normalizeParentCategory(t.category);
         list.push({
           name: t.name,
-          price: t.priceINR,
-          sample: t.sampleType,
-          category: t.category || 'Diagnostic',
+          price: t.priceINR && t.priceINR > 0 ? t.priceINR : 300,
+          sample: t.sampleType || 'Specimen',
+          category: resolvedCategory,
+          isPopular: popularNames.has(tNameLower),
+          code: t.code,
+        });
+      }
+    });
+
+    // 2. Add quickTestPills if not already in list
+    quickTestPills.forEach((p) => {
+      const pNameLower = p.name.toLowerCase().trim();
+      if (!seen.has(pNameLower)) {
+        seen.add(pNameLower);
+        list.push({
+          name: p.name,
+          price: p.price,
+          sample: p.sample,
+          category: p.category,
+          isPopular: true,
         });
       }
     });
 
     return list;
-  }, [vendorTests]);
+  }, [vendorTests, quickTestPills]);
 
-  // Filter tests by search query
+  // Standard parent categories definition with clinical department icons
+  const PARENT_CATEGORIES = useMemo(() => [
+    { key: 'Popular', label: 'Popular / Routine', icon: '⭐', shortName: 'Popular', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-300' },
+    { key: 'Hematology (Blood Tests)', label: 'Hematology (Blood Tests)', icon: '🩸', shortName: 'Hematology', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-300' },
+    { key: 'Clinical Biochemistry', label: 'Clinical Biochemistry', icon: '🧪', shortName: 'Biochemistry', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-300' },
+    { key: 'Clinical Pathology', label: 'Clinical Pathology', icon: '🔬', shortName: 'Pathology', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-300' },
+    { key: 'Serology / Immunology', label: 'Serology / Immunology', icon: '💉', shortName: 'Serology', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-300' },
+    { key: 'Microbiology', label: 'Microbiology', icon: '🧫', shortName: 'Microbiology', color: 'text-teal-700', bg: 'bg-teal-50', border: 'border-teal-300' },
+    { key: 'Hormone / Endocrinology', label: 'Hormone / Endocrinology', icon: '🧬', shortName: 'Hormones', color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-300' },
+    { key: 'Coagulation', label: 'Coagulation', icon: '🩸', shortName: 'Coagulation', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-300' },
+    { key: 'Histopathology / Cytology', label: 'Histopathology / Cytology', icon: '🔬', shortName: 'Histology', color: 'text-amber-800', bg: 'bg-amber-50', border: 'border-amber-300' },
+    { key: 'Molecular Biology / PCR', label: 'Molecular Biology / PCR', icon: '🧬', shortName: 'Molecular/PCR', color: 'text-cyan-700', bg: 'bg-cyan-50', border: 'border-cyan-300' },
+    { key: 'Blood Bank', label: 'Blood Bank', icon: '🩸', shortName: 'Blood Bank', color: 'text-rose-800', bg: 'bg-rose-50', border: 'border-rose-300' },
+    { key: 'Tumor Markers', label: 'Tumor Markers', icon: '🩺', shortName: 'Tumor Markers', color: 'text-violet-700', bg: 'bg-violet-50', border: 'border-violet-300' },
+    { key: 'Special Tests', label: 'Special Tests & Packages', icon: '✨', shortName: 'Special/Pkg', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-300' },
+    { key: 'All', label: 'All Tests', icon: '📋', shortName: 'All Tests', color: 'text-slate-700', bg: 'bg-slate-100', border: 'border-slate-300' },
+  ], []);
+
+  // Category counts and currently selected counts
+  const categoryStats = useMemo(() => {
+    const stats: Record<string, { total: number; selected: number }> = {};
+    PARENT_CATEGORIES.forEach((cat) => {
+      let total = 0;
+      let selected = 0;
+      if (cat.key === 'Popular') {
+        const tests = allAvailableTests.filter((t) => t.isPopular);
+        total = tests.length;
+        selected = tests.filter((t) => selectedTests.includes(t.name)).length;
+      } else if (cat.key === 'All') {
+        total = allAvailableTests.length;
+        selected = selectedTests.length;
+      } else {
+        const tests = allAvailableTests.filter((t) => t.category === cat.key);
+        total = tests.length;
+        selected = tests.filter((t) => selectedTests.includes(t.name)).length;
+      }
+      stats[cat.key] = { total, selected };
+    });
+    return stats;
+  }, [allAvailableTests, selectedTests, PARENT_CATEGORIES]);
+
+  // Child tests under the currently selected parent category
+  const activeCategoryChildTests = useMemo(() => {
+    if (selectedParentCategory === 'Popular') {
+      return allAvailableTests.filter((t) => t.isPopular);
+    }
+    if (selectedParentCategory === 'All') {
+      return allAvailableTests;
+    }
+    return allAvailableTests.filter((t) => t.category === selectedParentCategory);
+  }, [allAvailableTests, selectedParentCategory]);
+
+  // Filter tests by direct search query (or fall back to active category tests)
   const filteredAvailableTests = useMemo(() => {
     const q = String(testSearch || '').toLowerCase().trim();
-    if (!q) return allAvailableTests;
+    if (!q) return activeCategoryChildTests;
     return allAvailableTests.filter(
       (t) =>
         String(t.name || '').toLowerCase().includes(q) ||
         String(t.category || '').toLowerCase().includes(q) ||
-        String(t.sample || '').toLowerCase().includes(q)
+        String(t.sample || '').toLowerCase().includes(q) ||
+        String(t.code || '').toLowerCase().includes(q)
     );
-  }, [allAvailableTests, testSearch]);
+  }, [allAvailableTests, activeCategoryChildTests, testSearch]);
 
-  // Calculate gross test amount
+  // Bulk actions for current category
+  const handleSelectAllCategoryTests = (testsToSelect: { name: string }[]) => {
+    const names = testsToSelect.map((t) => t.name);
+    setSelectedTests((prev) => {
+      const set = new Set(prev);
+      names.forEach((n) => set.add(n));
+      return Array.from(set);
+    });
+  };
+
+  const handleDeselectCategoryTests = (testsToDeselect: { name: string }[]) => {
+    const names = new Set(testsToDeselect.map((t) => t.name));
+    setSelectedTests((prev) => prev.filter((t) => !names.has(t)));
+  };
+
+  // Calculate gross test amount - prices ALWAYS visible and computed properly
   const grossAmount = useMemo(() => {
     return selectedTests.reduce((acc, testName) => {
-      // Look in quick pills
-      const pill = quickTestPills.find((p) => p.name === testName);
-      if (pill) return acc + pill.price;
+      // Look in allAvailableTests
+      const match = allAvailableTests.find((t) => t.name === testName);
+      if (match) return acc + match.price;
       // Look in vendor tests
       const vTest = vendorTests.find((t) => t.name === testName);
       if (vTest) return acc + vTest.priceINR;
       return acc + 300; // default fallback
     }, 0);
-  }, [selectedTests, vendorTests]);
+  }, [selectedTests, allAvailableTests, vendorTests]);
 
   const effectiveDiscount = hasDiscount ? (discountINR || 0) : 0;
   const netPayable = Math.max(0, grossAmount - effectiveDiscount);
@@ -1589,27 +1695,37 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                 </div>
               </div>
 
-              {/* 2. Test Selection */}
+              {/* 2. Test Selection: Parent Category -> Child Tests OR Direct Search */}
               <div className="space-y-2.5 pt-1">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
-                  <span className="text-xs font-black text-[#123B6D] uppercase tracking-wider flex items-center gap-1.5">
-                    <FlaskConical className="w-3.5 h-3.5 text-[#0F766E]" />
-                    <span>2. Test Selection</span>
-                  </span>
-                  <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
-                    {selectedTests.length} Selected
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-[#123B6D] uppercase tracking-wider flex items-center gap-1.5">
+                      <FolderTree className="w-3.5 h-3.5 text-[#0F766E]" />
+                      <span>2. Test Selection</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+                      (Parent Category → Child Tests or Direct Search)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black text-[#123B6D] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                      Total: ₹{grossAmount}
+                    </span>
+                    <span className="text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                      {selectedTests.length} Selected
+                    </span>
+                  </div>
                 </div>
 
-                {/* Test Search Box — inline */}
+                {/* Direct Search Input */}
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
                   <input
                     type="text"
                     value={testSearch}
                     onChange={(e) => setTestSearch(e.target.value)}
-                    placeholder="Search diagnostic tests (e.g. Sugar, CBC, Lipid, Thyroid, LFT)..."
-                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none bg-white"
+                    placeholder="Search diagnostic tests directly by name, code, or sample (e.g. Sugar, CBC, KFT, LFT, Lipid, HbA1c)..."
+                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none bg-white shadow-2xs"
                   />
                   {testSearch && (
                     <button
@@ -1623,14 +1739,102 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   )}
                 </div>
 
-                {/* Test List */}
+                {/* Parent Category Selector Tabs */}
                 <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-0.5 flex items-center justify-between">
-                    <span>{testSearch.trim() ? `Matching Tests (${filteredAvailableTests.length}):` : 'Test List:'}</span>
-                    <span className="text-[10px] font-normal text-slate-500">Click to add multiple tests</span>
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 px-0.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Layers className="w-3 h-3 text-teal-600" />
+                      <span>Parent Categories ({PARENT_CATEGORIES.length - 1} Clinical Departments):</span>
+                    </span>
+                    {testSearch && (
+                      <span className="text-[10px] text-amber-600 font-bold">
+                        Filtering via direct search
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-slate-300">
+                    {PARENT_CATEGORIES.map((cat) => {
+                      const stats = categoryStats[cat.key] || { total: 0, selected: 0 };
+                      const isActive = selectedParentCategory === cat.key && !testSearch;
+                      return (
+                        <button
+                          type="button"
+                          key={cat.key}
+                          onClick={() => {
+                            setSelectedParentCategory(cat.key);
+                            if (testSearch) setTestSearch('');
+                          }}
+                          className={`text-[11px] px-2.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+                            isActive
+                              ? 'bg-[#0F766E] text-white border-teal-700 shadow-sm'
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-teal-400 hover:bg-teal-50/50'
+                          }`}
+                        >
+                          <span>{cat.icon}</span>
+                          <span>{cat.shortName}</span>
+                          <span
+                            className={`text-[10px] font-mono px-1 rounded ${
+                              isActive ? 'bg-teal-800 text-teal-100' : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
+                            {stats.total}
+                          </span>
+                          {stats.selected > 0 && (
+                            <span
+                              className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
+                                isActive ? 'bg-amber-300 text-amber-950' : 'bg-teal-600 text-white'
+                              }`}
+                              title={`${stats.selected} test(s) selected from this category`}
+                            >
+                              +{stats.selected}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Child Tests Display Area */}
+                <div>
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 px-0.5 flex items-center justify-between">
+                    {testSearch.trim() ? (
+                      <span className="flex items-center gap-1 text-teal-800">
+                        <Search className="w-3 h-3 text-teal-600" />
+                        <span>Matching Child Tests ({filteredAvailableTests.length}):</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-slate-700">
+                        <ListFilter className="w-3 h-3 text-teal-600" />
+                        <span>
+                          {PARENT_CATEGORIES.find((c) => c.key === selectedParentCategory)?.label || selectedParentCategory} — Child Tests ({activeCategoryChildTests.length}):
+                        </span>
+                      </span>
+                    )}
+
+                    {!testSearch.trim() && activeCategoryChildTests.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleSelectAllCategoryTests(activeCategoryChildTests)}
+                          className="text-[10px] font-bold text-teal-700 hover:text-teal-900 hover:underline cursor-pointer"
+                        >
+                          + Select All in Category
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeselectCategoryTests(activeCategoryChildTests)}
+                          className="text-[10px] font-medium text-slate-500 hover:text-rose-600 hover:underline cursor-pointer"
+                        >
+                          Deselect Category
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-2.5 bg-slate-50/90 rounded-xl border border-slate-200">
                     {filteredAvailableTests.length > 0 ? (
                       filteredAvailableTests.map((test) => {
                         const isSelected = selectedTests.includes(test.name);
@@ -1638,18 +1842,32 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                           <button
                             type="button"
                             key={test.name}
-                            onClick={() => handleToggleTest(test.name)}
-                            className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                            onClick={() => handleToggleTest(test.name, test.sample)}
+                            className={`text-[11px] px-2.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer border ${
                               isSelected
-                                ? 'bg-[#0F766E] text-white shadow-2xs'
-                                : 'bg-white text-slate-700 border border-slate-200 hover:border-teal-400'
+                                ? 'bg-[#0F766E] text-white shadow-2xs border-teal-700'
+                                : 'bg-white text-slate-800 border-slate-200 hover:border-teal-400 hover:shadow-2xs'
                             }`}
                           >
-                            {isSelected ? <Check className="w-3 h-3 text-teal-200" /> : <Plus className="w-3 h-3 text-slate-400" />}
-                            <span>{test.name}</span>
+                            {isSelected ? (
+                              <Check className="w-3.5 h-3.5 text-teal-200 shrink-0" />
+                            ) : (
+                              <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            )}
+                            <span className="truncate max-w-[200px]">{test.name}</span>
+                            {testSearch && test.category && (
+                              <span
+                                className={`text-[9px] px-1.5 py-0.2 rounded font-normal ${
+                                  isSelected ? 'bg-teal-800 text-teal-100' : 'bg-slate-100 text-slate-500'
+                                }`}
+                              >
+                                {test.category.split(' ')[0]}
+                              </span>
+                            )}
+                            {/* Test Price: ALWAYS VISIBLE IN RECEPTION DASHBOARD */}
                             <span
-                              className={`text-[10px] font-mono ${
-                                isSelected ? 'text-teal-200' : 'text-slate-500 font-bold'
+                              className={`text-[11px] font-mono font-black ml-1 ${
+                                isSelected ? 'text-amber-200' : 'text-[#123B6D]'
                               }`}
                             >
                               ₹{test.price}
@@ -1658,9 +1876,9 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                         );
                       })
                     ) : (
-                      <div className="w-full py-2 px-1 text-center space-y-1.5">
+                      <div className="w-full py-3 px-2 text-center space-y-2">
                         <p className="text-xs text-slate-500">
-                          No test found matching "{testSearch}".
+                          No clinical test found matching "{testSearch}".
                         </p>
                         <button
                           type="button"
@@ -1668,9 +1886,9 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                             handleToggleTest(testSearch.trim());
                             setTestSearch('');
                           }}
-                          className="text-xs font-bold text-teal-700 hover:text-teal-800 bg-white border border-teal-300 px-3 py-1 rounded-lg shadow-2xs inline-flex items-center gap-1 cursor-pointer"
+                          className="text-xs font-bold text-teal-700 hover:text-teal-800 bg-white border border-teal-300 px-3 py-1.5 rounded-lg shadow-2xs inline-flex items-center gap-1.5 cursor-pointer"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-3.5 h-3.5" />
                           <span>Add "{testSearch.trim()}" as custom test (₹300)</span>
                         </button>
                       </div>
@@ -1681,34 +1899,47 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                 {/* Multiple Added Tests List */}
                 {selectedTests.length > 0 && (
                   <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 px-0.5">
-                      <span>Added Tests ({selectedTests.length}):</span>
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 px-0.5">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
+                        <span>Added Tests for Patient ({selectedTests.length}):</span>
+                        <span className="font-mono text-teal-800 font-extrabold ml-1 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">
+                          Total: ₹{grossAmount}
+                        </span>
+                      </span>
                       <button
                         type="button"
                         onClick={() => setSelectedTests([])}
-                        className="text-[10px] font-medium text-rose-600 hover:underline cursor-pointer"
+                        className="text-[10px] font-semibold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
                       >
                         Clear All
                       </button>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1.5 bg-slate-50/60 rounded-lg border border-slate-200">
                       {selectedTests.map((testName) => {
                         const testObj = allAvailableTests.find((t) => t.name === testName);
                         const price = testObj ? testObj.price : 300;
+                        const category = testObj ? testObj.category : 'General';
                         return (
                           <span
                             key={testName}
-                            className="bg-teal-50 border border-teal-200 text-teal-900 text-[11px] pl-2.5 pr-1.5 py-0.5 rounded-lg flex items-center gap-1.5 font-medium shadow-2xs"
+                            className="bg-white border border-teal-200 text-teal-950 text-[11px] pl-2.5 pr-1.5 py-1 rounded-lg flex items-center gap-2 font-medium shadow-2xs"
                           >
-                            <span>{testName}</span>
-                            <span className="font-mono text-[10px] text-teal-700 font-bold">₹{price}</span>
+                            <span className="font-bold">{testName}</span>
+                            <span className="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.2 rounded font-normal">
+                              {category.split(' ')[0]}
+                            </span>
+                            {/* Price ALWAYS visible */}
+                            <span className="font-mono text-[11px] text-[#123B6D] font-black bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                              ₹{price}
+                            </span>
                             <button
                               type="button"
                               onClick={() => handleToggleTest(testName)}
-                              className="text-teal-500 hover:text-rose-600 p-0.5 rounded cursor-pointer ml-0.5"
+                              className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer ml-0.5 transition"
                               title="Remove test"
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </span>
                         );

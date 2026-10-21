@@ -421,6 +421,8 @@ export interface VendorLabSettings {
   phonepeSaltIndex?: string;
   phonepeEnvironment?: 'SANDBOX' | 'PRODUCTION';
   phonepeAutoVerify?: boolean;
+  // Website Price Visibility: Show or Hide prices on public website (test cards, details, search results, booking pages)
+  showPricesOnWebsite?: boolean;
 }
 
 export interface VendorPackage {

@@ -52,6 +52,8 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
     addHomeCollectionBooking,
   } = useCms();
 
+  const showWebsitePrices = vendorLabSettings?.showPricesOnWebsite !== false;
+
   // Form Step:
   // 1 = Patient Details & Collection Mode
   // 2 = Select Tests & Amount (Multi-Select Checkmark / Mark List)
@@ -654,10 +656,14 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
   const handleShareOnWhatsApp = () => {
     if (!createdReceipt) return;
     const testsListFormatted = createdReceipt.selectedTests
-      .map((t) => `• ${t.name} – ₹${t.price}`)
+      .map((t) => (showWebsitePrices ? `• ${t.name} – ₹${t.price}` : `• ${t.name}`))
       .join('\n');
 
-    const message = `*🧾 LAB TEST BOOKING RECEIPT*\n*Receipt No:* ${createdReceipt.receiptNo}\n*Lab:* ${labMerchantName}\n\n*Patient Details:*\n• Name: ${createdReceipt.patientName}\n• Age/Gender: ${createdReceipt.age} yrs / ${createdReceipt.gender}\n• Mobile: +91 ${createdReceipt.mobile}\n• Ref Doctor: ${createdReceipt.doctor}\n\n*Selected Tests:*\n${testsListFormatted}\n\n*Billing Breakdown:*\n• Tests Total: ₹${createdReceipt.testsTotal}\n• Home Collection: ₹${createdReceipt.homeCollectionFee}\n• *Grand Total: ₹${createdReceipt.grandTotal}*\n\n*Collection Mode:* ${createdReceipt.collectionType === 'Home' ? 'Home Sample Collection' : 'Visit Lab Branch'}${
+    const billingSection = showWebsitePrices
+      ? `\n*Billing Breakdown:*\n• Tests Total: ₹${createdReceipt.testsTotal}\n• Home Collection: ₹${createdReceipt.homeCollectionFee}\n• *Grand Total: ₹${createdReceipt.grandTotal}*\n`
+      : '\n*Billing & Payment:*\n• Pay at Reception Counter / Spot upon sample collection\n';
+
+    const message = `*🧾 LAB TEST BOOKING RECEIPT*\n*Receipt No:* ${createdReceipt.receiptNo}\n*Lab:* ${labMerchantName}\n\n*Patient Details:*\n• Name: ${createdReceipt.patientName}\n• Age/Gender: ${createdReceipt.age} yrs / ${createdReceipt.gender}\n• Mobile: +91 ${createdReceipt.mobile}\n• Ref Doctor: ${createdReceipt.doctor}\n\n*Selected Tests:*\n${testsListFormatted}\n${billingSection}\n*Collection Mode:* ${createdReceipt.collectionType === 'Home' ? 'Home Sample Collection' : 'Visit Lab Branch'}${
       createdReceipt.collectionType === 'Home'
         ? `\n• Address: ${createdReceipt.fullAddress}, ${createdReceipt.areaLocality}, ${createdReceipt.city} - ${createdReceipt.pincode}\n• Slot: ${createdReceipt.preferredTimeSlot}`
         : ''
@@ -697,10 +703,10 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
           {(formStep === 2 || formStep === 3) && (
             <div className="hidden sm:block bg-white/15 backdrop-blur-md px-2.5 py-1 rounded-lg text-right border border-white/20">
               <span className="text-[9px] uppercase tracking-wider block text-slate-200 font-bold">
-                Total Amount
+                {showWebsitePrices ? 'Total Amount' : 'Selected Tests'}
               </span>
               <span className="text-xs font-black text-amber-300">
-                ₹{grandTotal}
+                {showWebsitePrices ? `₹${grandTotal}` : `${selectedTestIds.length} Tests`}
               </span>
             </div>
           )}

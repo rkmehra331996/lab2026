@@ -400,6 +400,7 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
 2. POST-COLLECTION STATUS: Once a biological specimen has been collected, transported, or processed in the laboratory analyzer, cancellations or refunds cannot be issued due to incurred reagent and consumable costs.
 3. FAILED OR INCONCLUSIVE SAMPLES: In the rare event of hemolysis, lipemia, or insufficient sample volume necessitating a repeat test, a free recollected sample will be processed at no additional charge to the patient.
 4. REFUND DISPATCH TIMELINE: Approved digital payment refunds are credited back to the original source UPI / Bank Account within 2 to 5 business days.`,
+  showPricesOnWebsite: true,
 };
 
 export const DEFAULT_ALL_VENDOR_PACKAGES: VendorPackage[] = [
@@ -1232,6 +1233,7 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
     status: dirItem.status || 'Draft',
     ownerPassword: dirItem.password || undefined,
     ownerPin: dirItem.pin || undefined,
+    showPricesOnWebsite: true,
   };
 }
 

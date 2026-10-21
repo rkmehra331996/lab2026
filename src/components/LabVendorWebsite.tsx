@@ -155,6 +155,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   }, [vendorTests]);
 
   const effectiveLabId = targetLabId || selectedVendorLabId || vendorLabSettings?.labId;
+  const showWebsitePrices = vendorLabSettings?.showPricesOnWebsite !== false;
 
   const currentLabItem = React.useMemo(() => {
     if (effectiveLabId) {
@@ -1276,7 +1277,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const [address, setAddress] = useState('');
   const [bookingDate, setBookingDate] = useState('Tomorrow Morning (7:00 AM - 9:00 AM)');
   const [selectedTestOrPackage, setSelectedTestOrPackage] = useState(
-    vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
+    vendorPackages[0]
+      ? (showWebsitePrices ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : vendorPackages[0].name)
+      : (showWebsitePrices ? 'Full Body Health Checkup (₹999)' : 'Full Body Health Checkup')
   );
 
   // Contact Us Inquiry Form State
@@ -3190,8 +3193,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   onClick={() => {
                     setSelectedTestOrPackage(
                       vendorPackages[0]
-                        ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})`
-                        : 'Full Body Health Checkup (₹999)'
+                        ? (showWebsitePrices ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : vendorPackages[0].name)
+                        : (showWebsitePrices ? 'Full Body Health Checkup (₹999)' : 'Full Body Health Checkup')
                     );
                     setIsBookingModalOpen(true);
                   }}
@@ -3237,8 +3240,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                         onClick={() => {
                           setSelectedTestOrPackage(
                             vendorPackages[0]
-                              ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})`
-                              : 'Full Body Health Checkup (₹999)'
+                              ? (showWebsitePrices ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : vendorPackages[0].name)
+                              : (showWebsitePrices ? 'Full Body Health Checkup (₹999)' : 'Full Body Health Checkup')
                           );
                           setIsBookingModalOpen(true);
                         }}
@@ -3478,14 +3481,16 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
                           {/* Uske neeche inline 2 buttons: Price aur Book Test */}
                           <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5 mt-auto shrink-0">
-                            <div className="px-3.5 py-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm sm:text-base flex items-center justify-center shrink-0 shadow-2xs">
-                              ₹{pkg.priceINR}
-                            </div>
+                            {showWebsitePrices && (
+                              <div className="px-3.5 py-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm sm:text-base flex items-center justify-center shrink-0 shadow-2xs">
+                                ₹{pkg.priceINR}
+                              </div>
+                            )}
 
                             <button
                               type="button"
                               onClick={() => {
-                                setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
+                                setSelectedTestOrPackage(showWebsitePrices ? `${pkg.name} (₹${pkg.priceINR})` : pkg.name);
                                 setIsBookingModalOpen(true);
                               }}
                               className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
@@ -3560,13 +3565,15 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                                 </div>
                               </div>
                               <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5 mt-auto">
-                                <div className="px-3.5 py-2 rounded-xl bg-blue-50 border border-blue-200 text-[#123B6D] font-black text-base shadow-2xs">
-                                  ₹{pkg.priceINR}
-                                </div>
+                                {showWebsitePrices && (
+                                  <div className="px-3.5 py-2 rounded-xl bg-blue-50 border border-blue-200 text-[#123B6D] font-black text-base shadow-2xs">
+                                    ₹{pkg.priceINR}
+                                  </div>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
+                                    setSelectedTestOrPackage(showWebsitePrices ? `${pkg.name} (₹${pkg.priceINR})` : pkg.name);
                                     setIsBookingModalOpen(true);
                                   }}
                                   className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-3 rounded-xl text-xs font-black shadow-sm flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
@@ -3668,14 +3675,16 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                                 </div>
 
                                 <div className="pt-3 border-t border-slate-100 flex items-center gap-2 mt-auto shrink-0">
-                                  <div className="px-3 py-2 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
-                                    ₹{pkg.priceINR}
-                                  </div>
+                                  {showWebsitePrices && (
+                                    <div className="px-3 py-2 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                                      ₹{pkg.priceINR}
+                                    </div>
+                                  )}
 
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
+                                      setSelectedTestOrPackage(showWebsitePrices ? `${pkg.name} (₹${pkg.priceINR})` : pkg.name);
                                       setIsBookingModalOpen(true);
                                     }}
                                     className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-3 rounded-xl text-xs font-black transition shadow-sm flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
@@ -3861,7 +3870,13 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
                     {/* Single Price & Cart (+) Icon in ONE single line (no sale price / MRP) */}
                     <div className="pt-2.5 mt-3 border-t border-slate-100 flex items-center justify-between">
-                      <span className="text-sm sm:text-base font-black text-[#123B6D]">₹{details.price}</span>
+                      {showWebsitePrices ? (
+                        <span className="text-sm sm:text-base font-black text-[#123B6D]">₹{details.price}</span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-[#0F766E] bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                          Diagnostic
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={(e) => handleToggleCartItem(test, e)}
@@ -5287,9 +5302,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
               {/* Footer: Inline Do Button (Price and + Cart Icon) */}
               <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
-                <div className="px-4 py-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-[#123B6D] font-black text-base sm:text-lg flex items-center justify-center shrink-0">
-                  ₹{details.price}
-                </div>
+                {showWebsitePrices && (
+                  <div className="px-4 py-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-[#123B6D] font-black text-base sm:text-lg flex items-center justify-center shrink-0">
+                    ₹{details.price}
+                  </div>
+                )}
 
                 <button
                   type="button"
@@ -5530,7 +5547,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             type="button"
             onClick={() => setIsCartDrawerOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full bg-[#123B6D] hover:bg-[#0e2c52] text-white shadow-xl hover:shadow-2xl active:scale-95 transition-all border border-white/30 cursor-pointer group"
-            title={`View Cart (${cartItems.length} Tests • ₹${cartTotalPrice})`}
+            title={showWebsitePrices ? `View Cart (${cartItems.length} Tests • ₹${cartTotalPrice})` : `View Cart (${cartItems.length} Tests)`}
           >
             <div className="relative flex items-center">
               <ShoppingCart className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
@@ -5538,9 +5555,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 {cartItems.length}
               </span>
             </div>
-            <span className="font-extrabold text-xs sm:text-sm text-amber-300">
-              ₹{cartTotalPrice}
-            </span>
+            {showWebsitePrices && (
+              <span className="font-extrabold text-xs sm:text-sm text-amber-300">
+                ₹{cartTotalPrice}
+              </span>
+            )}
             <span className="text-[11px] font-bold text-blue-100">
               Cart
             </span>
@@ -5640,9 +5659,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-sm sm:text-base font-black text-[#123B6D]">
-                        ₹{item.price}
-                      </span>
+                      {showWebsitePrices && (
+                        <span className="text-sm sm:text-base font-black text-[#123B6D]">
+                          ₹{item.price}
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleRemoveFromCart(item.id, item.name)}
@@ -5661,8 +5682,12 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             {cartItems.length > 0 && (
               <div className="p-5 bg-slate-50 border-t border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-600">Total Booking Amount:</span>
-                  <span className="text-xl font-black text-[#123B6D]">₹{cartTotalPrice}</span>
+                  <span className="text-xs font-bold text-slate-600">{showWebsitePrices ? 'Total Booking Amount:' : 'Selected Tests:'}</span>
+                  {showWebsitePrices ? (
+                    <span className="text-xl font-black text-[#123B6D]">₹{cartTotalPrice}</span>
+                  ) : (
+                    <span className="text-sm font-black text-[#0F766E] bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200">{cartItems.length} Tests Selected</span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -5715,7 +5740,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     {fullScreenImage.title}
                   </h3>
                   <div className="flex items-center gap-2 text-xs text-slate-400">
-                    {fullScreenImage.price && (
+                    {showWebsitePrices && fullScreenImage.price && (
                       <span className="font-extrabold text-amber-400">₹{fullScreenImage.price}</span>
                     )}
                     {fullScreenImage.testsCount && (
@@ -5787,7 +5812,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   type="button"
                   onClick={() => {
                     setSelectedTestOrPackage(
-                      fullScreenImage.price
+                      fullScreenImage.price && showWebsitePrices
                         ? `${fullScreenImage.title} (₹${fullScreenImage.price})`
                         : fullScreenImage.title
                     );

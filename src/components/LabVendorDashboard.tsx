@@ -59,6 +59,7 @@ import {
   Database,
   Layers,
   CreditCard,
+  IndianRupee,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -1831,6 +1832,35 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           : 'bg-amber-100 text-amber-900 font-extrabold'
                       }`}>
                         {vendorLabSettings.remainingVisibilityDays ?? 24}d left
+                      </span>
+                    </button>
+
+                    {/* Subitem 7: Website Prices */}
+                    <button
+                      type="button"
+                      id="sidebar-sub-settings-prices"
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setSettingsSubTab('prices');
+                      }}
+                      className={`w-full px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-between gap-2 cursor-pointer ${
+                        activeTab === 'settings' && settingsSubTab === 'prices'
+                          ? 'bg-[#123B6D] text-white shadow-xs font-black'
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <IndianRupee className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'prices' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                        <span className="truncate">Website Price Display</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'settings' && settingsSubTab === 'prices'
+                          ? 'bg-white/20 text-white'
+                          : vendorLabSettings.showPricesOnWebsite !== false
+                          ? 'bg-emerald-100 text-emerald-900 font-extrabold'
+                          : 'bg-amber-100 text-amber-900 font-extrabold'
+                      }`}>
+                        {vendorLabSettings.showPricesOnWebsite !== false ? 'Show' : 'Hide'}
                       </span>
                     </button>
                   </div>

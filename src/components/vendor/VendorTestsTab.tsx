@@ -14,6 +14,8 @@ import {
   DollarSign,
   Droplet,
   Eye,
+  EyeOff,
+  IndianRupee,
   Check,
   AlertTriangle,
   TrendingDown,
@@ -71,7 +73,14 @@ export const VendorTestsTab: React.FC<VendorTestsTabProps> = ({
   onSubTabChange,
   onPreviewWebsite,
 }) => {
-  const { vendorTests, addVendorTest, updateVendorTest, deleteVendorTest, vendorLabSettings } = useCms();
+  const { vendorTests, addVendorTest, updateVendorTest, deleteVendorTest, vendorLabSettings, updateVendorLabSettings } = useCms();
+
+  const isPricesShownOnWebsite = vendorLabSettings?.showPricesOnWebsite !== false;
+  const handleToggleWebsitePrices = () => {
+    const nextVal = !isPricesShownOnWebsite;
+    updateVendorLabSettings({ showPricesOnWebsite: nextVal });
+    showToast(nextVal ? '✅ Website setting updated: Test prices are now VISIBLE on public website.' : '🔒 Website setting updated: Test prices are now HIDDEN from public website (kept visible in Reception/LIMS).');
+  };
 
   // Active sub-tab state (All Tests, Add Test, Test Categories, Test Packages)
   const [internalSubTab, setInternalSubTab] = useState<TestManagementSubTab>(
@@ -467,7 +476,32 @@ export const VendorTestsTab: React.FC<VendorTestsTabProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {/* Website Price Setting Toggle */}
+            <button
+              type="button"
+              id="btn-vendor-tests-toggle-price-visibility"
+              onClick={handleToggleWebsitePrices}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-2xs cursor-pointer ${
+                isPricesShownOnWebsite
+                  ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border-emerald-400/40'
+                  : 'bg-amber-500/25 hover:bg-amber-500/35 text-amber-200 border-amber-400/50'
+              }`}
+              title={isPricesShownOnWebsite ? 'Click to hide prices on public website' : 'Click to show prices on public website'}
+            >
+              {isPricesShownOnWebsite ? (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Website Prices: <strong className="text-white">ON</strong></span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Website Prices: <strong className="text-amber-200">OFF (Hidden)</strong></span>
+                </>
+              )}
+            </button>
+
             {onPreviewWebsite && (
               <button
                 type="button"

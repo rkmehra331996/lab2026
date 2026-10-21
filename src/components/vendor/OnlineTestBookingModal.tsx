@@ -58,6 +58,8 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
     activeBranchId,
   } = useCms();
 
+  const showWebsitePrices = vendorLabSettings?.showPricesOnWebsite !== false;
+
   // Current Step: 1 = Test Selection & Details, 2 = Payment Selection (QR / Pay at Branch), 3 = Booking Confirmed
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
@@ -585,7 +587,7 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
                         <span className="font-bold text-slate-800">{t.name}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="font-black text-[#123B6D]">₹{t.price}</span>
+                        {showWebsitePrices && <span className="font-black text-[#123B6D]">₹{t.price}</span>}
                         {selectedTests.length > 1 && (
                           <button
                             type="button"
@@ -630,9 +632,15 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
                               ({pkg.testsCount} tests)
                             </span>
                           </div>
-                          <span className="font-black text-[#123B6D] bg-amber-50 px-2 py-0.5 rounded text-[11px]">
-                            + ₹{pkg.priceINR}
-                          </span>
+                          {showWebsitePrices ? (
+                            <span className="font-black text-[#123B6D] bg-amber-50 px-2 py-0.5 rounded text-[11px]">
+                              + ₹{pkg.priceINR}
+                            </span>
+                          ) : (
+                            <span className="font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded text-[11px]">
+                              + Select
+                            </span>
+                          )}
                         </div>
                       ))}
 
@@ -647,9 +655,15 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
                             <span className="font-bold text-slate-800">{test.name}</span>
                             <span className="text-[10px] text-slate-400 ml-1">({test.category})</span>
                           </div>
-                          <span className="font-black text-[#123B6D] bg-teal-50 px-2 py-0.5 rounded text-[11px]">
-                            + ₹{test.priceINR}
-                          </span>
+                          {showWebsitePrices ? (
+                            <span className="font-black text-[#123B6D] bg-teal-50 px-2 py-0.5 rounded text-[11px]">
+                              + ₹{test.priceINR}
+                            </span>
+                          ) : (
+                            <span className="font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded text-[11px]">
+                              + Add
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -658,8 +672,8 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
 
                 {/* Subtotal Banner */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-200 font-extrabold text-sm text-[#123B6D]">
-                  <span>Total Amount:</span>
-                  <span>₹{totalAmount}</span>
+                  <span>{showWebsitePrices ? 'Total Amount:' : 'Selected Tests:'}</span>
+                  <span>{showWebsitePrices ? `₹${totalAmount}` : `${selectedTests.length} Items (Pay at Counter)`}</span>
                 </div>
               </div>
 
@@ -877,8 +891,8 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[10px] text-slate-500 font-bold uppercase">Total Bill</div>
-                  <div className="text-base font-black text-[#123B6D]">₹{totalAmount}</div>
+                  <div className="text-[10px] text-slate-500 font-bold uppercase">{showWebsitePrices ? 'Total Bill' : 'Booking'}</div>
+                  <div className="text-base font-black text-[#123B6D]">{showWebsitePrices ? `₹${totalAmount}` : 'Registered'}</div>
                 </div>
               </div>
 
@@ -969,9 +983,11 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-base font-black text-purple-900">₹{totalAmount}</span>
-                    </div>
+                    {showWebsitePrices && (
+                      <div className="text-right">
+                        <span className="text-base font-black text-purple-900">₹{totalAmount}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-white p-3 rounded-xl border border-purple-200 w-full text-left space-y-2 text-slate-700">
@@ -996,7 +1012,7 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
                     className="w-full py-3 px-4 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-98"
                   >
                     <CreditCard className="w-4 h-4 text-amber-300" />
-                    <span>Pay ₹{totalAmount} via PhonePe Gateway</span>
+                    <span>{showWebsitePrices ? `Pay ₹${totalAmount} via PhonePe Gateway` : 'Proceed to PhonePe Gateway'}</span>
                   </button>
                 </div>
               )}
@@ -1011,9 +1027,11 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
                         Official Verified Lab UPI QR (Manual Verification)
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-base font-black text-emerald-800">₹{totalAmount}</span>
-                    </div>
+                    {showWebsitePrices && (
+                      <div className="text-right">
+                        <span className="text-base font-black text-emerald-800">₹{totalAmount}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* QR Image */}
@@ -1238,18 +1256,18 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
                     activeOnlineMethod === 'phonepe' ? (
                       <>
                         <CreditCard className="w-4 h-4 text-amber-300" />
-                        <span>Pay ₹{totalAmount} via PhonePe (Auto-Verify)</span>
+                        <span>{showWebsitePrices ? `Pay ₹${totalAmount} via PhonePe (Auto-Verify)` : 'Proceed to PhonePe (Auto-Verify)'}</span>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="w-4 h-4 text-amber-300" />
-                        <span>Confirm Booking & Generate Token (Paid ₹{totalAmount} via QR)</span>
+                        <span>{showWebsitePrices ? `Confirm Booking & Generate Token (Paid ₹${totalAmount} via QR)` : 'Confirm Booking & Generate Token'}</span>
                       </>
                     )
                   ) : (
                     <>
                       <Building2 className="w-4 h-4 text-amber-300" />
-                      <span>Confirm Booking & Generate Token (Pay ₹{totalAmount} at Spot)</span>
+                      <span>{showWebsitePrices ? `Confirm Booking & Generate Token (Pay ₹${totalAmount} at Spot)` : 'Confirm Booking & Generate Token (Pay at Spot)'}</span>
                     </>
                   )}
                 </button>
@@ -1295,11 +1313,17 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
               {/* Amount Box */}
               <div className="bg-purple-50 p-3.5 rounded-2xl border border-purple-200 text-center">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700 block">
-                  Amount to Pay
+                  {showWebsitePrices ? 'Amount to Pay' : 'Booking Confirmation'}
                 </span>
-                <span className="text-2xl font-black text-purple-950 font-mono">
-                  ₹{totalAmount}
-                </span>
+                {showWebsitePrices ? (
+                  <span className="text-2xl font-black text-purple-950 font-mono">
+                    ₹{totalAmount}
+                  </span>
+                ) : (
+                  <span className="text-lg font-black text-purple-950">
+                    Pay at Lab Reception
+                  </span>
+                )}
                 <span className="text-[10px] text-slate-500 block mt-0.5">
                   Order for: {patientName} ({selectedTests.length} Tests)
                 </span>
@@ -1387,7 +1411,7 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
                 ) : (
                   <>
                     <Lock className="w-3.5 h-3.5 text-amber-300" />
-                    <span>Authorize & Pay ₹{totalAmount}</span>
+                    <span>{showWebsitePrices ? `Authorize & Pay ₹${totalAmount}` : 'Authorize & Confirm Booking'}</span>
                   </>
                 )}
               </button>

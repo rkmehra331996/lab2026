@@ -25,6 +25,8 @@ import {
   Check,
   ArrowRight,
   Eye,
+  EyeOff,
+  IndianRupee,
   Phone,
   PhoneCall,
   AlertTriangle,
@@ -44,6 +46,7 @@ export type SiteSettingsSubSection =
   | 'payment_qr'
   | 'payment_settings'
   | 'plan'
+  | 'prices'
   | 'social'
   | 'all';
 
@@ -182,6 +185,7 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
       linkedin: '',
       whatsapp: '',
     },
+    showPricesOnWebsite: vendorLabSettings.showPricesOnWebsite !== false,
   });
 
   const [toastMessage, setToastMessage] = useState('Site settings saved successfully!');
@@ -247,6 +251,7 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
           linkedin: '',
           whatsapp: '',
         },
+        showPricesOnWebsite: vendorLabSettings.showPricesOnWebsite !== false,
       });
     }
   }, [vendorLabSettings.labId]);
@@ -687,6 +692,28 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
                 : 'bg-amber-100 text-amber-900 font-extrabold'
             }`}>
               {isPlanExpired ? 'Expired' : `${remainingDays}d left`}
+            </span>
+          </button>
+
+          {/* 7. Website Prices */}
+          <button
+            type="button"
+            id="btn-subtab-website-prices"
+            onClick={() => handleSelectSection('prices')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer ${
+              activeSection === 'prices'
+                ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <IndianRupee className={`w-3.5 h-3.5 ${activeSection === 'prices' ? 'text-amber-400' : 'text-emerald-600'}`} />
+            <span>7. Website Prices</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+              formData.showPricesOnWebsite !== false
+                ? 'bg-emerald-100 text-emerald-800 font-extrabold'
+                : 'bg-amber-100 text-amber-900 font-extrabold'
+            }`}>
+              {formData.showPricesOnWebsite !== false ? 'Prices ON' : 'Prices OFF'}
             </span>
           </button>
         </div>
@@ -2729,6 +2756,192 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 7. WEBSITE PRICE SETTING SECTION (SHOW / HIDE PRICES)    */}
+      {/* ======================================================== */}
+      {(activeSection === 'prices' || activeSection === 'all') && (
+        <div id="section-website-prices" className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap pb-4 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900">
+                  Section 7 • Website Visibility
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  formData.showPricesOnWebsite !== false ? 'bg-emerald-500 text-white font-black' : 'bg-amber-500 text-white font-black'
+                }`}>
+                  {formData.showPricesOnWebsite !== false ? 'Prices Visible on Website' : 'Prices Hidden on Website'}
+                </span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <IndianRupee className="w-5 h-5 text-emerald-600" />
+                <span>Website Price Setting (वेबसाइट पर टेस्ट प्राइस सेटिंग)</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+                Control whether test and package prices are publicly visible to patients and visitors on your lab's website, or hidden for consultation on request.
+              </p>
+            </div>
+
+            {/* Quick Status Pill */}
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${
+                formData.showPricesOnWebsite !== false
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-amber-50 border-amber-200 text-amber-900'
+              }`}>
+                {formData.showPricesOnWebsite !== false ? (
+                  <>
+                    <Eye className="w-4 h-4 text-emerald-600" />
+                    <span>Public Price Display: ON</span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-4 h-4 text-amber-600" />
+                    <span>Public Price Display: OFF</span>
+                  </>
+                )}
+              </span>
+            </div>
+          </div>
+
+          {/* Interactive Option Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Option 1: Show Prices on Website */}
+            <div
+              onClick={() => {
+                setFormData((prev) => ({ ...prev, showPricesOnWebsite: true }));
+                updateVendorLabSettings({ showPricesOnWebsite: true });
+                setToastMessage('Website setting saved: Prices are now VISIBLE on website!');
+                setIsSavedToast(true);
+                setTimeout(() => setIsSavedToast(false), 3000);
+              }}
+              className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-4 relative ${
+                formData.showPricesOnWebsite !== false
+                  ? 'bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
+                  : 'bg-white border-slate-200 hover:border-slate-300 opacity-80'
+              }`}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                    <Eye className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="radio"
+                    name="showPricesOption"
+                    checked={formData.showPricesOnWebsite !== false}
+                    onChange={() => {}}
+                    className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                    <span>Show Prices on Website</span>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-600 text-white">
+                      Recommended
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Test prices and package rates will be displayed clearly to public visitors across all website test cards, test detail popups, search results, and online booking pages.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200/60 flex items-center justify-between text-[11px] font-bold text-emerald-800">
+                <span className="flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Transparent Public Pricing</span>
+                </span>
+                <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-emerald-200">
+                  ₹ Prices Visible
+                </span>
+              </div>
+            </div>
+
+            {/* Option 2: Hide Prices on Website */}
+            <div
+              onClick={() => {
+                setFormData((prev) => ({ ...prev, showPricesOnWebsite: false }));
+                updateVendorLabSettings({ showPricesOnWebsite: false });
+                setToastMessage('Website setting saved: Prices are now HIDDEN from website!');
+                setIsSavedToast(true);
+                setTimeout(() => setIsSavedToast(false), 3000);
+              }}
+              className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-4 relative ${
+                formData.showPricesOnWebsite === false
+                  ? 'bg-amber-50/70 border-amber-500 ring-2 ring-amber-500/20 shadow-sm'
+                  : 'bg-white border-slate-200 hover:border-slate-300 opacity-80'
+              }`}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                    <EyeOff className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="radio"
+                    name="showPricesOption"
+                    checked={formData.showPricesOnWebsite === false}
+                    onChange={() => {}}
+                    className="w-4 h-4 text-amber-600 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                    <span>Hide Prices on Website</span>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-600 text-white">
+                      Hidden
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Prices are hidden only from the public website, including test cards, details, search results and booking pages. Test names and booking functionality continue working normally.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200/60 flex items-center justify-between text-[11px] font-bold text-amber-900">
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Enquiry / Consultation Mode</span>
+                </span>
+                <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-amber-200">
+                  ₹ Prices Hidden
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Important Privacy Guarantee Callout */}
+          <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-200 space-y-1.5 text-xs text-slate-700 leading-relaxed">
+            <div className="flex items-center gap-2 font-black text-[#123B6D] text-xs">
+              <Lock className="w-4 h-4 text-blue-600" />
+              <span>Important LIMS Isolation &amp; Visibility Guarantee:</span>
+            </div>
+            <p className="text-[11px] text-slate-600">
+              Prices must and will <strong>always remain 100% visible</strong> in the <strong>Reception Dashboard</strong>, <strong>Lab Admin Dashboard</strong>, <strong>staff billing records</strong>, and generated <strong>invoices &amp; receipts</strong>, regardless of website settings. This setting is saved separately and safely isolated for each laboratory.
+            </p>
+          </div>
+
+          {/* Save Button */}
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-end">
+            <button
+              type="button"
+              id="btn-save-website-prices"
+              onClick={() => {
+                updateVendorLabSettings({ showPricesOnWebsite: formData.showPricesOnWebsite !== false });
+                setToastMessage('Website price visibility setting saved to cloud database!');
+                setIsSavedToast(true);
+                setTimeout(() => setIsSavedToast(false), 3000);
+              }}
+              className="px-6 py-2.5 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer"
+            >
+              <Save className="w-4 h-4 text-amber-400" />
+              <span>Save Price Setting</span>
+            </button>
           </div>
         </div>
       )}
