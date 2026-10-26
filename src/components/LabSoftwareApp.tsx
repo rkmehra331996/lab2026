@@ -52,6 +52,9 @@ import { DashboardFooter } from './DashboardFooter';
 import { ErrorBoundary } from './ErrorBoundary';
 import { generateThermalReceiptPdf, buildReceiptInvoicePdf } from '../utils/pdfGenerator';
 import { isReportAccessibleToTenant } from '../utils/tenantSecurity';
+import { buildPatientReportUrl } from '../utils/domainRouting';
+import { buildReceiptSlipImage, downloadReceiptImage } from '../utils/receiptImageGenerator';
+import { WebsiteTokenReceiptCard } from './vendor/WebsiteTokenReceiptCard';
 
 interface LabSoftwareAppProps {
   onBackToWebsite: () => void;
@@ -87,6 +90,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
     allReports,
     allReceptionEntries,
   } = useCms();
+  const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
   const [activeTab, setActiveTab] = useState<'dashboard' | 'patients' | 'results' | 'reception_orders'>('dashboard');
   const [receptionFilter, setReceptionFilter] = useState<'All' | 'Awaiting' | 'Accepted' | 'Completed'>('All');
   const [receptionSearch, setReceptionSearch] = useState('');
@@ -641,27 +645,107 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
 
   const handleShareReceipt = async (entry: ReceptionPatientEntry) => {
     try {
-      const netAmount = (entry.totalAmount || 0) - (entry.discountINR || 0);
-      const shareText =
-        `🧾 *${labName}* - Token & Invoice Receipt\n` +
-        `--------------------------------\n` +
-        `🎟️ Token No: *${entry.tokenNumber}*\n` +
-        `🆔 UHID: ${entry.uhid}\n` +
-        `👤 Patient: *${entry.patientName}* (${entry.age} Y / ${entry.gender})\n` +
-        `📱 Mobile: +91 ${entry.mobile}\n` +
-        `👨‍⚕️ Ref Doctor: ${entry.referringDoctor}\n` +
-        `🔬 Tests: ${entry.tests.join(', ')}\n` +
-        `💰 Total: ₹${netAmount} | Paid: ₹${entry.paidAmount} | Due: ₹${entry.dueAmount || 0}\n` +
-        `💳 Mode: ${entry.paymentMode}\n` +
-        `⏰ Registered: ${entry.registeredAt}\n` +
-        `--------------------------------\n` +
-        `Thank you for choosing ${labName}!`;
+      const labId = entry.labId || (activeTenantId !== 'all' ? activeTenantId : selectedVendorLabId);
+      const testNamesStr = entry.tests.join(', ');
+      const reportUrl = buildPatientReportUrl(labId, entry.tokenNumber);
+      const cleanMobile = entry.mobile.replace(/\D/g, '');
+      const clean10 = cleanMobile.length >= 10 ? cleanMobile.slice(-10) : cleanMobile;
 
-      const cleanMobile = entry.mobile.replace(/\D/g, '').slice(-10);
-      const url = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(shareText)}`;
-      window.open(url, '_blank');
-      setToastNotice(`Receipt PDF ready & WhatsApp opened for ${entry.patientName}!`);
-      setTimeout(() => setToastNotice(null), 3000);
+      const total = entry.totalAmount || 0;
+      const discount = entry.discountINR || 0;
+      const net = total - discount;
+      const paid = entry.paidAmount || 0;
+      const due = entry.dueAmount ?? Math.max(0, net - paid);
+
+      const shareText = [
+        `🏥 *Registration Confirmed!*`,
+        ``,
+        `Dear *${entry.patientName}*, your lab test registration is confirmed. ✅`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `🎫 *Token No.:* *${entry.tokenNumber}*`,
+        `📋 *UHID:* ${entry.uhid}`,
+        `👤 *Patient:* ${entry.patientName} (${entry.age} Yrs / ${entry.gender})`,
+        entry.referringDoctor ? `👨‍⚕️ *Doctor:* ${entry.referringDoctor}` : '',
+        `🧪 *Tests:* ${testNamesStr}`,
+        `💰 *Bill Summary:* Gross ₹${total}${discount > 0 ? `, Concession -₹${discount}` : ''} | *Net ₹${net}*`,
+        `💵 *Paid:* ₹${paid} (${entry.paymentMode || 'Cash'})`,
+        due > 0 ? `⚠️ *Balance Due:* ₹${due} (Pay on Spot)` : `✅ *Payment Status:* Paid in Full`,
+        entry.visitType === 'Home Collection' && entry.address ? `🏠 *Home Pickup:* ${entry.address}${entry.preferredTimeSlot ? ` (${entry.preferredTimeSlot})` : ''}` : '',
+        `📅 *Date:* ${entry.registeredAt || new Date().toLocaleDateString('en-IN')}`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        ``,
+        `🔗 *View Report:* ${reportUrl}`,
+        ``,
+        `🖼️ *Receipt Slip:* Attached / Downloaded with this WhatsApp message.`,
+        `📍 *${labName}*${vendorLabSettings?.phone ? ` • Ph: ${vendorLabSettings.phone}` : ''}`,
+      ].filter(Boolean).join('\n');
+
+      const { file, blob, dataUrl, filename } = await buildReceiptSlipImage({
+        tokenNumber: entry.tokenNumber,
+        uhid: entry.uhid,
+        patientName: entry.patientName,
+        age: entry.age,
+        gender: entry.gender,
+        mobile: entry.mobile,
+        referringDoctor: entry.referringDoctor,
+        tests: entry.tests,
+        totalAmount: entry.totalAmount,
+        paidAmount: entry.paidAmount,
+        dueAmount: entry.dueAmount,
+        paymentMode: entry.paymentMode,
+        paymentStatus: entry.paymentStatus,
+        registeredAt: entry.registeredAt,
+        visitType: entry.visitType,
+        address: entry.address,
+        timeSlot: entry.preferredTimeSlot,
+        labId: labId,
+        labName: labName,
+        labPhone: vendorLabSettings?.phone || '7087033009',
+        showPrices: true,
+      }, labName);
+
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        typeof navigator !== 'undefined' ? navigator.userAgent : ''
+      );
+
+      if (isMobileDevice && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: `Registration Slip ${entry.tokenNumber}`,
+            text: shareText,
+          });
+          setToastNotice(`Receipt Slip with text shared via WhatsApp for ${entry.patientName}!`);
+          setTimeout(() => setToastNotice(null), 3000);
+          return;
+        } catch (shareErr: any) {
+          if (shareErr.name === 'AbortError') return;
+        }
+      }
+
+      downloadReceiptImage(dataUrl, filename);
+
+      try {
+        if (navigator.clipboard && (window as any).ClipboardItem && blob) {
+          await navigator.clipboard.write([
+            new (window as any).ClipboardItem({ 'image/png': blob }),
+          ]);
+        }
+      } catch {
+        try {
+          await navigator.clipboard.writeText(shareText);
+        } catch {}
+      }
+
+      const encoded = encodeURIComponent(shareText);
+      const url = isMobileDevice
+        ? (clean10 ? `https://wa.me/91${clean10}?text=${encoded}` : `https://wa.me/?text=${encoded}`)
+        : (clean10 ? `https://web.whatsapp.com/send?phone=91${clean10}&text=${encoded}` : `https://web.whatsapp.com/send?text=${encoded}`);
+
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setToastNotice(`WhatsApp Web opened with Slip Text & Report Link for ${entry.patientName}!`);
+      setTimeout(() => setToastNotice(null), 3500);
     } catch (err) {
       console.error(err);
       setToastNotice('Failed to share receipt. Please try again.');
@@ -974,7 +1058,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
     });
   }, [patients, patientTab, searchTokenOrPhone, dateFilter, customDate, paymentModeFilter]);
 
-  const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
   const labLogoUrl = vendorLabSettings?.logoUrl || '';
 
   return (
@@ -2934,161 +3017,39 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
       {/* VIEW RECEIPT MODAL */}
       {isReceiptModalOpen && selectedReceipt && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#123B6D]/10 text-[#123B6D] flex items-center justify-center shrink-0">
-                  <Receipt className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                    Patient Invoice & Token Receipt
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Official Diagnostic Center Token Receipt
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsReceiptModalOpen(false);
-                  setSelectedReceipt(null);
-                }}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Receipt Body */}
-            <div className="my-4 space-y-4 text-xs">
-              {/* Lab Info Banner */}
-              <div className="bg-[#123B6D]/5 border border-[#123B6D]/15 rounded-xl p-3 text-center">
-                <h4 className="font-black text-sm text-[#123B6D]">{labName}</h4>
-                <p className="text-[10px] text-slate-600 mt-0.5">
-                  {vendorLabSettings.address || 'Civil Hospital Road, Ludhiana - 141001'} • Ph: {vendorLabSettings.phone || '+91 7087033009'}
-                </p>
-              </div>
-
-              {/* Token, UHID, Date */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold block">Token Number</span>
-                  <span className="font-mono text-sm font-black text-[#123B6D]">
-                    {selectedReceipt.tokenNumber || selectedReceipt.uhid || '-'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold block">UHID</span>
-                  <span className="font-mono text-xs font-bold text-slate-800">
-                    {selectedReceipt.uhid || 'UHID-2026-001'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold block">Registered At</span>
-                  <span className="text-xs font-semibold text-slate-700">
-                    {selectedReceipt.registeredAt || 'Today'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold block">Payment Mode</span>
-                  <span className="inline-block px-2 py-0.5 text-[10px] font-bold rounded bg-slate-200 text-slate-800">
-                    {selectedReceipt.paymentMode || 'UPI'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Patient Details */}
-              <div className="border border-slate-200 rounded-xl p-3 space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 text-[11px]">Patient Name:</span>
-                  <strong className="text-slate-900 font-extrabold">{selectedReceipt.patientName}</strong>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 text-[11px]">Age / Gender:</span>
-                  <span className="font-semibold text-slate-800">{selectedReceipt.age} Yrs / {selectedReceipt.gender}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 text-[11px]">Contact Mobile:</span>
-                  <span className="font-mono font-semibold text-slate-800">+91 {selectedReceipt.mobile}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 text-[11px]">Referring Doctor:</span>
-                  <span className="font-medium text-slate-800">{selectedReceipt.referringDoctor || 'Self / Walk-in'}</span>
-                </div>
-              </div>
-
-              {/* Tests Table */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <div className="bg-slate-100 px-3 py-2 text-[10px] font-bold text-slate-600 uppercase tracking-wider flex justify-between">
-                  <span>Investigation / Test</span>
-                  <span>Amount</span>
-                </div>
-                <div className="divide-y divide-slate-100 px-3 py-1">
-                  {(Array.isArray(selectedReceipt.tests) ? selectedReceipt.tests : [selectedReceipt.tests]).map((t, idx) => (
-                    <div key={idx} className="py-1.5 flex justify-between items-center text-xs">
-                      <span className="font-medium text-slate-800">{t}</span>
-                      <span className="font-mono text-slate-600">Included</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="bg-slate-50 p-3 border-t border-slate-200 space-y-1">
-                  <div className="flex justify-between text-xs text-slate-600">
-                    <span>Total Amount:</span>
-                    <span className="font-bold text-slate-900">₹{selectedReceipt.totalAmount || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-emerald-700 font-bold">
-                    <span>Paid Amount:</span>
-                    <span>₹{selectedReceipt.paidAmount || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-xs font-black">
-                    <span className={(selectedReceipt.dueAmount || 0) > 0 ? 'text-rose-600' : 'text-emerald-700'}>
-                      Balance Due:
-                    </span>
-                    <span className={(selectedReceipt.dueAmount || 0) > 0 ? 'text-rose-600' : 'text-emerald-700'}>
-                      ₹{selectedReceipt.dueAmount || 0}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Actions */}
-            <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200">
-              <button
-                type="button"
-                onClick={() => handlePrintReceipt(selectedReceipt)}
-                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs border border-slate-300"
-                title="Print thermal receipt slip"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print Slip</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleShareReceipt(selectedReceipt)}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                title="Send receipt details on patient WhatsApp"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>WhatsApp Receipt</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsReceiptModalOpen(false);
-                  setSelectedReceipt(null);
-                }}
-                className="px-4 py-2 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
+          <WebsiteTokenReceiptCard
+            receipt={{
+              tokenNumber: selectedReceipt.tokenNumber || selectedReceipt.tokenNo || selectedReceipt.uhid || 'TK-101',
+              uhid: selectedReceipt.uhid || `UHID-${selectedReceipt.id}`,
+              patientName: selectedReceipt.patientName,
+              age: selectedReceipt.age,
+              gender: selectedReceipt.gender,
+              mobile: selectedReceipt.mobile,
+              referringDoctor: selectedReceipt.referringDoctor,
+              tests: Array.isArray(selectedReceipt.tests) ? selectedReceipt.tests : [selectedReceipt.tests],
+              totalAmount: selectedReceipt.totalAmount || 0,
+              discountINR: selectedReceipt.discountINR || 0,
+              paidAmount: selectedReceipt.paidAmount || 0,
+              dueAmount: selectedReceipt.dueAmount || 0,
+              paymentMode: selectedReceipt.paymentMode || 'Cash',
+              paymentStatus: selectedReceipt.paymentStatus,
+              registeredAt: selectedReceipt.registeredAt || 'Today',
+              visitType: selectedReceipt.visitType,
+              address: selectedReceipt.address,
+              timeSlot: selectedReceipt.preferredTimeSlot,
+              upiTransactionRef: selectedReceipt.upiTransactionRef,
+              labId: selectedReceipt.labId || (activeTenantId !== 'all' ? activeTenantId : selectedVendorLabId),
+              labName: labName,
+              labPhone: vendorLabSettings.phone || '+91 7087033009',
+              labAddress: vendorLabSettings.address,
+              bookingSource: selectedReceipt.bookingSource || 'Central Lab Workstation',
+              notes: selectedReceipt.notes,
+            }}
+            onClose={() => {
+              setIsReceiptModalOpen(false);
+              setSelectedReceipt(null);
+            }}
+          />
         </div>
       )}
 

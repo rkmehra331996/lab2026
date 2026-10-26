@@ -56,6 +56,9 @@ import { ReportDetailModal } from './ReportDetailModal';
 import { SyncNowButton } from './SyncNowButton';
 import { generateThermalReceiptPdf, buildReceiptInvoicePdf, getReceiptPdfFilename, downloadReportPdf } from '../utils/pdfGenerator';
 import { safePrint } from '../utils/printHelper';
+import { buildPatientReportUrl } from '../utils/domainRouting';
+import { buildReceiptSlipImage, downloadReceiptImage } from '../utils/receiptImageGenerator';
+import { WebsiteTokenReceiptCard } from './vendor/WebsiteTokenReceiptCard';
 
 // Format token number to standard format (e.g. "TK-626")
 export const getDisplayTokenNumber = (tokenRaw?: string, fallbackId?: string): string => {
@@ -1209,35 +1212,80 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   const handleShareInvoice = async (entry: ReceptionPatientEntry) => {
     try {
-      showToast('📄 Generating receipt PDF...');
-      const { doc, filename, file } = await buildReceiptInvoicePdf(entry, labName);
+      showToast('🖼️ Generating receipt slip with text...');
+      const labId = entry.labId || activeTenantId || selectedVendorLabId;
+      const testNamesStr = entry.tests.join(', ');
+      const reportUrl = buildPatientReportUrl(labId, entry.tokenNumber);
+      const cleanMobile = entry.mobile.replace(/\D/g, '');
+      const clean10 = cleanMobile.length >= 10 ? cleanMobile.slice(-10) : cleanMobile;
 
-      const netAmount = (entry.totalAmount || 0) - (entry.discountINR || 0);
-      const shareText =
-        `🧾 *${labName}* - Token & Invoice Receipt\n` +
-        `--------------------------------\n` +
-        `🎟️ Token No: *${entry.tokenNumber}*\n` +
-        `🆔 UHID: ${entry.uhid}\n` +
-        `👤 Patient: *${entry.patientName}* (${entry.age}Y/${entry.gender})\n` +
-        `📱 Mobile: +91 ${entry.mobile}\n` +
-        `🩺 Doctor: ${entry.referringDoctor}\n` +
-        `🧪 Tests: ${entry.tests.join(', ')}\n` +
-        `--------------------------------\n` +
-        `💵 Net Bill: ₹${netAmount}\n` +
-        `✅ Paid: ₹${entry.paidAmount}${entry.paidAmount > 0 ? ` (${entry.paymentMode})` : ''}\n` +
-        `${entry.dueAmount > 0 ? `⚠️ Due Balance: ₹${entry.dueAmount}\n` : '✨ Status: Paid in Full (Nil Due)\n'}` +
-        `📄 Attached PDF: *${filename}*\n\n` +
-        `Thank you for choosing ${labName}!`;
+      const total = entry.totalAmount || 0;
+      const discount = entry.discountINR || 0;
+      const net = total - discount;
+      const paid = entry.paidAmount || 0;
+      const due = entry.dueAmount ?? Math.max(0, net - paid);
 
-      // 1. Try native Web Share API with actual PDF File object (Supported by Mobile WhatsApp & desktop share)
-      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+      const shareText = [
+        `🏥 *Registration Confirmed!*`,
+        ``,
+        `Dear *${entry.patientName}*, your lab test registration is confirmed. ✅`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `🎫 *Token No.:* *${entry.tokenNumber}*`,
+        `📋 *UHID:* ${entry.uhid}`,
+        `👤 *Patient:* ${entry.patientName} (${entry.age} Yrs / ${entry.gender})`,
+        entry.referringDoctor ? `👨‍⚕️ *Doctor:* ${entry.referringDoctor}` : '',
+        `🧪 *Tests:* ${testNamesStr}`,
+        `💰 *Bill Summary:* Gross ₹${total}${discount > 0 ? `, Concession -₹${discount}` : ''} | *Net ₹${net}*`,
+        `💵 *Paid:* ₹${paid} (${entry.paymentMode || 'Cash'})`,
+        due > 0 ? `⚠️ *Balance Due:* ₹${due} (Pay on Spot)` : `✅ *Payment Status:* Paid in Full`,
+        entry.visitType === 'Home Collection' && entry.address ? `🏠 *Home Pickup:* ${entry.address}${entry.preferredTimeSlot ? ` (${entry.preferredTimeSlot})` : ''}` : '',
+        `📅 *Date:* ${entry.registeredAt || new Date().toLocaleDateString('en-IN')}`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        ``,
+        `🔗 *View Report:* ${reportUrl}`,
+        ``,
+        `🖼️ *Receipt Slip:* Attached / Downloaded with this WhatsApp message.`,
+        `📍 *${labName}*${labPhone ? ` • Ph: ${labPhone}` : ''}`,
+      ].filter(Boolean).join('\n');
+
+      const { file, blob, dataUrl, filename } = await buildReceiptSlipImage({
+        tokenNumber: entry.tokenNumber,
+        uhid: entry.uhid,
+        patientName: entry.patientName,
+        age: entry.age,
+        gender: entry.gender,
+        mobile: entry.mobile,
+        referringDoctor: entry.referringDoctor,
+        tests: entry.tests,
+        totalAmount: entry.totalAmount,
+        paidAmount: entry.paidAmount,
+        dueAmount: entry.dueAmount,
+        paymentMode: entry.paymentMode,
+        paymentStatus: entry.paymentStatus,
+        registeredAt: entry.registeredAt,
+        visitType: entry.visitType,
+        address: entry.address,
+        timeSlot: entry.preferredTimeSlot,
+        labId: labId,
+        labName: labName,
+        labPhone: labPhone,
+        showPrices: true,
+      }, labName);
+
+      // 1. Mobile native Web Share API
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        typeof navigator !== 'undefined' ? navigator.userAgent : ''
+      );
+
+      if (isMobileDevice && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
             title: `Receipt ${entry.tokenNumber} - ${labName}`,
             text: shareText,
           });
-          showToast(`✅ Receipt PDF (${filename}) shared via WhatsApp!`);
+          showToast(`✅ Receipt Slip with text shared via WhatsApp!`);
           return;
         } catch (shareErr: any) {
           if (shareErr.name === 'AbortError') {
@@ -1246,15 +1294,31 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         }
       }
 
-      // 2. Direct Fallback: Automatically download the exact receipt PDF and open WhatsApp chat
-      doc.save(filename);
-      const cleanMobile = entry.mobile.replace(/\D/g, '');
-      const url = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(shareText)}`;
-      window.open(url, '_blank');
-      showToast(`✅ Receipt PDF "${filename}" downloaded & WhatsApp opened!`);
+      // 2. Desktop Fallback: Download slip image, copy text/image, and open WhatsApp Web
+      downloadReceiptImage(dataUrl, filename);
+
+      try {
+        if (navigator.clipboard && (window as any).ClipboardItem && blob) {
+          await navigator.clipboard.write([
+            new (window as any).ClipboardItem({ 'image/png': blob }),
+          ]);
+        }
+      } catch {
+        try {
+          await navigator.clipboard.writeText(shareText);
+        } catch {}
+      }
+
+      const encoded = encodeURIComponent(shareText);
+      const url = isMobileDevice
+        ? (clean10 ? `https://wa.me/91${clean10}?text=${encoded}` : `https://wa.me/?text=${encoded}`)
+        : (clean10 ? `https://web.whatsapp.com/send?phone=91${clean10}&text=${encoded}` : `https://web.whatsapp.com/send?text=${encoded}`);
+
+      window.open(url, '_blank', 'noopener,noreferrer');
+      showToast(`✅ WhatsApp Web opened with Slip Text & Report Link! Slip image downloaded.`);
     } catch (err) {
       console.error(err);
-      showToast('❌ Failed to generate receipt PDF. Please try again.');
+      showToast('❌ Failed to generate receipt slip. Please try again.');
     }
   };
 
@@ -2770,171 +2834,42 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         </div>
       </main>
 
-      {/* 4. Minimalist Invoice & Generated Token Modal */}
+      {/* 4. Unified Reception Token Receipt Modal */}
       {isReceiptModalOpen && selectedReceipt && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border border-slate-200/90 relative animate-in zoom-in-95 duration-200">
-            {/* Close Button */}
-            <button
-              onClick={() => setIsReceiptModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
-              title="Close modal"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Minimalist Header */}
-            <div className="text-center mb-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold mb-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Entry Submitted</span>
-              </div>
-              <h3 className="text-lg font-black text-slate-900 tracking-tight">
-                Token & Invoice
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {labName} • {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-              </p>
-            </div>
-
-            {/* Generated Token Number Display (Minimalist & Prominent) */}
-            <div className="bg-gradient-to-br from-slate-50 to-blue-50/50 border-2 border-[#123B6D]/20 rounded-2xl p-4 text-center mb-4 relative overflow-hidden">
-              <div className="text-[11px] font-black uppercase tracking-widest text-[#123B6D]/80">
-                Generated Token Number
-              </div>
-              <div className="text-4xl sm:text-5xl font-black text-[#123B6D] tracking-tight font-mono my-1">
-                {getDisplayTokenNumber(selectedReceipt.tokenNumber || selectedReceipt.tokenNo, selectedReceipt.id)}
-              </div>
-              <div className="flex items-center justify-center gap-2 text-xs text-slate-600 font-medium">
-                <span>UHID: <strong className="font-mono text-slate-800">{selectedReceipt.uhid}</strong></span>
-                <span>•</span>
-                <span>Time: <strong>{selectedReceipt.registeredAt}</strong></span>
-              </div>
-            </div>
-
-            {/* Clean Minimalist Bill / Invoice Section */}
-            <div className="border border-slate-200 rounded-2xl p-4 bg-white space-y-3 text-xs text-slate-700 shadow-2xs mb-5">
-              {/* Patient Details */}
-              <div className="grid grid-cols-2 gap-2 pb-2.5 border-b border-slate-100">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Patient</span>
-                  <span className="font-bold text-slate-900 text-sm block truncate">{selectedReceipt.patientName}</span>
-                  <span className="text-slate-500 text-[11px]">{selectedReceipt.age} Yrs / {selectedReceipt.gender}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Mobile & Ref Doctor</span>
-                  <span className="font-mono font-semibold text-slate-900 block">+91 {selectedReceipt.mobile}</span>
-                  <span className="text-slate-500 text-[11px] truncate block">Dr: {selectedReceipt.referringDoctor}</span>
-                </div>
-              </div>
-
-              {/* Prescribed Tests */}
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                  Prescribed Diagnostic Tests ({selectedReceipt.tests.length})
-                </span>
-                <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
-                  {selectedReceipt.tests.map((testName, i) => (
-                    <div key={i} className="flex justify-between items-center py-0.5 text-xs">
-                      <span className="text-slate-800 truncate pr-2">{i + 1}. {testName}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Bill Financial Breakdown */}
-              <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                <div className="flex justify-between text-xs text-slate-600">
-                  <span>Gross Test Amount:</span>
-                  <span className="font-mono font-semibold text-slate-900">₹{selectedReceipt.totalAmount}</span>
-                </div>
-                {selectedReceipt.discountINR > 0 && (
-                  <div className="flex justify-between text-xs text-emerald-700 font-medium">
-                    <span>Discount / Concession:</span>
-                    <span className="font-mono">-₹{selectedReceipt.discountINR}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-xs font-bold text-slate-900 pt-1 border-t border-slate-100">
-                  <span>Net Payable:</span>
-                  <span className="font-mono text-sm font-black text-[#123B6D]">
-                    ₹{selectedReceipt.totalAmount - selectedReceipt.discountINR}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-emerald-700 font-semibold">
-                    Amount Paid{selectedReceipt.paidAmount > 0 ? ` (${selectedReceipt.paymentMode})` : ''}:
-                  </span>
-                  <span className="font-mono font-bold text-emerald-700">₹{selectedReceipt.paidAmount}</span>
-                </div>
-                {selectedReceipt.dueAmount > 0 ? (
-                  <div className="flex justify-between items-center text-xs pt-1 border-t border-rose-100 text-rose-700 font-bold">
-                    <span>Balance Due:</span>
-                    <span className="font-mono text-sm">₹{selectedReceipt.dueAmount}</span>
-                  </div>
-                ) : (
-                  <div className="flex justify-between items-center text-[11px] pt-1 border-t border-emerald-100 text-emerald-700 font-bold">
-                    <span>Payment Status:</span>
-                    <span>✓ Full Payment Cleared</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Action Buttons: Share and Download clearly highlighted (Minimalist Design) */}
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2.5">
-                {/* Share Button (WhatsApp / PDF) */}
-                <button
-                  type="button"
-                  onClick={() => handleShareInvoice(selectedReceipt)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
-                  title="Share receipt PDF via WhatsApp"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Share (WhatsApp)</span>
-                </button>
-
-                {/* Download Button */}
-                <button
-                  type="button"
-                  onClick={() => generateThermalReceiptPdf(selectedReceipt, labName)}
-                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
-                  title="Download receipt PDF"
-                >
-                  <Download className="w-4 h-4 text-cyan-300" />
-                  <span>Download PDF</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5 pt-0.5">
-                {/* Print Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const success = safePrint(() => {
-                      generateThermalReceiptPdf(selectedReceipt, labName);
-                    });
-                    if (!success) {
-                      generateThermalReceiptPdf(selectedReceipt, labName);
-                    }
-                  }}
-                  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 py-2 px-3 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Printer className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Print Slip</span>
-                </button>
-
-                {/* Close Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsReceiptModalOpen(false)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-3 rounded-xl font-semibold text-xs transition flex items-center justify-center cursor-pointer"
-                >
-                  <span>Done</span>
-                </button>
-              </div>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+          <WebsiteTokenReceiptCard
+            receipt={{
+              tokenNumber: getDisplayTokenNumber(selectedReceipt.tokenNumber || selectedReceipt.tokenNo, selectedReceipt.id),
+              uhid: selectedReceipt.uhid,
+              patientName: selectedReceipt.patientName,
+              age: selectedReceipt.age,
+              gender: selectedReceipt.gender,
+              mobile: selectedReceipt.mobile,
+              referringDoctor: selectedReceipt.referringDoctor,
+              tests: selectedReceipt.tests,
+              totalAmount: selectedReceipt.totalAmount || 0,
+              discountINR: selectedReceipt.discountINR || 0,
+              paidAmount: selectedReceipt.paidAmount || 0,
+              dueAmount: selectedReceipt.dueAmount || 0,
+              paymentMode: selectedReceipt.paymentMode || 'Cash',
+              paymentStatus: selectedReceipt.paymentStatus,
+              registeredAt: selectedReceipt.registeredAt,
+              visitType: selectedReceipt.visitType,
+              address: selectedReceipt.address,
+              timeSlot: selectedReceipt.preferredTimeSlot,
+              upiTransactionRef: selectedReceipt.upiTransactionRef,
+              labId: selectedReceipt.labId || activeTenantId || selectedVendorLabId,
+              labName: labName,
+              labPhone: labPhone,
+              labAddress: labAddress,
+              bookingSource: selectedReceipt.bookingSource || 'Reception Desk',
+              notes: selectedReceipt.notes,
+            }}
+            onClose={() => {
+              setIsReceiptModalOpen(false);
+              setSelectedReceipt(null);
+            }}
+          />
         </div>
       )}
 

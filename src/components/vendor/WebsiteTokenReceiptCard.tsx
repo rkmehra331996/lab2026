@@ -14,9 +14,14 @@ import {
   Building2,
   Home,
   Check,
+  ImageIcon,
+  ExternalLink,
+  Globe,
 } from 'lucide-react';
-import { generateThermalReceiptPdf } from '../../utils/pdfGenerator';
+import { generateThermalReceiptPdf, buildReceiptInvoicePdf } from '../../utils/pdfGenerator';
 import { safePrint } from '../../utils/printHelper';
+import { buildPatientReportUrl } from '../../utils/domainRouting';
+import { buildReceiptSlipImage, downloadReceiptImage } from '../../utils/receiptImageGenerator';
 
 export interface WebsiteTokenReceiptData {
   tokenNumber: string;
@@ -38,10 +43,12 @@ export interface WebsiteTokenReceiptData {
   address?: string;
   timeSlot?: string;
   upiTransactionRef?: string;
+  labId?: string;
   labName: string;
   labPhone?: string;
   labAddress?: string;
   notes?: string;
+  bookingSource?: string;
 }
 
 interface WebsiteTokenReceiptCardProps {
@@ -59,14 +66,65 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
   showDoneButton = true,
   showPrices = true,
 }) => {
-  const [copiedShare, setCopiedShare] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
 
   const testNames = receipt.tests.map((t) => (typeof t === 'string' ? t : t.name));
+  const testNamesStr = testNames.join(', ');
   const dateStr = new Date().toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
+
+  // Build the patient-specific report URL
+  const reportUrl = buildPatientReportUrl(receipt.labId, receipt.tokenNumber);
+
+  const cleanMobile = (receipt.mobile || '').replace(/\D/g, '');
+  const clean10 = cleanMobile.length >= 10 ? cleanMobile.slice(-10) : cleanMobile;
+
+  const total = receipt.totalAmount || 0;
+  const discount = receipt.discountINR || 0;
+  const net = total - discount;
+  const paid = receipt.paidAmount || 0;
+  const due = receipt.dueAmount ?? Math.max(0, net - paid);
+
+  // Complete Slip Text Message formatted specifically for WhatsApp Web / App
+  const slipTextMessage = [
+    `🏥 *Registration Confirmed!*`,
+    ``,
+    `Dear *${receipt.patientName}*, your lab test registration is confirmed. ✅`,
+    ``,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `🎫 *Token No.:* *${receipt.tokenNumber}*`,
+    `📋 *UHID:* ${receipt.uhid}`,
+    `👤 *Patient:* ${receipt.patientName} (${receipt.age} Yrs / ${receipt.gender})`,
+    receipt.referringDoctor ? `👨‍⚕️ *Doctor:* ${receipt.referringDoctor}` : '',
+    `🧪 *Tests:* ${testNamesStr}`,
+    showPrices ? `💰 *Bill Summary:* Gross ₹${total}${discount > 0 ? `, Concession -₹${discount}` : ''} | *Net ₹${net}*` : '',
+    showPrices ? `💵 *Paid:* ₹${paid} (${receipt.paymentMode || 'Cash'})` : '',
+    showPrices ? (due > 0 ? `⚠️ *Balance Due:* ₹${due} (Pay on Spot)` : `✅ *Payment Status:* Paid in Full`) : '',
+    receipt.visitType === 'Home Collection' && receipt.address ? `🏠 *Home Pickup:* ${receipt.address}${receipt.timeSlot ? ` (${receipt.timeSlot})` : ''}` : '',
+    `📅 *Date:* ${receipt.registeredAt || dateStr}`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    ``,
+    `🔗 *View Report:* ${reportUrl}`,
+    ``,
+    `🖼️ *Receipt Slip:* Attached / Downloaded with this WhatsApp message.`,
+    `📍 *${receipt.labName}*${receipt.labPhone ? ` • Ph: ${receipt.labPhone}` : ''}`,
+  ].filter(Boolean).join('\n');
+
+  const encodedMsg = encodeURIComponent(slipTextMessage);
+
+  // 1. WhatsApp Web URL (Direct for PC / Desktop Web Browser)
+  const whatsappWebUrl = clean10
+    ? `https://web.whatsapp.com/send?phone=91${clean10}&text=${encodedMsg}`
+    : `https://web.whatsapp.com/send?text=${encodedMsg}`;
+
+  // 2. WhatsApp App / Mobile URL (wa.me)
+  const whatsappAppUrl = clean10
+    ? `https://wa.me/91${clean10}?text=${encodedMsg}`
+    : `https://wa.me/?text=${encodedMsg}`;
 
   // Prepare standard reception entry format for generateThermalReceiptPdf
   const pdfEntry = {
@@ -101,44 +159,131 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
     }
   };
 
-  const handleShareWhatsApp = () => {
-    const testsFormatted = testNames.map((t, i) => `  ${i + 1}. ${t}`).join('\n');
-    const billingLines = showPrices
-      ? `💰 Total: ₹${receipt.totalAmount}\n` +
-        `💵 Paid: ₹${receipt.paidAmount} (${receipt.paymentMode})\n` +
-        (receipt.dueAmount > 0 ? `⚠️ Balance Due: ₹${receipt.dueAmount} (Pay on Spot)\n` : `✅ Payment: Full Cleared\n`)
-      : `📋 Billing: Will be finalized at Lab Counter / Department\n`;
+  const handleDownloadImage = async () => {
+    try {
+      const { dataUrl, filename } = await buildReceiptSlipImage({
+        tokenNumber: receipt.tokenNumber,
+        uhid: receipt.uhid,
+        patientName: receipt.patientName,
+        age: receipt.age,
+        gender: receipt.gender,
+        mobile: receipt.mobile,
+        referringDoctor: receipt.referringDoctor,
+        tests: receipt.tests,
+        totalAmount: receipt.totalAmount,
+        paidAmount: receipt.paidAmount,
+        dueAmount: receipt.dueAmount,
+        paymentMode: receipt.paymentMode,
+        paymentStatus: receipt.paymentStatus,
+        registeredAt: receipt.registeredAt,
+        visitType: receipt.visitType,
+        address: receipt.address,
+        timeSlot: receipt.timeSlot,
+        labId: receipt.labId,
+        labName: receipt.labName,
+        labPhone: receipt.labPhone,
+        showPrices: showPrices,
+      }, receipt.labName);
+      downloadReceiptImage(dataUrl, filename);
+    } catch (e) {
+      console.error('Download image error:', e);
+    }
+  };
 
-    const msg =
-      `*━━━━━━━━━━━━━━━━━━━━━*\n` +
-      `🏥 *${receipt.labName}*\n` +
-      `*━━━━━━━━━━━━━━━━━━━━━*\n` +
-      `🎟️ *GENERATED TOKEN NUMBER: ${receipt.tokenNumber}*\n` +
-      `🆔 UHID: ${receipt.uhid}\n` +
-      `👤 Patient: ${receipt.patientName} (${receipt.age} Y / ${receipt.gender})\n` +
-      `📱 Mobile: +91 ${receipt.mobile}\n` +
-      `🩺 Ref Doctor: ${receipt.referringDoctor || 'Direct / Self'}\n` +
-      `📅 Booking Date: ${receipt.registeredAt}\n\n` +
-      `🧪 *Prescribed Tests:*\n${testsFormatted}\n\n` +
-      billingLines +
-      (receipt.upiTransactionRef ? `🔢 UTR / UPI Ref: ${receipt.upiTransactionRef}\n` : '') +
-      (receipt.visitType ? `📍 Visit: ${receipt.visitType}\n` : '') +
-      (receipt.address ? `🏠 Address: ${receipt.address}\n` : '') +
-      (receipt.timeSlot ? `⏰ Slot: ${receipt.timeSlot}\n` : '') +
-      `\n⚠️ *Booking submitted. Final confirmation after Lab Owner approval.*\n` +
-      `*━━━━━━━━━━━━━━━━━━━━━*`;
+  const handleShareWhatsApp = async (preferredTarget: 'web' | 'app' = 'web') => {
+    setIsSharing(true);
+    setShareNotice(null);
 
-    const encoded = encodeURIComponent(msg);
-    const targetMobile = receipt.mobile ? receipt.mobile.replace(/\D/g, '') : '';
-    const waUrl = targetMobile.length === 10
-      ? `https://wa.me/91${targetMobile}?text=${encoded}`
-      : `https://wa.me/?text=${encoded}`;
+    try {
+      // 1. Generate high-resolution receipt image (PNG)
+      const { file, blob, dataUrl, filename } = await buildReceiptSlipImage({
+        tokenNumber: receipt.tokenNumber,
+        uhid: receipt.uhid,
+        patientName: receipt.patientName,
+        age: receipt.age,
+        gender: receipt.gender,
+        mobile: receipt.mobile,
+        referringDoctor: receipt.referringDoctor,
+        tests: receipt.tests,
+        totalAmount: receipt.totalAmount,
+        paidAmount: receipt.paidAmount,
+        dueAmount: receipt.dueAmount,
+        paymentMode: receipt.paymentMode,
+        paymentStatus: receipt.paymentStatus,
+        registeredAt: receipt.registeredAt,
+        visitType: receipt.visitType,
+        address: receipt.address,
+        timeSlot: receipt.timeSlot,
+        labId: receipt.labId,
+        labName: receipt.labName,
+        labPhone: receipt.labPhone,
+        showPrices: showPrices,
+      }, receipt.labName);
 
-    window.open(waUrl, '_blank');
+      // 2. Mobile WhatsApp Direct Share: Shares Receipt IMAGE file + CAPTION TEXT (with clickable report link!)
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        typeof navigator !== 'undefined' ? navigator.userAgent : ''
+      );
+
+      if (isMobileDevice && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: `Registration Slip ${receipt.tokenNumber}`,
+            text: slipTextMessage,
+          });
+          setIsSharing(false);
+          return;
+        } catch (shareErr: any) {
+          if (shareErr.name === 'AbortError') {
+            setIsSharing(false);
+            return;
+          }
+        }
+      }
+
+      // 3. Desktop / Web Sharing:
+      // Download receipt image so user has PNG slip
+      downloadReceiptImage(dataUrl, filename);
+
+      // Copy PNG image to clipboard for easy Ctrl+V in WhatsApp Web
+      let copiedImage = false;
+      try {
+        if (navigator.clipboard && (window as any).ClipboardItem && blob) {
+          await navigator.clipboard.write([
+            new (window as any).ClipboardItem({ 'image/png': blob }),
+          ]);
+          copiedImage = true;
+        }
+      } catch {
+        try {
+          await navigator.clipboard.writeText(slipTextMessage);
+        } catch {}
+      }
+
+      // 4. Open WhatsApp Web or App
+      const targetUrl = preferredTarget === 'app' ? whatsappAppUrl : whatsappWebUrl;
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+
+      setShareNotice(
+        preferredTarget === 'app'
+          ? 'WhatsApp App opened with slip text! Slip image downloaded.'
+          : copiedImage
+          ? 'WhatsApp Web opened with complete slip text & Report Link! Slip image downloaded & copied to clipboard (press Ctrl+V in WhatsApp chat to paste image).'
+          : 'WhatsApp Web opened with complete slip text & Report Link! Slip image downloaded.'
+      );
+    } catch (e) {
+      console.warn('Image/WhatsApp error:', e);
+      const targetUrl = preferredTarget === 'app' ? whatsappAppUrl : whatsappWebUrl;
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      setShareNotice('WhatsApp opened with slip text!');
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-5 sm:p-6 space-y-4 max-w-md w-full mx-auto text-slate-800 relative">
+    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-5 sm:p-6 space-y-4 max-w-md w-full mx-auto text-slate-800 relative max-h-[92vh] overflow-y-auto">
       {/* Close Button */}
       {onClose && (
         <button
@@ -155,7 +300,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
       <div className="text-center">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold mb-2 shadow-2xs">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Entry Submitted</span>
+          <span>Registration Confirmed</span>
         </div>
         <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
           Token &amp; Invoice
@@ -183,13 +328,15 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
           </span>
         </div>
 
-        {/* 3. Mandatory Website Booking Notice requested by User */}
-        <div className="mt-3 pt-2.5 border-t border-amber-200/80 bg-amber-50/95 -mx-4 -mb-4 px-3 py-2 border-dashed flex items-center justify-center gap-1.5 text-amber-950">
-          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-          <span className="text-[11px] sm:text-xs font-black text-amber-950 text-center tracking-tight">
-            (Booking submitted. Final confirmation after Lab Owner approval.)
-          </span>
-        </div>
+        {/* 3. Website Booking Approval Notice (only for website bookings) */}
+        {receipt.bookingSource?.toLowerCase().includes('website') && (
+          <div className="mt-3 pt-2.5 border-t border-amber-200/80 bg-amber-50/95 -mx-4 -mb-4 px-3 py-2 border-dashed flex items-center justify-center gap-1.5 text-amber-950">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span className="text-[11px] sm:text-xs font-black text-amber-950 text-center tracking-tight">
+              (Booking submitted. Final confirmation after Lab Owner approval.)
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 4. Clean Minimalist Bill / Invoice Section (Identical to Reception Dashboard) */}
@@ -321,34 +468,87 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
         </div>
       </div>
 
-      {/* 5. Action Buttons (Exact layout from Reception Dashboard: Share WhatsApp, Download PDF, Print Slip, Done) */}
+      {/* 5. Action Buttons: Share Slip with Text on WhatsApp Web + Options */}
       <div className="space-y-2 pt-1">
-        <div className="grid grid-cols-2 gap-2.5">
-          {/* Share Button (WhatsApp) */}
+        {/* Notice Banner if WhatsApp Web opened or image copied */}
+        {shareNotice && (
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs space-y-1.5 animate-in fade-in duration-150">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-1.5 font-bold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span className="leading-snug">{shareNotice}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShareNotice(null)}
+                className="text-emerald-700 hover:text-emerald-950 p-0.5 shrink-0 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="text-[11px] text-emerald-800 flex items-center gap-1.5 pt-0.5 border-t border-emerald-200/80">
+              <span className="font-semibold">WhatsApp Web didn't open?</span>
+              <a
+                href={whatsappWebUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-black underline text-emerald-900 hover:text-emerald-950 inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span>Click here to open WhatsApp Web</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* PRIMARY ACTION: Share Slip with Text on WhatsApp Web */}
+        <button
+          type="button"
+          disabled={isSharing}
+          onClick={() => handleShareWhatsApp('web')}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white py-3 px-4 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-60"
+          title="Share complete slip with text and report link on WhatsApp Web"
+        >
+          {isSharing ? (
+            <span className="flex items-center gap-2">
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Opening WhatsApp Web with Slip...</span>
+            </span>
+          ) : (
+            <>
+              <Globe className="w-4 h-4 text-emerald-200" />
+              <span>Share Slip with Text (WhatsApp Web)</span>
+            </>
+          )}
+        </button>
+
+        {/* Downloads: Slip Image (PNG) + PDF */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* Download Image Button */}
           <button
             type="button"
-            onClick={handleShareWhatsApp}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
-            title="Share token slip via WhatsApp"
+            onClick={handleDownloadImage}
+            className="bg-teal-700 hover:bg-teal-800 text-white py-2 px-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98"
+            title="Download receipt slip as image (PNG)"
           >
-            <Share2 className="w-4 h-4" />
-            <span>Share (WhatsApp)</span>
+            <ImageIcon className="w-3.5 h-3.5 text-teal-200" />
+            <span>Slip Image (PNG)</span>
           </button>
 
           {/* Download PDF Button */}
           <button
             type="button"
             onClick={handleDownloadPdf}
-            className="bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
+            className="bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98"
             title="Download token receipt PDF"
           >
-            <Download className="w-4 h-4 text-cyan-300" />
+            <Download className="w-3.5 h-3.5 text-cyan-300" />
             <span>Download PDF</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 pt-0.5">
-          {/* Print Slip Button */}
+        {/* Print & Close */}
+        <div className="grid grid-cols-2 gap-2 pt-0.5">
           <button
             type="button"
             onClick={handlePrintSlip}
@@ -358,7 +558,6 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
             <span>Print Slip</span>
           </button>
 
-          {/* Done / Book Another Button */}
           {onBookAnother ? (
             <button
               type="button"

@@ -33,6 +33,9 @@ import { useCms } from '../../context/CmsContext';
 import { TestItem, ReceptionPatientEntry } from '../../types';
 import { optimizeImageFile } from '../../utils/imageOptimizer';
 import { WebsiteTokenReceiptCard } from './WebsiteTokenReceiptCard';
+import { buildReceiptInvoicePdf } from '../../utils/pdfGenerator';
+import { buildPatientReportUrl } from '../../utils/domainRouting';
+import { buildReceiptSlipImage, downloadReceiptImage } from '../../utils/receiptImageGenerator';
 
 interface HeroBookingFormProps {
   onOpenReportPortal?: () => void;
@@ -659,25 +662,73 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
   };
 
   // WhatsApp Share receipt details
-  const handleShareOnWhatsApp = () => {
+  const handleShareOnWhatsApp = async () => {
     if (!createdReceipt) return;
-    const testsListFormatted = createdReceipt.selectedTests
-      .map((t) => (showWebsitePrices ? `• ${t.name} – ₹${t.price}` : `• ${t.name}`))
-      .join('\n');
+    const testNamesStr = createdReceipt.selectedTests.map((t) => t.name).join(', ');
+    const reportToken = createdReceipt.tokenNumber || createdReceipt.receiptNo;
+    const reportUrl = buildPatientReportUrl(
+      (createdReceipt as any).labId || targetLabId || effectiveLabId || vendorLabSettings?.labId,
+      reportToken
+    );
 
-    const billingSection = showWebsitePrices
-      ? `\n*Billing Breakdown:*\n• Tests Total: ₹${createdReceipt.testsTotal}\n• Home Collection: ₹${createdReceipt.homeCollectionFee}\n• *Grand Total: ₹${createdReceipt.grandTotal}*\n`
-      : '\n*Billing & Payment:*\n• Pay at Reception Counter / Spot upon sample collection\n';
+    const message =
+      `🏥 Registration Confirmed!\n\n` +
+      `Dear ${createdReceipt.patientName}, your lab test registration is confirmed. ✅\n\n` +
+      `🎫 Token No.: ${reportToken}\n` +
+      `🧪 Tests: ${testNamesStr}\n` +
+      `📅 Date: ${createdReceipt.bookingDate || new Date().toLocaleDateString('en-IN')}\n` +
+      `🔗 View Report: ${reportUrl}\n\n` +
+      `🖼️ Receipt Slip: Attached with this WhatsApp message.`;
 
-    const message = `*🧾 LAB TEST BOOKING RECEIPT*\n*Receipt No:* ${createdReceipt.receiptNo}\n*Lab:* ${labMerchantName}\n\n*Patient Details:*\n• Name: ${createdReceipt.patientName}\n• Age/Gender: ${createdReceipt.age} yrs / ${createdReceipt.gender}\n• Mobile: +91 ${createdReceipt.mobile}\n• Ref Doctor: ${createdReceipt.doctor}\n\n*Selected Tests:*\n${testsListFormatted}\n${billingSection}\n*Collection Mode:* ${createdReceipt.collectionType === 'Home' ? 'Home Sample Collection' : 'Visit Lab Branch'}${
-      createdReceipt.collectionType === 'Home'
-        ? `\n• Address: ${createdReceipt.fullAddress}, ${createdReceipt.areaLocality}, ${createdReceipt.city} - ${createdReceipt.pincode}\n• Slot: ${createdReceipt.preferredTimeSlot}`
-        : ''
-    }\n\n*Payment:* ${createdReceipt.paymentMethod} (${createdReceipt.paymentStatus})${
-      createdReceipt.utrNumber ? `\n• UTR/Ref: ${createdReceipt.utrNumber}` : ''
-    }\n\n_Thank you for choosing ${labMerchantName}. Certified phlebotomist will contact you shortly._`;
+    try {
+      const { file, dataUrl, filename } = await buildReceiptSlipImage({
+        tokenNumber: reportToken,
+        uhid: createdReceipt.uhid,
+        patientName: createdReceipt.patientName,
+        age: createdReceipt.age,
+        gender: createdReceipt.gender,
+        mobile: createdReceipt.mobile,
+        referringDoctor: createdReceipt.doctor || 'Self / Direct',
+        tests: createdReceipt.selectedTests.map((t) => t.name),
+        totalAmount: showWebsitePrices ? createdReceipt.grandTotal : 0,
+        paidAmount: showWebsitePrices ? (createdReceipt.paymentMethod === 'Online' ? createdReceipt.grandTotal : 0) : 0,
+        dueAmount: showWebsitePrices ? (createdReceipt.paymentMethod === 'Online' ? 0 : createdReceipt.grandTotal) : 0,
+        paymentMode: createdReceipt.paymentMethod === 'Online' ? 'UPI' : 'Cash',
+        registeredAt: createdReceipt.bookingDate,
+        visitType: createdReceipt.collectionType === 'Home' ? 'Home Collection' : 'Walk-in',
+        address: createdReceipt.fullAddress,
+        timeSlot: createdReceipt.preferredTimeSlot,
+        labId: (createdReceipt as any).labId || targetLabId || effectiveLabId || vendorLabSettings?.labId,
+        labName: labMerchantName,
+        showPrices: showWebsitePrices,
+      }, labMerchantName);
 
-    window.open(`https://wa.me/91${createdReceipt.mobile}?text=${encodeURIComponent(message)}`, '_blank');
+      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: `Registration Slip ${reportToken}`,
+            text: message,
+          });
+          return;
+        } catch (shareErr: any) {
+          if (shareErr.name === 'AbortError') return;
+        }
+      }
+
+      downloadReceiptImage(dataUrl, filename);
+      const cleanMobile = createdReceipt.mobile ? createdReceipt.mobile.replace(/\D/g, '').slice(-10) : '';
+      const waUrl = cleanMobile
+        ? `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(message)}`
+        : `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+    } catch {
+      const cleanMobile = createdReceipt.mobile ? createdReceipt.mobile.replace(/\D/g, '').slice(-10) : '';
+      const waUrl = cleanMobile
+        ? `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(message)}`
+        : `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+    }
   };
 
   return (
@@ -1649,8 +1700,10 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
               address: createdReceipt.fullAddress,
               timeSlot: createdReceipt.preferredTimeSlot,
               upiTransactionRef: createdReceipt.utrNumber,
+              labId: targetLabId || effectiveLabId || vendorLabSettings?.labId,
               labName: vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Laboratory',
               labPhone: vendorLabSettings?.phone || '7087033009',
+              bookingSource: 'Website Booking',
             }}
             onBookAnother={handleBookAnother}
           />

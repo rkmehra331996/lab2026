@@ -23,9 +23,13 @@ export function buildPatientReportUrl(
     (typeof window !== 'undefined' && window.location?.origin
       ? window.location.origin
       : 'https://indianlalaji.com');
-  const cleanShop = (shopIdentifier || 'shop').trim();
-  const cleanToken = (tokenOrReportId || 'report').trim();
-  return `${origin}/${encodeURIComponent(cleanShop)}/report/${encodeURIComponent(cleanToken)}`;
+  const cleanOrigin = origin.replace(/\/+$/, '');
+  const cleanToken = (tokenOrReportId || 'TK-101').trim();
+  const cleanShop = (shopIdentifier || '').trim();
+  if (cleanShop && cleanShop.toLowerCase() !== 'shop' && cleanShop.toLowerCase() !== 'report') {
+    return `${cleanOrigin}/shop/${encodeURIComponent(cleanShop)}/report/${encodeURIComponent(cleanToken)}`;
+  }
+  return `${cleanOrigin}/report/${encodeURIComponent(cleanToken)}`;
 }
 
 
@@ -203,7 +207,7 @@ export function resolveAppRoute(
     }
   }
 
-  const directReportMatch = effectivePath.match(/^\/(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i);
+  const directReportMatch = effectivePath.match(/^\/(?:(?:shop|lab|labs|vendor|v)\/)?(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i);
   if (directReportMatch && directReportMatch[1]) {
     const rawToken = decodeURIComponent(directReportMatch[1]).trim();
     const resolvedLab = labParam ? findMatchingLabId(labParam, vendorLabsList) : undefined;
@@ -233,7 +237,7 @@ export function resolveAppRoute(
       }
     }
 
-    const hashDirectReportMatch = cleanHash.match(/^\/?(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i);
+    const hashDirectReportMatch = cleanHash.match(/^\/?(?:(?:shop|lab|labs|vendor|v)\/)?(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i);
     if (hashDirectReportMatch && hashDirectReportMatch[1]) {
       const rawToken = decodeURIComponent(hashDirectReportMatch[1]).trim();
       return {

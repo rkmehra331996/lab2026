@@ -96,7 +96,20 @@ export default function App() {
   });
   const [language, setLanguage] = useState<Language>('en');
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
-  const [selectedReportId, setSelectedReportId] = useState('');
+  const [selectedReportId, setSelectedReportId] = useState<string>(() => {
+    try {
+      const resolution = resolveAppRoute(
+        typeof window !== 'undefined' ? window.location.hostname : '',
+        typeof window !== 'undefined' ? window.location.search : '',
+        undefined,
+        typeof window !== 'undefined' ? window.location.pathname : '',
+        typeof window !== 'undefined' ? window.location.hash : ''
+      );
+      return resolution.targetReport || '';
+    } catch {
+      return '';
+    }
+  });
   const [selectedPatientMobile, setSelectedPatientMobile] = useState('');
   const [selectedPatientName, setSelectedPatientName] = useState('');
 
@@ -346,6 +359,10 @@ export default function App() {
         }
       }
 
+      if (resolution.targetReport) {
+        setSelectedReportId(resolution.targetReport);
+      }
+
       if (resolution.view && !resolution.targetLab && resolution.view !== currentView) {
         setCurrentView(resolution.view);
       }
@@ -377,6 +394,9 @@ export default function App() {
         }
         if (resolution.targetLab) {
           fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList);
+        }
+        if (resolution.targetReport) {
+          setSelectedReportId(resolution.targetReport);
         }
         if (resolution.view) {
           setCurrentView(resolution.view);

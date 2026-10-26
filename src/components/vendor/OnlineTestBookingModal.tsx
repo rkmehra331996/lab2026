@@ -468,9 +468,11 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
             address: confirmedEntry.address,
             timeSlot: confirmedEntry.preferredTimeSlot,
             upiTransactionRef: confirmedEntry.upiTransactionRef,
+            labId: effectiveLabId || confirmedEntry.labId,
             labName: labName,
             labPhone: labPhone,
             notes: confirmedEntry.notes,
+            bookingSource: 'Website Booking',
           }}
           onClose={onClose}
           onBookAnother={() => {
