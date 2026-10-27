@@ -190,8 +190,8 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
   // Stats calculation
   const stats = useMemo(() => {
     const total = vendorLabsList.length;
-    const draft = vendorLabsList.filter((v) => v.status === 'Draft').length;
-    const active = vendorLabsList.filter((v) => v.status === 'Active').length;
+    const draft = vendorLabsList.filter((v) => v.status === 'Draft' || !v.isWebsiteApproved).length;
+    const active = vendorLabsList.filter((v) => v.status === 'Active' && v.isWebsiteApproved).length;
     const pending = vendorLabsList.filter((v) => v.status === 'Pending').length;
     const processingPayment = vendorLabsList.filter(
       (v) => v.status === 'Processing due to payment confirmation'
@@ -220,7 +220,8 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
         if (v.status !== 'Active') return false;
       } else if (viewMode === 'drafts') {
         // Website Draft Tab: Strictly Draft / Unpublished labs only
-        if (v.status !== 'Draft' && v.isWebsiteApproved) return false;
+        const isDraft = v.status === 'Draft' || !v.isWebsiteApproved;
+        if (!isDraft) return false;
       } else if (statusFilter !== 'All' && v.status !== statusFilter) {
         return false;
       }
@@ -376,13 +377,19 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     }
   };
 
-  const handleOpenLabWebsite = (vendor: VendorLabDirectoryItem | string) => {
+  const handleOpenLabWebsite = (vendor: VendorLabDirectoryItem | string, isPreview = false) => {
     const labItem = typeof vendor === 'string' ? vendorLabsList.find((l) => l.id === vendor) : vendor;
     const labId = typeof vendor === 'string' ? vendor : vendor.id;
     selectVendorLab(labId);
+    if (isPreview || labItem?.status === 'Draft' || !labItem?.isWebsiteApproved || viewMode === 'drafts') {
+      try {
+        sessionStorage.setItem('admin_preview_draft', 'true');
+        sessionStorage.setItem(`admin_preview_draft_${labId}`, 'true');
+      } catch {}
+    }
     try {
       const slug = labItem?.slug || labId.replace(/^lab-/, '');
-      window.history.pushState({}, '', `/shop/${slug}`);
+      window.history.pushState({}, '', `/shop/${slug}${isPreview || viewMode === 'drafts' ? '?preview=true' : ''}`);
     } catch {}
     onNavigateView('vendor_website');
   };
@@ -887,7 +894,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                   {/* Footer: Action Buttons */}
                   <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
                     {viewMode === 'drafts' ? (
-                      <div className="flex items-center justify-between gap-2 w-full">
+                      <div className="flex items-center justify-between gap-1.5 w-full flex-wrap sm:flex-nowrap">
                         {/* Publish Live Button */}
                         <button
                           type="button"
@@ -906,12 +913,24 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                         {/* Preview Draft Website */}
                         <button
                           type="button"
-                          onClick={() => handleOpenLabWebsite(vendor.id)}
-                          className="py-2 px-3 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer shrink-0"
-                          title="Preview Draft Website"
+                          id={`btn-preview-draft-${vendor.id}`}
+                          onClick={() => handleOpenLabWebsite(vendor.id, true)}
+                          className="py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer shrink-0"
+                          title="Preview Draft Website Layout & Tests"
                         >
-                          <Eye className="w-3.5 h-3.5 text-slate-600" />
-                          <span className="hidden sm:inline">Preview</span>
+                          <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Preview</span>
+                        </button>
+
+                        {/* Edit Lab Details */}
+                        <button
+                          type="button"
+                          id={`btn-edit-draft-${vendor.id}`}
+                          onClick={() => handleOpenEditModal(vendor)}
+                          className="w-8 h-8 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                          title="Edit Lab & Website Details (नाम, पता, फोन, NABL)"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-amber-700" />
                         </button>
 
                         {/* Edit (password only) */}

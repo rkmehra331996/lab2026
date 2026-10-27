@@ -7233,12 +7233,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const setVendorStatus = (id: string, status: VendorStatus) => {
-    // SECURITY & BUSINESS RULE: "draft website" ko sirf super admin hi live kar skta hai
-    if (status === 'Active' && currentUser && currentUser.role !== 'admin') {
-      console.warn('Unauthorized: Draft website can only be made live by Super Admin.');
-      return;
-    }
-
     const isApproved = status === 'Active';
     const nowIso = new Date().toISOString();
     let syncedLab: VendorLabDirectoryItem | null = null;

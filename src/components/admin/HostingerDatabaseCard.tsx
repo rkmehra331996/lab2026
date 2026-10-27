@@ -84,6 +84,30 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
     }
   };
 
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+
+  const handleDownloadHostingerZip = () => {
+    setIsDownloadingZip(true);
+    showToast('📦 Downloading fresh Hostinger build zip package (Latest Updated Version)...');
+    try {
+      const now = new Date();
+      const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${Date.now().toString().slice(-4)}`;
+      const downloadFilename = `indianalala_hostinger_build_latest_${timestamp}.zip`;
+
+      const link = document.createElement('a');
+      link.href = `/api/download-hostinger-build?t=${Date.now()}`;
+      link.download = downloadFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('✅ Latest build zip downloaded! Upload this fresh zip to Hostinger public_html.');
+    } catch {
+      showToast('❌ Failed to trigger build download.');
+    } finally {
+      setTimeout(() => setIsDownloadingZip(false), 2000);
+    }
+  };
+
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedStep(id);
@@ -131,19 +155,17 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <a
-            href="/indianalala_hostinger_build.zip"
-            download="indianalala_hostinger_build.zip"
-            onClick={(e) => {
-              const freshUrl = `/indianalala_hostinger_build.zip?t=${Date.now()}`;
-              e.currentTarget.href = freshUrl;
-              showToast('📦 Downloading ready Hostinger build zip package...');
-            }}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95 shrink-0 text-decoration-none"
+          <button
+            type="button"
+            id="btn-download-hostinger-build-zip"
+            onClick={handleDownloadHostingerZip}
+            disabled={isDownloadingZip}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95 shrink-0 disabled:opacity-60"
+            title="Download latest Hostinger build zip with all latest updates (Website Draft, WhatsApp Web, Receipts)"
           >
             <Download className="w-4 h-4 text-emerald-100" />
-            <span>📦 Download Ready Build Zip (Ready for Hostinger)</span>
-          </a>
+            <span>{isDownloadingZip ? '📦 Preparing Fresh Package...' : '📦 Download Ready Build Zip (Latest Updated Version)'}</span>
+          </button>
 
           <button
             type="button"
@@ -154,6 +176,20 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
             <span>Download SQL Dump (.sql)</span>
           </button>
         </div>
+      </div>
+
+      {/* Fresh Version Active Badge */}
+      <div className="bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-xl px-4 py-2.5 text-xs flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-extrabold text-emerald-900">ताज़ा अपडेटेड वर्शन (Latest Build v2.5 Ready):</span>
+          <span className="text-emerald-800 text-[11px]">
+            Website Draft, WhatsApp Web Slip, Standardized Receipts, PWA Shortcuts &amp; MySQL Sync शामिल हैं।
+          </span>
+        </div>
+        <span className="text-[10px] font-mono font-bold bg-emerald-200 text-emerald-950 px-2 py-0.5 rounded border border-emerald-300">
+          Build 2026-10-27 (Fresh)
+        </span>
       </div>
 
       {/* 4 Step Setup Guide in Hindi */}

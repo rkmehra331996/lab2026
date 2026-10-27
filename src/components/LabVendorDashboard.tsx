@@ -744,7 +744,13 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
             <button
               type="button"
               id="owner-btn-back"
-              onClick={() => onNavigateView('vendor_website')}
+              onClick={() => {
+                try {
+                  sessionStorage.setItem('admin_preview_draft', 'true');
+                  if (selectedVendorLabId) sessionStorage.setItem(`admin_preview_draft_${selectedVendorLabId}`, 'true');
+                } catch {}
+                onNavigateView('vendor_website');
+              }}
               className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
               title="Back to Laboratory Website"
             >
@@ -2183,7 +2189,13 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
             {/* 1. VENDOR'S OWN WEBSITE CMS & SECTIONS ON/OFF TAB */}
             {(activeTab === 'website' || activeTab === 'profile') && (
               <VendorWebsiteCmsTab
-                onPreviewWebsite={() => onNavigateView('vendor_website')}
+                onPreviewWebsite={() => {
+                  try {
+                    sessionStorage.setItem('admin_preview_draft', 'true');
+                    if (selectedVendorLabId) sessionStorage.setItem(`admin_preview_draft_${selectedVendorLabId}`, 'true');
+                  } catch {}
+                  onNavigateView('vendor_website');
+                }}
                 activeSubTab={websiteSubTab}
                 onSubTabChange={(sub) => setWebsiteSubTab(sub)}
               />
@@ -2199,7 +2211,13 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
           <VendorTestsTab
             activeSubTab={testSubTab}
             onSubTabChange={(tab) => setTestSubTab(tab)}
-            onPreviewWebsite={() => onNavigateView('vendor_website')}
+            onPreviewWebsite={() => {
+              try {
+                sessionStorage.setItem('admin_preview_draft', 'true');
+                if (selectedVendorLabId) sessionStorage.setItem(`admin_preview_draft_${selectedVendorLabId}`, 'true');
+              } catch {}
+              onNavigateView('vendor_website');
+            }}
           />
         )}
 

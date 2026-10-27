@@ -570,7 +570,16 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   } | null>(null);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [isAdminPreviewingDraft, setIsAdminPreviewingDraft] = useState(false);
+  const [isAdminPreviewingDraft, setIsAdminPreviewingDraft] = useState<boolean>(() => {
+    try {
+      const search = window.location.search || '';
+      if (search.includes('preview=true') || search.includes('preview=draft') || search.includes('mode=draft')) return true;
+      if (sessionStorage.getItem('admin_preview_draft') === 'true') return true;
+      const curId = currentLabItem?.id;
+      if (curId && sessionStorage.getItem(`admin_preview_draft_${curId}`) === 'true') return true;
+    } catch {}
+    return false;
+  });
 
   // Close modals on Escape key
   useEffect(() => {
@@ -1748,43 +1757,57 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
             {/* Action Buttons */}
             <div className="space-y-2.5 pt-1">
-              {currentUser?.role === 'admin' ? (
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (currentLabItem) {
-                        setVendorStatus(currentLabItem.id, 'Active');
-                      }
-                    }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-4 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-white" />
-                    <span>Approve & Publish Live Now</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAdminPreviewingDraft(true)}
-                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer border border-slate-300"
-                  >
-                    <Eye className="w-4 h-4 text-slate-600" />
-                    <span>Preview Website Layout (ड्राफ्ट वेबसाइट प्रीव्यू देखें)</span>
-                  </button>
-                  <p className="text-[11px] text-slate-500">
-                    Clicking "Approve" will make this website instantly live and move the laboratory to "Our Clients".
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  id="btn-preview-draft-layout"
+                  onClick={() => {
+                    setIsAdminPreviewingDraft(true);
+                    try {
+                      sessionStorage.setItem('admin_preview_draft', 'true');
+                      if (currentLabItem?.id) sessionStorage.setItem(`admin_preview_draft_${currentLabItem.id}`, 'true');
+                    } catch {}
+                  }}
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  <Eye className="w-4 h-4 text-slate-950" />
+                  <span>Preview Website Layout (ड्राफ्ट वेबसाइट प्रीव्यू देखें)</span>
+                </button>
+
+                <button
+                  type="button"
+                  id="btn-approve-publish-draft"
+                  onClick={() => {
+                    if (currentLabItem) {
+                      setVendorStatus(currentLabItem.id, 'Active');
+                      setIsAdminPreviewingDraft(false);
+                    }
+                  }}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>Approve &amp; Publish Live Now (लाइव पब्लिश करें)</span>
+                </button>
+
+                <div className="flex items-center gap-2 pt-1">
+                  {onOpenAdminDashboard && (
+                    <button
+                      type="button"
+                      onClick={onOpenAdminDashboard}
+                      className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition cursor-pointer border border-slate-200"
+                    >
+                      ← Super Admin
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={onOpenSoftwareWebsite}
-                    className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold px-4 py-2.5 rounded-xl text-xs transition cursor-pointer shadow-xs"
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition cursor-pointer border border-slate-200"
                   >
-                    Return to Main Portal
+                    🏠 Main Portal
                   </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </main>
@@ -2569,11 +2592,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans selection:bg-[#123B6D]/15 selection:text-[#123B6D]">
       {/* Super Admin Website Live Control & Status Banner */}
-      {currentUser?.role === 'admin' && (
+      {(currentUser?.role === 'admin' || isAdminPreviewingDraft || (currentLabItem && (currentLabItem.status === 'Draft' || !currentLabItem.isWebsiteApproved))) && (
         <div className="bg-slate-950 text-white px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 shadow-md sticky top-0 z-50">
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className="bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
-              Super Admin Mode
+              {isAdminPreviewingDraft || (currentLabItem && (currentLabItem.status === 'Draft' || !currentLabItem.isWebsiteApproved)) ? 'Draft Preview Mode' : 'Super Admin Mode'}
             </span>
             <span className="text-slate-300">
               Previewing Lab Website: <strong className="text-white">{labName}</strong>

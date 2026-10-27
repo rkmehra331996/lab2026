@@ -1026,13 +1026,17 @@ export const WebsiteBackupTab: React.FC<WebsiteBackupTabProps> = ({
                       <button
                         type="button"
                         onClick={() => {
+                          try {
+                            sessionStorage.setItem('admin_preview_draft', 'true');
+                            sessionStorage.setItem(`admin_preview_draft_${matchedCustomer.id}`, 'true');
+                          } catch {}
                           selectVendorLab(matchedCustomer.id);
                           setSelectedVendorLabId(matchedCustomer.id);
                           if (onNavigateView) onNavigateView('vendor_website');
                         }}
-                        className="py-2 px-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+                        className="py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5 text-slate-600" />
+                        <Eye className="w-3.5 h-3.5 text-indigo-600" />
                         <span>Preview Draft</span>
                       </button>
                     </>
