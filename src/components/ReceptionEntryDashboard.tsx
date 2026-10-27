@@ -1415,17 +1415,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
             {/* Hostinger MySQL Sync Button */}
             <SyncNowButton variant="teal" />
 
-            {/* Quick jump to Technician Testing Workstation */}
-            <button
-              type="button"
-              onClick={() => onNavigateView('technician_dashboard')}
-              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer whitespace-nowrap"
-              title="Go to Technician Testing Workstation"
-            >
-              <FlaskConical className="w-3.5 h-3.5 text-emerald-200" />
-              <span className="hidden sm:inline">Technician Workstation</span>
-              <span className="sm:hidden">Lab Workstation</span>
-            </button>
 
             {/* If Admin is inspecting Reception Desk, provide quick return to Lab Owner CMS */}
             {currentUser?.role === 'admin' && (
