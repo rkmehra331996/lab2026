@@ -243,11 +243,12 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
 
   // Handlers
   const handleOpenAddModal = () => {
+    const defaultToDraft = viewMode === 'drafts';
     setFormState({
       ...initialFormState,
-      status: 'Draft',
-      isWebsiteApproved: false,
-      badge: 'Draft - Pending Admin Approval',
+      status: defaultToDraft ? 'Draft' : 'Active',
+      isWebsiteApproved: !defaultToDraft,
+      badge: defaultToDraft ? 'Draft - Pending Admin Approval' : 'Verified Lab',
       joinedDate: new Date().toISOString().split('T')[0],
       password: 'owner123',
       pin: '123456',
@@ -352,18 +353,19 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       showToast(`Updated laboratory: ${formState.name} (https://${finalDirectoryUrl})`);
       setEditingVendor(null);
     } else {
-      // When a new website is created, it ALWAYS starts in DRAFT mode
-      // Admin approval is strictly required before the website can be visited/live
+      const isApproved = formState.status === 'Active';
       addVendorLab({
         ...formState,
         domainPreview: finalDirectoryUrl,
         websiteUrl: `https://${finalDirectoryUrl}`,
-        status: 'Draft',
-        isWebsiteApproved: false,
-        badge: 'Draft - Pending Admin Approval',
+        status: formState.status || (isApproved ? 'Active' : 'Draft'),
+        isWebsiteApproved: isApproved,
+        badge: isApproved ? 'Verified Lab' : 'Draft - Pending Admin Approval',
       });
       showToast(
-        `Created lab "${formState.name}" in DRAFT mode. Directory URL: https://${finalDirectoryUrl}`
+        isApproved
+          ? `✅ Created lab "${formState.name}" as LIVE & Published! Directory URL: https://${finalDirectoryUrl}`
+          : `Created lab "${formState.name}" in DRAFT mode. Open Website Draft tab to review and publish.`
       );
       setIsAddModalOpen(false);
     }

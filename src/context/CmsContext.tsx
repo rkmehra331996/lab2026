@@ -7130,25 +7130,26 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Vendor Lab Directory Management
   const addVendorLab = (vendor: Omit<VendorLabDirectoryItem, 'id'>): VendorLabDirectoryItem => {
-    // Strict Business Rule: Lab create hone ke baad ALWAYS Draft me rahegi jab tak Super Admin approve nahi karta
     const randomSuffix = Math.random().toString(36).slice(2, 7);
     const newLabId = (vendor as any).id || `lab-${Date.now()}-${randomSuffix}`;
+    const targetStatus = vendor.status || 'Active';
+    const isApproved = Boolean(vendor.isWebsiteApproved ?? (targetStatus === 'Active'));
     const newLab: VendorLabDirectoryItem = {
       ...vendor,
       id: newLabId,
       logoUrl: vendor.logoUrl || '',
-      status: 'Draft',
-      isWebsiteApproved: false,
-      badge: 'Draft - Pending Admin Approval',
+      status: targetStatus,
+      isWebsiteApproved: isApproved,
+      badge: vendor.badge || (isApproved ? 'Verified Lab' : 'Draft - Pending Admin Approval'),
     };
     setVendorLabsList((prev) => [newLab, ...prev]);
     syncVendorLabToCloud(newLab);
 
-    // Ensure settings map entry exists for this lab and is strictly initialized in Draft mode
+    // Ensure settings map entry exists for this lab
     setVendorLabSettingsMap((prev) => {
       const defaultSettings = buildDefaultSettingsForLab(newLab);
-      defaultSettings.status = 'Draft';
-      defaultSettings.isWebsiteApproved = false;
+      defaultSettings.status = targetStatus;
+      defaultSettings.isWebsiteApproved = isApproved;
       syncLabSettingsToCloud(newLabId, defaultSettings);
       return {
         ...prev,
@@ -7233,6 +7234,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const setVendorStatus = (id: string, status: VendorStatus) => {
+    // STRICT BUSINESS RULE: bina admin ke approval ke bina website publish nahi honi chahiye
+    if (status === 'Active' && currentUser && currentUser.role !== 'admin') {
+      try {
+        const isUnlocked = sessionStorage.getItem('super_admin_unlocked') === 'true';
+        if (!isUnlocked) {
+          console.warn('❌ Security Violation: Website cannot be published without Super Admin approval.');
+          return;
+        }
+      } catch {}
+    }
+
     const isApproved = status === 'Active';
     const nowIso = new Date().toISOString();
     let syncedLab: VendorLabDirectoryItem | null = null;

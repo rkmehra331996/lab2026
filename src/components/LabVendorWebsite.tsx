@@ -570,6 +570,16 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   } | null>(null);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [showAdminPinModal, setShowAdminPinModal] = useState(false);
+  const [adminPinInput, setAdminPinInput] = useState("");
+  const [adminPinError, setAdminPinError] = useState("");
+  const [isSuperAdminUnlocked, setIsSuperAdminUnlocked] = useState(() => {
+    try {
+      return sessionStorage.getItem("super_admin_unlocked") === "true";
+    } catch {
+      return false;
+    }
+  });
   const [isAdminPreviewingDraft, setIsAdminPreviewingDraft] = useState<boolean>(() => {
     try {
       const search = window.location.search || '';
@@ -1755,59 +1765,164 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons: Strictly Super Admin Only for Publishing */}
             <div className="space-y-2.5 pt-1">
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  id="btn-preview-draft-layout"
-                  onClick={() => {
-                    setIsAdminPreviewingDraft(true);
-                    try {
-                      sessionStorage.setItem('admin_preview_draft', 'true');
-                      if (currentLabItem?.id) sessionStorage.setItem(`admin_preview_draft_${currentLabItem.id}`, 'true');
-                    } catch {}
-                  }}
-                  className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-                >
-                  <Eye className="w-4 h-4 text-slate-950" />
-                  <span>Preview Website Layout (ड्राफ्ट वेबसाइट प्रीव्यू देखें)</span>
-                </button>
+              {currentUser?.role === 'admin' || isSuperAdminUnlocked ? (
+                <div className="space-y-2">
+                  <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2.5 text-xs text-emerald-950 font-bold flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Super Admin Verified • Approval Controls Unlocked</span>
+                  </div>
 
-                <button
-                  type="button"
-                  id="btn-approve-publish-draft"
-                  onClick={() => {
-                    if (currentLabItem) {
-                      setVendorStatus(currentLabItem.id, 'Active');
-                      setIsAdminPreviewingDraft(false);
-                    }
-                  }}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                  <span>Approve &amp; Publish Live Now (लाइव पब्लिश करें)</span>
-                </button>
+                  <button
+                    type="button"
+                    id="btn-approve-publish-draft"
+                    onClick={() => {
+                      if (currentLabItem) {
+                        setVendorStatus(currentLabItem.id, 'Active');
+                        setIsAdminPreviewingDraft(false);
+                      }
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                    <span>Approve &amp; Publish Live Now (लाइव पब्लिश करें)</span>
+                  </button>
 
-                <div className="flex items-center gap-2 pt-1">
-                  {onOpenAdminDashboard && (
+                  <button
+                    type="button"
+                    id="btn-preview-draft-layout"
+                    onClick={() => {
+                      setIsAdminPreviewingDraft(true);
+                      try {
+                        sessionStorage.setItem('admin_preview_draft', 'true');
+                        if (currentLabItem?.id) sessionStorage.setItem(`admin_preview_draft_${currentLabItem.id}`, 'true');
+                      } catch {}
+                    }}
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer border border-slate-300"
+                  >
+                    <Eye className="w-4 h-4 text-slate-600" />
+                    <span>Preview Website Layout (ड्राफ्ट वेबसाइट प्रीव्यू देखें)</span>
+                  </button>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    {onOpenAdminDashboard && (
+                      <button
+                        type="button"
+                        onClick={onOpenAdminDashboard}
+                        className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition cursor-pointer border border-slate-200"
+                      >
+                        ← Super Admin
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={onOpenAdminDashboard}
+                      onClick={onOpenSoftwareWebsite}
                       className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition cursor-pointer border border-slate-200"
                     >
-                      ← Super Admin
+                      🏠 Main Portal
                     </button>
-                  )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 text-xs text-amber-950 text-left">
+                    <div className="flex items-center gap-1.5 font-black text-amber-900 mb-1">
+                      <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+                      <span>Super Admin Approval Required (सुपर एडमिन अप्रूवल आवश्यक)</span>
+                    </div>
+                    <p className="text-[11px] text-amber-900/90 leading-relaxed">
+                      बिना प्लेटफ़ॉर्म सुपर एडमिन के अप्रूवल के वेबसाइट लाइव नहीं हो सकती। वेबसाइट रिव्यू या एक्टिवेशन के लिए कृपया सुपर एडमिन से संपर्क करें:
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href="tel:7087033009"
+                      className="bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                      <span>Call Admin</span>
+                    </a>
+                    <a
+                      href="https://wa.me/917087033009?text=Hello%20Super%20Admin,%20please%20approve%20and%20make%20my%20lab%20website%20live."
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <span>WhatsApp Admin</span>
+                    </a>
+                  </div>
+
                   <button
                     type="button"
                     onClick={onOpenSoftwareWebsite}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition cursor-pointer border border-slate-200"
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer border border-slate-200"
                   >
-                    🏠 Main Portal
+                    🏠 Main Portal Home
                   </button>
+
+                  {/* Super Admin Login / PIN Unlock */}
+                  <div className="pt-2 border-t border-slate-100">
+                    {showAdminPinModal ? (
+                      <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-left">
+                        <label className="block text-[11px] font-bold text-slate-800">
+                          Super Admin PIN (सुरक्षा पिन दर्ज करें):
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="password"
+                            maxLength={6}
+                            value={adminPinInput}
+                            onChange={(e) => {
+                              setAdminPinInput(e.target.value.replace(/\D/g, ''));
+                              setAdminPinError('');
+                            }}
+                            placeholder="Enter PIN (123456)"
+                            className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (adminPinInput === '123456' || adminPinInput === '708703') {
+                                setIsSuperAdminUnlocked(true);
+                                try {
+                                  sessionStorage.setItem('super_admin_unlocked', 'true');
+                                } catch {}
+                                setShowAdminPinModal(false);
+                              } else {
+                                setAdminPinError('गलत PIN! केवल सुपर एडमिन ही अप्रूव कर सकते हैं।');
+                              }
+                            }}
+                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-black cursor-pointer shadow-xs"
+                          >
+                            Verify
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowAdminPinModal(false)}
+                            className="text-slate-400 hover:text-slate-600 px-2 py-1 text-xs"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        {adminPinError && (
+                          <p className="text-[10px] text-rose-600 font-bold">{adminPinError}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminPinModal(true)}
+                        className="text-[11px] text-slate-500 hover:text-[#123B6D] font-semibold flex items-center justify-center gap-1 w-full mx-auto cursor-pointer"
+                      >
+                        <Lock className="w-3 h-3" />
+                        <span>Super Admin Approval Login</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </main>
@@ -2481,23 +2596,18 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
           </div>
 
           <div className="w-full grid grid-cols-3 gap-1.5 text-xs">
-            <a
-              href={qrWebsiteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => {
-                if (typeof window !== 'undefined' && (window.location.href === qrWebsiteUrl || qrWebsiteUrl.endsWith(window.location.pathname))) {
-                  e.preventDefault();
-                  setHasEnteredWebsite(true);
-                  setIsWebsiteQrModalOpen(false);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
+            <button
+              type="button"
+              onClick={() => {
+                setHasEnteredWebsite(true);
+                setIsWebsiteQrModalOpen(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className="bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-2 rounded-xl font-bold flex items-center justify-center gap-1 transition shadow-xs text-[11px] cursor-pointer"
             >
-              <ExternalLink className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-              <span className="truncate">Visit Website</span>
-            </a>
+              <Globe className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span className="truncate">Explore Site</span>
+            </button>
             <button
               type="button"
               onClick={() => {
