@@ -4895,6 +4895,20 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 <li>
                   <button
                     type="button"
+                    id="btn-footer-home-screen-shortcut"
+                    onClick={() => setIsDownloadAppModalOpen(true)}
+                    className="hover:text-[#123B6D] text-emerald-700 font-bold flex items-center gap-1.5 cursor-pointer text-left transition"
+                  >
+                    <BookmarkPlus className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Home Screen Shortcut</span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold border border-emerald-200">
+                      1-Tap Add
+                    </span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
                     id="btn-footer-visit-website"
                     onClick={() => setIsWebsiteQrModalOpen(true)}
                     className="hover:text-[#123B6D] text-indigo-700 font-bold flex items-center gap-1.5 cursor-pointer text-left transition"
