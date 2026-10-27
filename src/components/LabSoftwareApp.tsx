@@ -42,7 +42,7 @@ import {
   LayoutGrid,
   List,
 } from 'lucide-react';
-import { Patient, TestItem, LabReport, ReportItem, ReceptionPatientEntry } from '../types';
+import { Patient, TestItem, LabReport, ReportItem, ReceptionPatientEntry, AppView } from '../types';
 import { CreateReportModal } from './CreateReportModal';
 import { ReportDetailModal } from './ReportDetailModal';
 import { SyncNowButton } from './SyncNowButton';
@@ -59,12 +59,14 @@ import { WebsiteTokenReceiptCard } from './vendor/WebsiteTokenReceiptCard';
 interface LabSoftwareAppProps {
   onBackToWebsite: () => void;
   onViewReport: (reportId: string, mobile: string) => void;
+  onNavigateView?: (view: AppView) => void;
   isEmbedded?: boolean;
 }
 
 export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
   onBackToWebsite,
   onViewReport,
+  onNavigateView,
   isEmbedded = false,
 }) => {
   const {
@@ -142,19 +144,9 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
     return todayDateStr;
   };
 
-  // Transferred reception entries: Only entries transferred when receptionist clicks "Sent to Lab"
+  // Transferred reception entries: All entries from active vendor's reception desk
   const transferredReceptionEntries = useMemo(() => {
-    return receptionEntries.filter((r) => {
-      return Boolean(
-        r.sentToTechnician ||
-        r.technicianStatus === 'Sent to Lab' ||
-        r.technicianStatus === 'Accepted' ||
-        r.technicianStatus === 'Report Generated' ||
-        r.status === 'In Lab' ||
-        r.status === 'Report Ready' ||
-        Boolean(r.reportId)
-      );
-    });
+    return receptionEntries;
   }, [receptionEntries]);
 
   // Tenant-isolated patients derived directly from active vendor's transferred reception queue
@@ -974,13 +966,13 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
       doctor: pat.referringDoctor,
       sampleCollectedAt: 'Today, 08:30 AM',
       reportedAt: 'Today, ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      labName: vendorLabSettings.labName || vendorLabSettings.name || 'LAB 1 DIAGNOSTIC CENTRE',
-      labAddress: vendorLabSettings.address || 'Medical Complex, India',
-      labPhone: vendorLabSettings.phone || '+91 1020304050',
-      labEmail: vendorLabSettings.email || 'care@' + (vendorLabSettings.domainPreview || '1020304050.indianlalaji.com').split('/')[0],
-      labDomain: vendorLabSettings.domainPreview || vendorLabSettings.websiteDomain || vendorLabSettings.websiteUrl || '1020304050.indianlalaji.com',
-      labTimings: vendorLabSettings.openingHours || vendorLabSettings.emergencyHours || '07:00 AM - 09:00 PM',
-      nablAccreditationNo: vendorLabSettings.nablAccreditationNo || 'NABL Accredited',
+      labName: vendorLabSettings?.labName || vendorLabSettings?.name || labName || 'Apex Diagnostic & Clinical Pathology Laboratory',
+      labAddress: vendorLabSettings?.address || 'Medical Complex, India',
+      labPhone: vendorLabSettings?.phone || '+91 7087033009',
+      labEmail: vendorLabSettings?.email || 'care@' + (vendorLabSettings?.domainPreview || 'apexdiagnostics.indianlalaji.com').split('/')[0],
+      labDomain: vendorLabSettings?.domainPreview || vendorLabSettings?.websiteDomain || vendorLabSettings?.websiteUrl || 'apexdiagnostics.indianlalaji.com',
+      labTimings: vendorLabSettings?.openingHours || vendorLabSettings?.emergencyHours || '07:00 AM - 09:00 PM',
+      nablAccreditationNo: vendorLabSettings?.nablAccreditationNo || 'NABL Accredited',
       pathologist: 'Dr. Rohit Sharma, MD (Pathology)',
       pathologistDegrees: 'Consultant Pathologist • Reg No: PMC-48192',
       barcode: '||||| | |||| ||| |||||| ||||| |||',
@@ -989,7 +981,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
       items,
       clinicalImpression: workstationImpression,
       clinicNote: workstationImpression,
-      labId: pat.labId || vendorLabSettings.labId || (activeTenantId !== 'all' ? activeTenantId : 'lab'),
+      labId: pat.labId || vendorLabSettings?.labId || (activeTenantId !== 'all' ? activeTenantId : 'lab'),
     };
 
     addLabReport(rpt);
@@ -1129,6 +1121,61 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
           </div>
         </div>
       </header>
+
+      {/* Technician Secondary Navigation Bar */}
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2 shadow-2xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              id="tech-nav-workstation"
+              onClick={() => setActiveTab('dashboard')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                activeTab === 'dashboard'
+                  ? 'bg-[#123B6D] text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <FlaskConical className="w-3.5 h-3.5" />
+              <span>Testing Workstation ({countAll})</span>
+            </button>
+
+            <button
+              type="button"
+              id="tech-nav-reception-orders"
+              onClick={() => setActiveTab('reception_orders')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                activeTab === 'reception_orders'
+                  ? 'bg-[#0F766E] text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Reception Specimen Handover</span>
+              {awaitingAcceptCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 animate-pulse">
+                  {awaitingAcceptCount} new
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Quick link to Reception Desk */}
+          {onNavigateView && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onNavigateView('reception_dashboard')}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                title="Open Reception Desk & Billing Counter"
+              >
+                <span>🖥️</span>
+                <span>Go to Reception Desk</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Offline Alert Banner if simulated offline */}
       {isOffline && (
@@ -2770,7 +2817,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
                                 type="button"
                                 onClick={() => {
                                   const text = encodeURIComponent(
-                                    `*${vendorLabSettings.labName}*\nHello ${entry.patientName}, your test report (${entry.reportId}) for ${entry.tests.join(', ')} is ready!\n\nView online at: ${window.location.origin}?report=${entry.reportId}`
+                                    `*${vendorLabSettings?.labName || labName}*\nHello ${entry.patientName}, your test report (${entry.reportId}) for ${entry.tests.join(', ')} is ready!\n\nView online at: ${window.location.origin}?report=${entry.reportId}`
                                   );
                                   window.open(`https://wa.me/91${entry.mobile.replace(/\D/g, '')}?text=${text}`, '_blank');
                                 }}
@@ -3040,8 +3087,8 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
               upiTransactionRef: selectedReceipt.upiTransactionRef,
               labId: selectedReceipt.labId || (activeTenantId !== 'all' ? activeTenantId : selectedVendorLabId),
               labName: labName,
-              labPhone: vendorLabSettings.phone || '+91 7087033009',
-              labAddress: vendorLabSettings.address,
+              labPhone: vendorLabSettings?.phone || '+91 7087033009',
+              labAddress: vendorLabSettings?.address || 'Medical Complex, India',
               bookingSource: selectedReceipt.bookingSource || 'Central Lab Workstation',
               notes: selectedReceipt.notes,
             }}

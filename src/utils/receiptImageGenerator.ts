@@ -283,3 +283,32 @@ export function downloadReceiptImage(dataUrl: string, filename: string): void {
   link.click();
   document.body.removeChild(link);
 }
+
+/**
+ * Uploads the generated receipt image to the server storage to obtain a permanent, publicly shareable link
+ * that can be directly attached/opened in WhatsApp chats.
+ */
+export async function uploadReceiptSlipImage(dataUrl: string, prefix: string = 'slip'): Promise<string | null> {
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: dataUrl,
+        prefix: prefix,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if ((data.status === 'success' || data.url) && data.url) {
+        const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '';
+        const cleanUrl: string = data.url;
+        return cleanUrl.startsWith('http') ? cleanUrl : `${origin}${cleanUrl}`;
+      }
+    }
+  } catch (err) {
+    console.warn('[uploadReceiptSlipImage error]:', err);
+  }
+  return null;
+}
+

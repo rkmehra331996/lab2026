@@ -60,6 +60,7 @@ import {
   Layers,
   CreditCard,
   IndianRupee,
+  LogOut,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -783,6 +784,44 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Top Actions: Visit Website and Logout */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* Visit Website Button */}
+            <button
+              type="button"
+              id="owner-header-visit-website-btn"
+              onClick={() => {
+                try {
+                  sessionStorage.setItem('admin_preview_draft', 'true');
+                  if (selectedVendorLabId) sessionStorage.setItem(`admin_preview_draft_${selectedVendorLabId}`, 'true');
+                } catch {}
+                onNavigateView('vendor_website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-emerald-400/30 cursor-pointer shrink-0"
+              title="Visit Laboratory Website"
+            >
+              <Globe className="w-3.5 h-3.5 text-emerald-200" />
+              <span>Visit website</span>
+            </button>
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              id="owner-header-logout-btn"
+              onClick={() => {
+                logout();
+                onNavigateView('vendor_website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-white/15 hover:bg-rose-600 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border border-white/20 hover:border-rose-400 cursor-pointer shrink-0"
+              title="Logout from Lab Owner Dashboard"
+            >
+              <LogOut className="w-3.5 h-3.5 text-amber-300" />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </header>

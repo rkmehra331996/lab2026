@@ -831,6 +831,7 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+        <RoleContextBanner currentView={currentView} onNavigateView={(v) => setCurrentView(v)} />
         <ErrorBoundary
           fallbackTitle="Reception & Billing Dashboard"
           fallbackMessage="Reception dashboard load karte waqt ek error aayi. Please Retry karein."
@@ -883,6 +884,7 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+        <RoleContextBanner currentView={currentView} onNavigateView={(v) => setCurrentView(v)} />
         <ErrorBoundary
           fallbackTitle="Technician Testing Workstation"
           fallbackMessage="Technician workstation load karte waqt ek error aayi. Please Retry karein."
@@ -890,6 +892,10 @@ export default function App() {
           <LabSoftwareApp
             onBackToWebsite={handleBackToWebsite}
             onViewReport={handleViewPatientPortal}
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         </ErrorBoundary>
         <CmsAuthModal

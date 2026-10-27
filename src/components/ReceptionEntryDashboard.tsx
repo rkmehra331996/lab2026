@@ -57,7 +57,7 @@ import { SyncNowButton } from './SyncNowButton';
 import { generateThermalReceiptPdf, buildReceiptInvoicePdf, getReceiptPdfFilename, downloadReportPdf } from '../utils/pdfGenerator';
 import { safePrint } from '../utils/printHelper';
 import { buildPatientReportUrl } from '../utils/domainRouting';
-import { buildReceiptSlipImage, downloadReceiptImage } from '../utils/receiptImageGenerator';
+import { buildReceiptSlipImage, downloadReceiptImage, uploadReceiptSlipImage } from '../utils/receiptImageGenerator';
 import { WebsiteTokenReceiptCard } from './vendor/WebsiteTokenReceiptCard';
 
 // Format token number to standard format (e.g. "TK-626")
@@ -1225,30 +1225,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       const paid = entry.paidAmount || 0;
       const due = entry.dueAmount ?? Math.max(0, net - paid);
 
-      const shareText = [
-        `🏥 *Registration Confirmed!*`,
-        ``,
-        `Dear *${entry.patientName}*, your lab test registration is confirmed. ✅`,
-        ``,
-        `━━━━━━━━━━━━━━━━━━━━`,
-        `🎫 *Token No.:* *${entry.tokenNumber}*`,
-        `📋 *UHID:* ${entry.uhid}`,
-        `👤 *Patient:* ${entry.patientName} (${entry.age} Yrs / ${entry.gender})`,
-        entry.referringDoctor ? `👨‍⚕️ *Doctor:* ${entry.referringDoctor}` : '',
-        `🧪 *Tests:* ${testNamesStr}`,
-        `💰 *Bill Summary:* Gross ₹${total}${discount > 0 ? `, Concession -₹${discount}` : ''} | *Net ₹${net}*`,
-        `💵 *Paid:* ₹${paid} (${entry.paymentMode || 'Cash'})`,
-        due > 0 ? `⚠️ *Balance Due:* ₹${due} (Pay on Spot)` : `✅ *Payment Status:* Paid in Full`,
-        entry.visitType === 'Home Collection' && entry.address ? `🏠 *Home Pickup:* ${entry.address}${entry.preferredTimeSlot ? ` (${entry.preferredTimeSlot})` : ''}` : '',
-        `📅 *Date:* ${entry.registeredAt || new Date().toLocaleDateString('en-IN')}`,
-        `━━━━━━━━━━━━━━━━━━━━`,
-        ``,
-        `🔗 *View Report:* ${reportUrl}`,
-        ``,
-        `🖼️ *Receipt Slip:* Attached / Downloaded with this WhatsApp message.`,
-        `📍 *${labName}*${labPhone ? ` • Ph: ${labPhone}` : ''}`,
-      ].filter(Boolean).join('\n');
-
       const { file, blob, dataUrl, filename } = await buildReceiptSlipImage({
         tokenNumber: entry.tokenNumber,
         uhid: entry.uhid,
@@ -1261,6 +1237,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         totalAmount: entry.totalAmount,
         paidAmount: entry.paidAmount,
         dueAmount: entry.dueAmount,
+        discountINR: entry.discountINR,
         paymentMode: entry.paymentMode,
         paymentStatus: entry.paymentStatus,
         registeredAt: entry.registeredAt,
@@ -1272,6 +1249,56 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         labPhone: labPhone,
         showPrices: true,
       }, labName);
+
+      // Upload slip image to get a permanent public link for WhatsApp
+      let publicSlipUrl: string | null = null;
+      try {
+        publicSlipUrl = await uploadReceiptSlipImage(
+          dataUrl,
+          `slip_${(entry.tokenNumber || 'TK').replace(/[^a-zA-Z0-9]/g, '_')}`
+        );
+      } catch (uploadErr) {
+        console.warn('Slip image upload warning:', uploadErr);
+      }
+
+      const shareText = [
+        `🏥 *${labName.toUpperCase()}*`,
+        `📍 *Official Patient Registration & Billing Slip*`,
+        ``,
+        `Dear *${entry.patientName}*, your lab test registration is confirmed. ✅`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `🎫 *TOKEN NUMBER:* *${entry.tokenNumber}*`,
+        `📋 *UHID:* ${entry.uhid}`,
+        `📅 *Date & Time:* ${entry.registeredAt || new Date().toLocaleDateString('en-IN')}`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `👤 *PATIENT INFORMATION*`,
+        `• Patient: *${entry.patientName}* (${entry.age} Yrs / ${entry.gender})`,
+        `• Mobile: +91 ${entry.mobile}`,
+        entry.referringDoctor ? `• Ref. Doctor: ${entry.referringDoctor}` : '',
+        entry.visitType === 'Home Collection' && entry.address
+          ? `• Home Pickup: ${entry.address}${entry.preferredTimeSlot ? ` (${entry.preferredTimeSlot})` : ''}`
+          : '',
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `🧪 *PRESCRIBED INVESTIGATIONS*`,
+        `• ${testNamesStr}`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `💰 *BILLING SUMMARY*`,
+        `• Gross Total: ₹${total}${discount > 0 ? ` | Concession: -₹${discount}` : ''}`,
+        `• Net Payable: *₹${net}*`,
+        `• Amount Paid: ₹${paid} (${entry.paymentMode || 'Cash'})`,
+        due > 0 ? `• Status: ⚠️ *Balance Due: ₹${due}* (Pay on Spot)` : `• Status: ✅ *PAID IN FULL*`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        publicSlipUrl ? `🖼️ *OFFICIAL SLIP IMAGE (Click to View):*` : '',
+        publicSlipUrl ? `${publicSlipUrl}` : '',
+        publicSlipUrl ? `` : '',
+        `🔗 *LIVE ONLINE REPORT:*`,
+        `${reportUrl}`,
+        ``,
+        `📲 *Tip:* Scan the QR code on the slip image with your phone camera to view test status anytime.`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `📍 *${labName}*${labPhone ? ` • Helpline: ${labPhone}` : ''}`,
+      ].filter(Boolean).join('\n');
 
       // 1. Mobile native Web Share API
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -1285,7 +1312,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
             title: `Receipt ${entry.tokenNumber} - ${labName}`,
             text: shareText,
           });
-          showToast(`✅ Receipt Slip with text shared via WhatsApp!`);
+          showToast(`✅ Official Slip & WhatsApp message shared successfully!`);
           return;
         } catch (shareErr: any) {
           if (shareErr.name === 'AbortError') {
@@ -1294,14 +1321,16 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         }
       }
 
-      // 2. Desktop Fallback: Download slip image, copy text/image, and open WhatsApp Web
+      // 2. Desktop Fallback: Download slip image, copy image to clipboard for Ctrl+V paste, and open WhatsApp Web
       downloadReceiptImage(dataUrl, filename);
 
+      let copiedImage = false;
       try {
         if (navigator.clipboard && (window as any).ClipboardItem && blob) {
           await navigator.clipboard.write([
             new (window as any).ClipboardItem({ 'image/png': blob }),
           ]);
+          copiedImage = true;
         }
       } catch {
         try {
@@ -1315,7 +1344,11 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         : (clean10 ? `https://web.whatsapp.com/send?phone=91${clean10}&text=${encoded}` : `https://web.whatsapp.com/send?text=${encoded}`);
 
       window.open(url, '_blank', 'noopener,noreferrer');
-      showToast(`✅ WhatsApp Web opened with Slip Text & Report Link! Slip image downloaded.`);
+      showToast(
+        copiedImage
+          ? `✅ WhatsApp Web opened with Slip Text & Image Link! Slip Image copied to clipboard (Ctrl+V) & downloaded.`
+          : `✅ WhatsApp Web opened with Slip Text & Image Link! Slip image downloaded.`
+      );
     } catch (err) {
       console.error(err);
       showToast('❌ Failed to generate receipt slip. Please try again.');
@@ -1381,6 +1414,18 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Hostinger MySQL Sync Button */}
             <SyncNowButton variant="teal" />
+
+            {/* Quick jump to Technician Testing Workstation */}
+            <button
+              type="button"
+              onClick={() => onNavigateView('technician_dashboard')}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer whitespace-nowrap"
+              title="Go to Technician Testing Workstation"
+            >
+              <FlaskConical className="w-3.5 h-3.5 text-emerald-200" />
+              <span className="hidden sm:inline">Technician Workstation</span>
+              <span className="sm:hidden">Lab Workstation</span>
+            </button>
 
             {/* If Admin is inspecting Reception Desk, provide quick return to Lab Owner CMS */}
             {currentUser?.role === 'admin' && (

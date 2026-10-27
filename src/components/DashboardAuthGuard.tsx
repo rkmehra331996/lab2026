@@ -107,7 +107,7 @@ export const DashboardAuthGuard: React.FC<DashboardAuthGuardProps> = ({
           {/* Status badge */}
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-500 font-semibold">Laboratory:</span>
-            <span className="font-bold text-[#123B6D]">{vendorLabSettings.labName}</span>
+            <span className="font-bold text-[#123B6D]">{vendorLabSettings?.labName || 'Diagnostic Laboratory'}</span>
           </div>
 
           <div className={`p-3.5 rounded-2xl border ${cfg.badgeColor} text-xs font-semibold text-center`}>
