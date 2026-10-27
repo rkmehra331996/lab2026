@@ -207,12 +207,12 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
   const isPaymentPending = activeDueAmount > 0;
 
-  // Real-time Hostinger auto-sync for patient screen (Instant updates on client phone when lab changes anything)
+  // Real-time auto-sync for patient screen (Instant updates on client phone when lab changes anything)
   useEffect(() => {
     if (searchedReport) {
-      const liveReport = scopedReports.find(
-        (r) => r.reportId.toLowerCase() === searchedReport.reportId.toLowerCase()
-      );
+      const liveReport =
+        scopedReports.find((r) => r.reportId.toLowerCase() === searchedReport.reportId.toLowerCase()) ||
+        (allReports || []).find((r) => r.reportId.toLowerCase() === searchedReport.reportId.toLowerCase());
       if (liveReport) {
         if (
           liveReport.status !== searchedReport.status ||
@@ -225,11 +225,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         }
       }
     }
-  }, [scopedReports, searchedReport]);
+  }, [scopedReports, allReports, searchedReport]);
 
   useEffect(() => {
     if (matchedEntry) {
-      const liveEntry = (scopedReceptionEntries || []).find((e) => e.id === matchedEntry.id);
+      const liveEntry =
+        (scopedReceptionEntries || []).find((e) => e.id === matchedEntry.id) ||
+        (allReceptionEntries || []).find((e) => e.id === matchedEntry.id);
       if (liveEntry) {
         if (
           liveEntry.status !== matchedEntry.status ||
@@ -240,29 +242,181 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         ) {
           setMatchedEntry(liveEntry);
           // If lab technician finalized report and generated reportId, instantly switch to full report!
-          if (liveEntry.reportId) {
-            const foundReport = scopedReports.find(
-              (r) => r.reportId.toLowerCase() === liveEntry.reportId?.toLowerCase()
+          const foundReport =
+            (scopedReports || []).find(
+              (r) =>
+                (liveEntry.reportId && r.reportId.toLowerCase() === liveEntry.reportId?.toLowerCase()) ||
+                (r.uhid && liveEntry.uhid && r.uhid.toLowerCase() === liveEntry.uhid.toLowerCase()) ||
+                (r.tokenNumber && liveEntry.tokenNumber && r.tokenNumber.toLowerCase() === liveEntry.tokenNumber.toLowerCase()) ||
+                (r.receptionId && r.receptionId === liveEntry.id)
+            ) ||
+            (allReports || []).find(
+              (r) =>
+                (liveEntry.reportId && r.reportId.toLowerCase() === liveEntry.reportId?.toLowerCase()) ||
+                (r.uhid && liveEntry.uhid && r.uhid.toLowerCase() === liveEntry.uhid.toLowerCase()) ||
+                (r.tokenNumber && liveEntry.tokenNumber && r.tokenNumber.toLowerCase() === liveEntry.tokenNumber.toLowerCase()) ||
+                (r.receptionId && r.receptionId === liveEntry.id)
             );
-            if (foundReport) {
-              setSearchedReport(foundReport);
-              setPendingSampleStatus(null);
-            }
+          if (foundReport && !foundReport.isDraft) {
+            setSearchedReport(foundReport);
+            setPendingSampleStatus(null);
           }
         }
       }
     }
-  }, [scopedReceptionEntries, scopedReports, matchedEntry]);
+  }, [scopedReceptionEntries, allReceptionEntries, scopedReports, allReports, matchedEntry]);
 
-  // Initialize from props only if explicitly passed (e.g. from lab queue direct link or portal search)
+  // When in pending status, auto-check if report has been completed by lab technician
+  useEffect(() => {
+    if (pendingSampleStatus && !searchedReport) {
+      const cleanToken = (pendingSampleStatus.tokenNumber || '').toLowerCase().trim();
+      const cleanDigits = cleanToken.replace(/\D/g, '');
+
+      const foundReport =
+        (scopedReports || []).find((r) => {
+          const rId = (r.reportId || '').toLowerCase().trim();
+          const rToken = (r.tokenNumber || '').toLowerCase().trim();
+          const rTokenDigits = rToken.replace(/\D/g, '');
+          return (
+            rId === cleanToken ||
+            rToken === cleanToken ||
+            rToken === `tk-${cleanToken}` ||
+            `tk-${rToken}` === cleanToken ||
+            (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
+          );
+        }) ||
+        (allReports || []).find((r) => {
+          const rId = (r.reportId || '').toLowerCase().trim();
+          const rToken = (r.tokenNumber || '').toLowerCase().trim();
+          const rTokenDigits = rToken.replace(/\D/g, '');
+          return (
+            rId === cleanToken ||
+            rToken === cleanToken ||
+            rToken === `tk-${cleanToken}` ||
+            `tk-${rToken}` === cleanToken ||
+            (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
+          );
+        });
+
+      if (foundReport && !foundReport.isDraft) {
+        setSearchedReport(foundReport);
+        setPendingSampleStatus(null);
+      }
+    }
+  }, [scopedReports, allReports, pendingSampleStatus, searchedReport]);
+
+  // Initialize from props only if explicitly passed (e.g. from unique URL /shop/:shop/report/:token or receipt link)
   useEffect(() => {
     if (initialReportId && initialReportId.trim()) {
       const cleanId = initialReportId.trim().toLowerCase();
-      const found = scopedReports.find(
-        (r) => r.reportId.toLowerCase() === cleanId || (r.uhid && r.uhid.toLowerCase() === cleanId)
-      );
-      if (found) {
-        // If initialMobile was also passed, verify mobile ownership
+      const cleanDigits = cleanId.replace(/\D/g, '');
+
+      // 1. Direct search in scopedReports and allReports by Report ID, Token, or UHID
+      let found =
+        scopedReports.find((r) => {
+          const rId = (r.reportId || '').toLowerCase().trim();
+          const rUhid = (r.uhid || '').toLowerCase().trim();
+          const rToken = (r.tokenNumber || '').toLowerCase().trim();
+          const rTokenDigits = rToken.replace(/\D/g, '');
+
+          return (
+            rId === cleanId ||
+            rUhid === cleanId ||
+            rToken === cleanId ||
+            rToken === `tk-${cleanId}` ||
+            `tk-${rToken}` === cleanId ||
+            (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
+          );
+        }) ||
+        (allReports || []).find((r) => {
+          const rId = (r.reportId || '').toLowerCase().trim();
+          const rUhid = (r.uhid || '').toLowerCase().trim();
+          const rToken = (r.tokenNumber || '').toLowerCase().trim();
+          const rTokenDigits = rToken.replace(/\D/g, '');
+
+          return (
+            rId === cleanId ||
+            rUhid === cleanId ||
+            rToken === cleanId ||
+            rToken === `tk-${cleanId}` ||
+            `tk-${rToken}` === cleanId ||
+            (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
+          );
+        });
+
+      // 2. Also search reception entries to find the patient's token/entry
+      const entryMatch =
+        (scopedReceptionEntries || []).find((e) => {
+          const tLower = (e.tokenNumber || '').toLowerCase().trim();
+          const tDigits = tLower.replace(/\D/g, '');
+          const uhidLower = (e.uhid || '').toLowerCase().trim();
+          const idLower = (e.id || '').toLowerCase().trim();
+          const repLower = (e.reportId || '').toLowerCase().trim();
+
+          return (
+            tLower === cleanId ||
+            tLower === `tk-${cleanId}` ||
+            `tk-${tLower}` === cleanId ||
+            (cleanDigits.length > 0 && tDigits === cleanDigits) ||
+            uhidLower === cleanId ||
+            idLower === cleanId ||
+            repLower === cleanId
+          );
+        }) ||
+        (allReceptionEntries || []).find((e) => {
+          const tLower = (e.tokenNumber || '').toLowerCase().trim();
+          const tDigits = tLower.replace(/\D/g, '');
+          const uhidLower = (e.uhid || '').toLowerCase().trim();
+          const idLower = (e.id || '').toLowerCase().trim();
+          const repLower = (e.reportId || '').toLowerCase().trim();
+
+          return (
+            tLower === cleanId ||
+            tLower === `tk-${cleanId}` ||
+            `tk-${tLower}` === cleanId ||
+            (cleanDigits.length > 0 && tDigits === cleanDigits) ||
+            uhidLower === cleanId ||
+            idLower === cleanId ||
+            repLower === cleanId
+          );
+        });
+
+      // If we don't have found report yet, but found an entryMatch, look for its generated report!
+      if (!found && entryMatch) {
+        const candidateReport =
+          (scopedReports || []).find((r) => {
+            const rId = (r.reportId || '').toLowerCase().trim();
+            const rUhid = (r.uhid || '').toLowerCase().trim();
+            const rToken = (r.tokenNumber || '').toLowerCase().trim();
+            const rRecId = (r.receptionId || '').toLowerCase().trim();
+
+            if (entryMatch.reportId && rId === entryMatch.reportId.toLowerCase().trim()) return true;
+            if (entryMatch.uhid && rUhid === entryMatch.uhid.toLowerCase().trim()) return true;
+            if (entryMatch.tokenNumber && rToken === entryMatch.tokenNumber.toLowerCase().trim()) return true;
+            if (rRecId && rRecId === entryMatch.id.toLowerCase().trim()) return true;
+            return false;
+          }) ||
+          (allReports || []).find((r) => {
+            const rId = (r.reportId || '').toLowerCase().trim();
+            const rUhid = (r.uhid || '').toLowerCase().trim();
+            const rToken = (r.tokenNumber || '').toLowerCase().trim();
+            const rRecId = (r.receptionId || '').toLowerCase().trim();
+
+            if (entryMatch.reportId && rId === entryMatch.reportId.toLowerCase().trim()) return true;
+            if (entryMatch.uhid && rUhid === entryMatch.uhid.toLowerCase().trim()) return true;
+            if (entryMatch.tokenNumber && rToken === entryMatch.tokenNumber.toLowerCase().trim()) return true;
+            if (rRecId && rRecId === entryMatch.id.toLowerCase().trim()) return true;
+            return false;
+          });
+
+        if (candidateReport && !candidateReport.isDraft) {
+          found = candidateReport;
+        }
+      }
+
+      // If matching report found and ready -> OPEN REPORT DIRECTLY!
+      if (found && !found.isDraft) {
+        // Optional mobile verification check if initialMobile was provided
         if (initialMobile && initialMobile.trim()) {
           const reqDigits = initialMobile.replace(/\D/g, '').slice(-10);
           const rDigits = (found.mobile || '').replace(/\D/g, '').slice(-10);
@@ -273,28 +427,33 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
           }
         }
         setSearchedReport(found);
-        setReportIdInput(found.reportId);
+        setReportIdInput(found.tokenNumber || found.reportId);
         setSearchMethod('report_id');
         setErrorMessage(null);
         setErrorDetails(null);
-
-        const match = (scopedReceptionEntries || []).find(
-          (e) =>
-            (e.reportId && e.reportId.toLowerCase() === found.reportId.toLowerCase()) ||
-            (e.uhid && found.uhid && e.uhid.toLowerCase() === found.uhid.toLowerCase())
-        );
-        setMatchedEntry(match || null);
+        setPendingSampleStatus(null);
+        setMatchedEntry(entryMatch || null);
+      } else if (entryMatch) {
+        // Report is NOT made / verified yet -> Show "Waiting / Sample in Lab" progress card!
+        setMatchedEntry(entryMatch);
+        setSearchedReport(null);
+        setPendingSampleStatus({
+          tokenNumber: entryMatch.tokenNumber || cleanId.toUpperCase(),
+          patientName: entryMatch.patientName,
+          ageGender: `${entryMatch.age} Yrs / ${entryMatch.gender}`,
+          tests: entryMatch.tests || [],
+          registeredAt: entryMatch.registeredAt || 'Today',
+          status: entryMatch.status || 'Sample in Testing',
+          technicianStatus: entryMatch.technicianStatus || 'Sent to Lab',
+          branchName: entryMatch.branchName || `${labName} (Central Hub)`,
+          branchPhone: labPhone,
+        });
+        setReportIdInput(entryMatch.tokenNumber || cleanId.toUpperCase());
+        setErrorMessage(null);
+        setErrorDetails(null);
       } else {
-        // Check if matching reception entry exists
-        const entryMatch = (scopedReceptionEntries || []).find(
-          (e) =>
-            e.tokenNumber.toLowerCase() === cleanId ||
-            (e.reportId && e.reportId.toLowerCase() === cleanId) ||
-            (e.uhid && e.uhid.toLowerCase() === cleanId)
-        );
-        if (entryMatch) {
-          handleSelectRecord({ type: 'entry', entry: entryMatch });
-        }
+        setErrorMessage('Token / Report Not Found');
+        setErrorDetails(`No patient record found for "${initialReportId}" at ${labName}. Please check your receipt token.`);
       }
     } else if (initialMobile && initialMobile.trim()) {
       const cleanMob = initialMobile.replace(/\D/g, '').slice(-10);
@@ -359,7 +518,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         }
       }
     }
-  }, [initialReportId, initialMobile, initialPatientName, scopedReports, scopedReceptionEntries]);
+  }, [initialReportId, initialMobile, initialPatientName, scopedReports, allReports, scopedReceptionEntries, allReceptionEntries]);
 
   const handleSelectRecord = (match: { type: 'report' | 'entry'; report?: LabReport; entry?: ReceptionPatientEntry }) => {
     setErrorMessage(null);
@@ -371,19 +530,52 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
       setMatchedEntry(match.entry || null);
       setPendingSampleStatus(null);
     } else if (match.entry) {
-      setMatchedEntry(match.entry);
-      setSearchedReport(null);
-      setPendingSampleStatus({
-        tokenNumber: match.entry.tokenNumber,
-        patientName: match.entry.patientName,
-        ageGender: `${match.entry.age} Yrs / ${match.entry.gender}`,
-        tests: match.entry.tests || [],
-        registeredAt: match.entry.registeredAt || 'Today',
-        status: match.entry.status || 'Sample in Testing',
-        technicianStatus: match.entry.technicianStatus || 'Sent to Lab',
-        branchName: match.entry.branchName || `${labName} (Central Hub)`,
-        branchPhone: labPhone,
-      });
+      // Check if report actually exists for this entry
+      const candidateReport =
+        (scopedReports || []).find((r) => {
+          const rId = (r.reportId || '').toLowerCase().trim();
+          const rUhid = (r.uhid || '').toLowerCase().trim();
+          const rToken = (r.tokenNumber || '').toLowerCase().trim();
+          const rRecId = (r.receptionId || '').toLowerCase().trim();
+
+          if (match.entry?.reportId && rId === match.entry.reportId.toLowerCase().trim()) return true;
+          if (match.entry?.uhid && rUhid === match.entry.uhid.toLowerCase().trim()) return true;
+          if (match.entry?.tokenNumber && rToken === match.entry.tokenNumber.toLowerCase().trim()) return true;
+          if (rRecId && rRecId === match.entry?.id.toLowerCase().trim()) return true;
+          return false;
+        }) ||
+        (allReports || []).find((r) => {
+          const rId = (r.reportId || '').toLowerCase().trim();
+          const rUhid = (r.uhid || '').toLowerCase().trim();
+          const rToken = (r.tokenNumber || '').toLowerCase().trim();
+          const rRecId = (r.receptionId || '').toLowerCase().trim();
+
+          if (match.entry?.reportId && rId === match.entry.reportId.toLowerCase().trim()) return true;
+          if (match.entry?.uhid && rUhid === match.entry.uhid.toLowerCase().trim()) return true;
+          if (match.entry?.tokenNumber && rToken === match.entry.tokenNumber.toLowerCase().trim()) return true;
+          if (rRecId && rRecId === match.entry?.id.toLowerCase().trim()) return true;
+          return false;
+        });
+
+      if (candidateReport && !candidateReport.isDraft) {
+        setSearchedReport(candidateReport);
+        setMatchedEntry(match.entry);
+        setPendingSampleStatus(null);
+      } else {
+        setMatchedEntry(match.entry);
+        setSearchedReport(null);
+        setPendingSampleStatus({
+          tokenNumber: match.entry.tokenNumber || 'Token',
+          patientName: match.entry.patientName,
+          ageGender: `${match.entry.age} Yrs / ${match.entry.gender}`,
+          tests: match.entry.tests || [],
+          registeredAt: match.entry.registeredAt || 'Today',
+          status: match.entry.status || 'Sample in Testing',
+          technicianStatus: match.entry.technicianStatus || 'Sent to Lab',
+          branchName: match.entry.branchName || `${labName} (Central Hub)`,
+          branchPhone: labPhone,
+        });
+      }
     }
   };
 
@@ -525,23 +717,39 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     }
 
     // 1. Direct match in reports - STRICT EXACT MATCH ONLY, NO FUZZY SUBSTRINGS
-    const reportMatch = scopedReports.find((r) => {
-      const rId = r.reportId.trim().toLowerCase();
-      const rUhid = (r.uhid || '').trim().toLowerCase();
-      const rToken = (r.tokenNumber || '').trim().toLowerCase();
-      const rTokenDigits = rToken.replace(/\D/g, '');
+    const reportMatch =
+      scopedReports.find((r) => {
+        const rId = r.reportId.trim().toLowerCase();
+        const rUhid = (r.uhid || '').trim().toLowerCase();
+        const rToken = (r.tokenNumber || '').trim().toLowerCase();
+        const rTokenDigits = rToken.replace(/\D/g, '');
 
-      return (
-        rId === raw ||
-        rUhid === raw ||
-        rToken === raw ||
-        rToken === `tk-${raw}` ||
-        `tk-${rToken}` === raw ||
-        (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
-      );
-    });
+        return (
+          rId === raw ||
+          rUhid === raw ||
+          rToken === raw ||
+          rToken === `tk-${raw}` ||
+          `tk-${rToken}` === raw ||
+          (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
+        );
+      }) ||
+      (allReports || []).find((r) => {
+        const rId = r.reportId.trim().toLowerCase();
+        const rUhid = (r.uhid || '').trim().toLowerCase();
+        const rToken = (r.tokenNumber || '').trim().toLowerCase();
+        const rTokenDigits = rToken.replace(/\D/g, '');
 
-    if (reportMatch) {
+        return (
+          rId === raw ||
+          rUhid === raw ||
+          rToken === raw ||
+          rToken === `tk-${raw}` ||
+          `tk-${rToken}` === raw ||
+          (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
+        );
+      });
+
+    if (reportMatch && !reportMatch.isDraft) {
       setSearchedReport(reportMatch);
       const match = (scopedReceptionEntries || []).find(
         (e) =>
@@ -550,49 +758,82 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
           (e.tokenNumber && reportMatch.tokenNumber && e.tokenNumber.toLowerCase() === reportMatch.tokenNumber.toLowerCase())
       );
       setMatchedEntry(match || null);
+      setPendingSampleStatus(null);
       return;
     }
 
-    // 2. Check in receptionEntries by Token or UHID - STRICT EXACT MATCH ONLY
-    const receptionMatch = (scopedReceptionEntries || []).find((entry) => {
-      const tokenLower = (entry.tokenNumber || '').trim().toLowerCase();
-      const tokenDigits = tokenLower.replace(/\D/g, '');
-      const uhidLower = (entry.uhid || '').trim().toLowerCase();
-      const reportIdLower = (entry.reportId || '').trim().toLowerCase();
+    // 2. Check in receptionEntries by Token or UHID
+    const receptionMatch =
+      (scopedReceptionEntries || []).find((entry) => {
+        const tokenLower = (entry.tokenNumber || '').trim().toLowerCase();
+        const tokenDigits = tokenLower.replace(/\D/g, '');
+        const uhidLower = (entry.uhid || '').trim().toLowerCase();
+        const reportIdLower = (entry.reportId || '').trim().toLowerCase();
 
-      return (
-        tokenLower === raw ||
-        tokenLower === `tk-${raw}` ||
-        `tk-${tokenLower}` === raw ||
-        (cleanDigits.length > 0 && tokenDigits === cleanDigits) ||
-        uhidLower === raw ||
-        reportIdLower === raw
-      );
-    });
+        return (
+          tokenLower === raw ||
+          tokenLower === `tk-${raw}` ||
+          `tk-${tokenLower}` === raw ||
+          (cleanDigits.length > 0 && tokenDigits === cleanDigits) ||
+          uhidLower === raw ||
+          reportIdLower === raw
+        );
+      }) ||
+      (allReceptionEntries || []).find((entry) => {
+        const tokenLower = (entry.tokenNumber || '').trim().toLowerCase();
+        const tokenDigits = tokenLower.replace(/\D/g, '');
+        const uhidLower = (entry.uhid || '').trim().toLowerCase();
+        const reportIdLower = (entry.reportId || '').trim().toLowerCase();
+
+        return (
+          tokenLower === raw ||
+          tokenLower === `tk-${raw}` ||
+          `tk-${tokenLower}` === raw ||
+          (cleanDigits.length > 0 && tokenDigits === cleanDigits) ||
+          uhidLower === raw ||
+          reportIdLower === raw
+        );
+      });
 
     if (receptionMatch) {
       setMatchedEntry(receptionMatch);
-      const hasReportReady =
-        receptionMatch.status === 'Report Ready' ||
-        receptionMatch.technicianStatus === 'Report Generated' ||
-        Boolean(receptionMatch.reportId);
 
       // Check if report already exists for this entry
-      if (hasReportReady && receptionMatch.reportId) {
-        const foundReport = scopedReports.find(
-          (r) =>
-            r.reportId.toLowerCase() === receptionMatch.reportId?.toLowerCase() ||
-            (r.uhid && r.uhid.toLowerCase() === receptionMatch.uhid.toLowerCase())
-        );
-        if (foundReport) {
-          setSearchedReport(foundReport);
-          return;
-        }
+      const foundReport =
+        (scopedReports || []).find((r) => {
+          const rId = (r.reportId || '').toLowerCase().trim();
+          const rUhid = (r.uhid || '').toLowerCase().trim();
+          const rToken = (r.tokenNumber || '').toLowerCase().trim();
+          const rRecId = (r.receptionId || '').toLowerCase().trim();
+
+          if (receptionMatch.reportId && rId === receptionMatch.reportId.toLowerCase().trim()) return true;
+          if (receptionMatch.uhid && rUhid === receptionMatch.uhid.toLowerCase().trim()) return true;
+          if (receptionMatch.tokenNumber && rToken === receptionMatch.tokenNumber.toLowerCase().trim()) return true;
+          if (rRecId && rRecId === receptionMatch.id.toLowerCase().trim()) return true;
+          return false;
+        }) ||
+        (allReports || []).find((r) => {
+          const rId = (r.reportId || '').toLowerCase().trim();
+          const rUhid = (r.uhid || '').toLowerCase().trim();
+          const rToken = (r.tokenNumber || '').toLowerCase().trim();
+          const rRecId = (r.receptionId || '').toLowerCase().trim();
+
+          if (receptionMatch.reportId && rId === receptionMatch.reportId.toLowerCase().trim()) return true;
+          if (receptionMatch.uhid && rUhid === receptionMatch.uhid.toLowerCase().trim()) return true;
+          if (receptionMatch.tokenNumber && rToken === receptionMatch.tokenNumber.toLowerCase().trim()) return true;
+          if (rRecId && rRecId === receptionMatch.id.toLowerCase().trim()) return true;
+          return false;
+        });
+
+      if (foundReport && !foundReport.isDraft) {
+        setSearchedReport(foundReport);
+        setPendingSampleStatus(null);
+        return;
       }
 
       // If report is not yet finalized, show live sample progress status!
       setPendingSampleStatus({
-        tokenNumber: receptionMatch.tokenNumber,
+        tokenNumber: receptionMatch.tokenNumber || raw.toUpperCase(),
         patientName: receptionMatch.patientName,
         ageGender: `${receptionMatch.age} Yrs / ${receptionMatch.gender}`,
         tests: receptionMatch.tests || [],
@@ -747,41 +988,16 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             <span>Back</span>
           </button>
 
-          {/* Center: Lab Name + Lab Switcher */}
+          {/* Center: Lab Name & Verified Accreditation Badge */}
           <div className="flex-1 text-center min-w-0 px-2 flex flex-col items-center justify-center">
             <div className="flex items-center justify-center gap-2 max-w-full">
               <h1 className="font-extrabold text-xs sm:text-sm text-[#123B6D] truncate">
                 {labName}
               </h1>
-              <span className="text-[10px] font-mono bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-bold shrink-0">
-                ID: {activeVendorLab?.id || selectedVendorLabId || '1020304050'}
+              <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span>{labNabl || 'NABL Accredited'}</span>
               </span>
-            </div>
-            {/* Quick Lab Switcher to verify strict data isolation */}
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">Active Lab:</span>
-              <select
-                value={activeVendorLab?.id || selectedVendorLabId || '1020304050'}
-                onChange={(e) => {
-                  const newId = e.target.value;
-                  if (setSelectedVendorLabId) setSelectedVendorLabId(newId);
-                  if (selectVendorLab) selectVendorLab(newId);
-                  if (onSelectVendorLab) onSelectVendorLab(newId);
-                  setSearchedReport(null);
-                  setMatchedEntry(null);
-                  setMatchedList([]);
-                  setErrorMessage(null);
-                  setErrorDetails(null);
-                }}
-                className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded px-1.5 py-0.5 text-slate-700 cursor-pointer max-w-[220px] truncate"
-                title="Select Laboratory to test strict data isolation"
-              >
-                {vendorLabsList.map((lab) => (
-                  <option key={lab.id} value={lab.id}>
-                    {lab.name} ({lab.id})
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
 
@@ -800,7 +1016,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
       {/* Main Content */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
-        {/* Search / Access Form Card */}
+        {/* Search / Access Form Card (Shown only when no report or in-lab status is loaded) */}
+        {!searchedReport && !pendingSampleStatus && (
         <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-7 shadow-sm no-print">
           {/* ERROR ALERT BANNER */}
           {errorMessage && (
@@ -1030,6 +1247,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
           )}
         </div>
+        )}
 
         {/* LIVE SAMPLE PROGRESS STATE (When Token or Patient is registered but lab testing is still in progress) */}
         {pendingSampleStatus && !searchedReport && (
@@ -1058,6 +1276,14 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                   <span>Sample in Lab Testing</span>
                 </span>
+                <button
+                  type="button"
+                  onClick={handleResetSearch}
+                  className="px-2.5 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-semibold transition cursor-pointer"
+                  title="Search another token"
+                >
+                  Change
+                </button>
               </div>
             </div>
 
@@ -1299,30 +1525,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
 
             {/* ACTION BAR (Neatly positioned BELOW the report) */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm no-print">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`w-2.5 h-2.5 rounded-full ${
-                    searchedReport.cancelled
-                      ? 'bg-rose-500'
-                      : isPaymentPending
-                      ? 'bg-amber-500 animate-pulse'
-                      : 'bg-emerald-500 animate-pulse'
-                  }`}
-                />
-                <span className="text-xs font-bold text-[#172033]">
-                  {(searchedReport as any).cancelled || searchedReport.cancelledAt ? (
-                    <>Cancelled Report for <strong>{searchedReport.patientName}</strong></>
-                  ) : isPaymentPending ? (
-                    <>Report Ready (Locked • Due ₹{activeDueAmount}) for <strong>{searchedReport.patientName}</strong></>
-                  ) : (
-                    <>Report Verified & Unlocked for <strong>{searchedReport.patientName}</strong></>
-                  )}{' '}
-                  <span className="text-slate-400 font-mono">({searchedReport.reportId})</span>
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex flex-wrap items-center justify-end gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm no-print">
+              <div className="flex items-center gap-2.5 flex-wrap w-full sm:w-auto justify-end">
                 {/* 1. PDF Download Button (Conditional on Payment Clearance) */}
                 {isPaymentPending ? (
                   <button
@@ -1338,7 +1542,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   <button
                     id="btn-download-pdf-portal"
                     onClick={handleDownloadPdf}
-                    className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
+                    className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
                     title="Download Official NABL Medical Report PDF"
                   >
                     <Download className="w-4 h-4 text-emerald-300" />
@@ -1346,30 +1550,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   </button>
                 )}
 
-                {/* 2. Print Report Button (Conditional on Payment Clearance) */}
-                {isPaymentPending ? (
-                  <button
-                    id="btn-print-report-portal-locked"
-                    onClick={() => setShowPayOnlineModal(true)}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer active:scale-95"
-                    title={`Payment pending: Clear ₹${activeDueAmount} to print report`}
-                  >
-                    <Lock className="w-4 h-4 text-amber-700" />
-                    <span>Print Report (Locked)</span>
-                  </button>
-                ) : (
-                  <button
-                    id="btn-print-report-portal"
-                    onClick={handlePrint}
-                    className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs active:scale-95 cursor-pointer"
-                    title="Print Report on A4 / Letterhead"
-                  >
-                    <Printer className="w-4 h-4 text-amber-300" />
-                    <span>Print Report</span>
-                  </button>
-                )}
-
-                {/* 3. Share on WhatsApp Button */}
+                {/* 2. Share on WhatsApp Button */}
                 <button
                   id="btn-share-whatsapp-portal"
                   onClick={handleShareWhatsApp}
