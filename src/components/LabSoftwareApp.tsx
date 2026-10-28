@@ -996,7 +996,8 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
       {/* Top Application Bar: Vendor Company Logo + Dashboard Name + Vendor Home Website + Log Out Button */}
-      <header className="bg-[#123B6D] text-white sticky top-0 z-30 shadow-md">
+      {!isEmbedded && (
+        <header className="bg-[#123B6D] text-white sticky top-0 z-30 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
           {/* Back Button + Vendor Company Logo + Active Dashboard Name */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -1085,6 +1086,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
           </div>
         </div>
       </header>
+      )}
 
       {/* Technician Secondary Navigation Bar */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2 shadow-2xs">

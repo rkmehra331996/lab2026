@@ -1362,7 +1362,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
       {/* 1. Reception Header: Vendor Company Logo + Dashboard Name + Vendor Home Website + Log Out Button */}
-      <header className="bg-[#0F766E] text-white px-4 sm:px-8 py-2.5 border-b border-teal-700/50 shadow-xs sticky top-0 z-30">
+      {!isEmbedded && (
+        <header className="bg-[#0F766E] text-white px-4 sm:px-8 py-2.5 border-b border-teal-700/50 shadow-xs sticky top-0 z-30">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           {/* Back Button + Vendor Company Logo + Active Dashboard Name */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -1460,6 +1461,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
           </div>
         </div>
       </header>
+      )}
 
       {/* Toast Notification */}
       {toastMessage && (
