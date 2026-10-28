@@ -341,7 +341,7 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({
         const updated = isDefaultStockOnly ? [optimized] : [optimized, ...heroBanners];
         setHeroBanners(updated);
         updateVendorLabSettings({ heroBanners: updated });
-        triggerToast('Hero banner photo uploaded & published to website!');
+        triggerToast('Hero banner photo uploaded & saved to website!');
       }
     } catch (err) {
       console.error('Error optimizing hero banner:', err);
@@ -357,7 +357,7 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({
     setHeroBanners(updated);
     updateVendorLabSettings({ heroBanners: updated });
     setHeroBannerUrlInput('');
-    triggerToast('Hero banner photo added & published to website!');
+    triggerToast('Hero banner photo added & saved to website!');
   };
 
   const handleRemoveHeroBannerPhoto = (idx: number) => {
@@ -1178,47 +1178,6 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({
         <div className="bg-emerald-50 border border-emerald-300 text-emerald-800 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{toastText}</span>
-        </div>
-      )}
-
-      {/* Website Status: Draft Mode Notice (if draft) */}
-      {isDraft && (
-        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
-              <Clock className="w-5 h-5 text-amber-700" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-extrabold text-sm text-amber-950">
-                  Website Status: Draft Mode (ड्राफ्ट मोड - एडमिन अप्रूवल पेंडिंग)
-                </span>
-                <span className="text-[10px] font-black uppercase bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-300">
-                  Awaiting Admin Approval
-                </span>
-              </div>
-              <p className="text-xs text-amber-900 mt-1 max-w-2xl leading-relaxed">
-                लैब बनाने के बाद वेबसाइट अभी <strong>ड्राफ्ट मोड</strong> में है। <strong>ड्राफ्ट वेबसाइट को सिर्फ सुपर एडमिन ही लाइव कर सकता है।</strong> जब प्लेटफॉर्म सुपर एडमिन (Super Admin) इसे रिव्यू करके अप्रूव करेंगे, तभी यह पब्लिकली लाइव होगी।
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <a
-              href="tel:7087033009"
-              className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-2 rounded-xl text-xs font-black shadow-xs flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              <span>Call 70870 33009</span>
-            </a>
-            <a
-              href="https://wa.me/917087033009?text=Hello%20Super%20Admin%2C%20please%20approve%20and%20make%20my%20laboratory%20website%20live."
-              target="_blank"
-              rel="noreferrer"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-black shadow-xs flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <span>💬 WhatsApp 70870 33009</span>
-            </a>
-          </div>
         </div>
       )}
 

@@ -1782,7 +1782,7 @@ export const VendorTestsTab: React.FC<VendorTestsTabProps> = ({
                   className="px-6 py-2.5 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-black shadow-md flex items-center gap-2 transition cursor-pointer active:scale-95"
                 >
                   <Save className="w-4 h-4 text-amber-400" />
-                  <span>Save &amp; Publish Test</span>
+                  <span>Save Test Details</span>
                 </button>
               </div>
             </form>

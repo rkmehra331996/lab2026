@@ -1767,7 +1767,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
             {/* Action Buttons: Strictly Super Admin Only for Publishing */}
             <div className="space-y-2.5 pt-1">
-              {currentUser?.role === 'admin' || isSuperAdminUnlocked ? (
+              {currentUser?.role === 'admin' ? (
                 <div className="space-y-2">
                   <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2.5 text-xs text-emerald-950 font-bold flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -5671,7 +5671,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black transition flex items-center gap-1.5 shadow-md cursor-pointer"
               >
                 <Check className="w-4 h-4" />
-                <span>Save &amp; Publish Banners</span>
+                <span>Save Banners</span>
               </button>
             </div>
           </div>

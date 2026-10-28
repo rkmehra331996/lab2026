@@ -2166,7 +2166,7 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
                   {formData.publishedAt || formData.planPurchasedAt || '15 Feb 2026'}
                 </strong>
                 <span className="text-[11px] text-slate-500 font-semibold">
-                  {formData.publishedAt ? 'Website Published' : 'Plan Activation'}
+                  Plan Activation
                 </span>
               </div>
 
