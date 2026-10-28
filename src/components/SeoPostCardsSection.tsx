@@ -24,6 +24,7 @@ export const SeoPostCardsSection: React.FC<SeoPostCardsSectionProps> = ({
 }) => {
   const { seoPosts } = useCms();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [showAllPosts, setShowAllPosts] = useState<boolean>(true);
 
   // Filter only published posts
   const publishedPosts = (seoPosts || []).filter((p) => p.status === 'published');
@@ -33,6 +34,8 @@ export const SeoPostCardsSection: React.FC<SeoPostCardsSectionProps> = ({
   const displayedPosts = selectedCategory === 'All'
     ? publishedPosts
     : publishedPosts.filter((p) => p.category === selectedCategory);
+
+  const postsToRender = (selectedCategory !== 'All' || showAllPosts) ? displayedPosts : displayedPosts.slice(0, 6);
 
   if (publishedPosts.length === 0) {
     return null;
@@ -68,11 +71,14 @@ export const SeoPostCardsSection: React.FC<SeoPostCardsSectionProps> = ({
           {/* Category Filter Pills */}
           {categories.length > 2 && (
             <div className="flex items-center gap-1.5 flex-wrap">
-              {categories.slice(0, 5).map((cat) => (
+              {categories.map((cat) => (
                 <button
                   key={cat}
                   type="button"
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => {
+                    setSelectedCategory(cat);
+                    setShowAllPosts(true);
+                  }}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedCategory === cat
                       ? 'bg-teal-500 text-slate-950 shadow-xs'
@@ -90,7 +96,7 @@ export const SeoPostCardsSection: React.FC<SeoPostCardsSectionProps> = ({
 
         {/* Article Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedPosts.slice(0, 6).map((post) => (
+          {postsToRender.map((post) => (
             <article
               key={post.id}
               onClick={() => onSelectPost && onSelectPost(post)}
@@ -170,6 +176,23 @@ export const SeoPostCardsSection: React.FC<SeoPostCardsSectionProps> = ({
             </article>
           ))}
         </div>
+
+        {displayedPosts.length > 6 && (
+          <div className="mt-8 text-center">
+            <button
+              type="button"
+              onClick={() => setShowAllPosts((prev) => !prev)}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                isDark
+                  ? 'bg-teal-500/10 text-teal-300 hover:bg-teal-500 hover:text-slate-950 border border-teal-500/30'
+                  : 'bg-white text-slate-800 hover:bg-slate-100 border border-slate-300 shadow-xs'
+              }`}
+            >
+              <span>{showAllPosts ? 'Show Top 6 Articles' : `View All ${displayedPosts.length} Clinical & Lab Guides`}</span>
+              <ArrowRight className={`w-3.5 h-3.5 transition-transform ${showAllPosts ? '-rotate-90' : 'rotate-0'}`} />
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

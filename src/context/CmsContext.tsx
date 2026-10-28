@@ -2550,6 +2550,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map((p: any) => p.id || p.slug));
+          const missingDefaults = DEFAULT_SEO_POSTS.filter((p) => !existingIds.has(p.id) && !existingIds.has(p.slug));
+          if (missingDefaults.length > 0) {
+            const merged = [...parsed, ...missingDefaults];
+            try {
+              localStorage.setItem('cms_seo_posts', JSON.stringify(merged));
+            } catch {}
+            return merged;
+          }
           return parsed;
         }
       }
