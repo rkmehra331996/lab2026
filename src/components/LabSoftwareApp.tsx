@@ -1039,26 +1039,49 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
             </div>
           </div>
 
-          {/* Right Side Header Actions: Sync Now + Logout Option */}
+          {/* Right Side Header Actions: Sync Now + Visit Website + Logout */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Hostinger MySQL Sync Button */}
             <SyncNowButton variant="blue" />
 
-            {!isEmbedded && (
-              <button
-                type="button"
-                id="tech-header-logout-btn"
-                onClick={() => {
-                  logout();
-                  if (onBackToWebsite) onBackToWebsite();
-                }}
-                className="bg-white/15 hover:bg-rose-600 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border border-white/20 hover:border-rose-400 cursor-pointer shrink-0"
-                title="Logout from Technician Console"
-              >
-                <LogOut className="w-3.5 h-3.5 text-amber-300" />
-                <span>Logout</span>
-              </button>
-            )}
+            {/* Visit Website Button */}
+            <button
+              type="button"
+              id="tech-header-visit-website-btn"
+              onClick={() => {
+                if (onNavigateView) {
+                  onNavigateView('vendor_website');
+                } else if (onBackToWebsite) {
+                  onBackToWebsite();
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-emerald-400/30 cursor-pointer shrink-0"
+              title="Visit Laboratory Website"
+            >
+              <Globe className="w-3.5 h-3.5 text-emerald-200" />
+              <span>Visit Website</span>
+            </button>
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              id="tech-header-logout-btn"
+              onClick={() => {
+                logout();
+                if (onNavigateView) {
+                  onNavigateView('vendor_website');
+                } else if (onBackToWebsite) {
+                  onBackToWebsite();
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-white/15 hover:bg-rose-600 active:scale-95 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border border-white/20 hover:border-rose-400 cursor-pointer shrink-0"
+              title="Logout from Technician Console"
+            >
+              <LogOut className="w-3.5 h-3.5 text-amber-300" />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </header>

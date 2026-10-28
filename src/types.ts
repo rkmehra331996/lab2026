@@ -220,6 +220,7 @@ export interface PricingPlan {
   billingCycle?: string;
   description: string;
   isPopular: boolean;
+  badge?: string;
   features: string[];
 }
 

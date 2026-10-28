@@ -17,9 +17,10 @@ export const TechnicianDepartmentDashboard: React.FC<TechnicianDepartmentDashboa
     <LabSoftwareApp
       onBackToWebsite={() => {
         if (onNavigateView) {
-          onNavigateView('vendor_dashboard');
+          onNavigateView('vendor_website');
         }
       }}
+      onNavigateView={onNavigateView}
       onViewReport={(reportId, mobile) => {
         if (onOpenReportPortal) {
           onOpenReportPortal(reportId, mobile);

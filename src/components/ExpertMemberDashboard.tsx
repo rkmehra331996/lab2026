@@ -25,6 +25,7 @@ import {
   Send,
   Eye,
   LogOut,
+  Globe,
   Calendar,
   Layers,
   Activity,
@@ -306,28 +307,35 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
               <span className="hidden sm:inline">Cash Drawer</span>
             </button>
 
-            {/* Return to Lab Owner */}
+            {/* Visit Website */}
             <button
               type="button"
-              onClick={() => onNavigateView('vendor_dashboard')}
-              className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition flex items-center gap-1 shadow-sm cursor-pointer"
-              title="Open Lab Owner / Management Portal"
+              id="expert-header-visit-website-btn"
+              onClick={() => {
+                onNavigateView('vendor_website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 border border-emerald-400/30 cursor-pointer shadow-xs active:scale-95"
+              title="Visit Laboratory Website"
             >
-              <span>👑 Lab Owner</span>
+              <Globe className="w-3.5 h-3.5 text-emerald-200" />
+              <span>Visit Website</span>
             </button>
 
             {/* Logout */}
             <button
               type="button"
+              id="expert-header-logout-btn"
               onClick={() => {
                 logout();
                 onNavigateView('vendor_website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-rose-500/80 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center gap-1 border border-rose-400/40 cursor-pointer shadow-2xs"
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/15 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center gap-1.5 border border-white/20 hover:border-rose-400 cursor-pointer shadow-2xs active:scale-95"
               title="Sign out of Expert account"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Logout</span>
+              <LogOut className="w-3.5 h-3.5 text-amber-300" />
+              <span>Logout</span>
             </button>
           </div>
         </div>
@@ -400,30 +408,6 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
         {/* ======================================================== */}
         {activeTab === 'technician' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold shadow-xs">
-                  <FlaskConical className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-black text-sm sm:text-base text-purple-950">
-                    Technician Department Workstation (लैब टेस्टिंग एवं एनालाइजर डेस्क)
-                  </h3>
-                  <p className="text-xs text-purple-800">
-                    Accession patient specimens, enter test parameter findings, review abnormal flags, and draft clinical reports.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('reception')}
-                className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-purple-900 border border-purple-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <Receipt className="w-3.5 h-3.5 text-teal-600" />
-                <span>Switch to Reception Billing</span>
-              </button>
-            </div>
-
             {/* Embedded Lab Software App for Technician */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
               <LabSoftwareApp

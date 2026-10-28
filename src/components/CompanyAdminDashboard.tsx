@@ -745,25 +745,41 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 Blog
               </span>
             </button>
+          </nav>
 
-            {/* Separator */}
-            <div className="h-4 w-px bg-white/15 mx-0.5 hidden sm:block shrink-0"></div>
-
-            {/* Logout */}
+          {/* Right Header Actions: Visit Website and Logout */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Visit Website Button */}
             <button
               type="button"
-              id="menu-btn-logout"
+              id="admin-btn-visit-website"
+              onClick={() => {
+                onNavigateView('website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-emerald-400/30 cursor-pointer shrink-0"
+              title="Visit Main Website"
+            >
+              <Globe className="w-3.5 h-3.5 text-emerald-200" />
+              <span>Visit Website</span>
+            </button>
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              id="admin-btn-logout"
               onClick={() => {
                 logout();
                 onNavigateView('website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="px-2.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold text-rose-200 hover:text-white hover:bg-rose-500/20 transition flex items-center gap-1 cursor-pointer border border-rose-400/25 shrink-0"
+              className="bg-white/15 hover:bg-rose-600 active:scale-95 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border border-white/20 hover:border-rose-400 cursor-pointer shrink-0"
               title="Logout from Super Admin Dashboard"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3.5 h-3.5 text-amber-300" />
               <span>Logout</span>
             </button>
-          </nav>
+          </div>
         </div>
       </header>
 
@@ -1152,7 +1168,7 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {pricingPlans.map((plan) => {
                   const currentPrice = plan.priceINR ?? plan.monthlyPriceINR;
                   const inputValue = quickPrices[plan.id] !== undefined ? quickPrices[plan.id] : currentPrice;
@@ -1206,7 +1222,7 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
             </div>
 
             {/* Detailed Plan Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {pricingPlans.map((plan) => {
                 const currentPrice = plan.priceINR ?? plan.monthlyPriceINR;
                 return (
@@ -1238,7 +1254,7 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                               ₹{currentPrice.toLocaleString('en-IN')}
                             </span>
                             <span className="text-xs text-slate-500 ml-1 font-medium">
-                              / {String(plan.name || '').toLowerCase().includes('year') ? 'year' : String(plan.name || '').toLowerCase().includes('3 month') ? '3 months' : 'month'}
+                              / {String(plan.name || '').toLowerCase().includes('demo') ? '1 day' : String(plan.name || '').toLowerCase().includes('year') ? 'year' : String(plan.name || '').toLowerCase().includes('3 month') ? '3 months' : 'month'}
                             </span>
                           </div>
                           <button

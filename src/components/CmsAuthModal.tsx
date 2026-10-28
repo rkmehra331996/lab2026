@@ -77,22 +77,31 @@ export const INDIAN_STATES = [
 
 export const REGISTRATION_PACKAGES = [
   {
+    id: 'free-demo',
+    name: 'Free Demo Plan',
+    priceINR: 0,
+    duration: '1 Day',
+    badge: 'Free Demo (₹0)',
+    badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+    description: 'Full software access for 1 day',
+  },
+  {
     id: '1-month',
     name: '1 Month',
     priceINR: 1499,
     duration: '30 Days',
     badge: 'Starter & Flexible',
     badgeColor: 'bg-blue-100 text-[#123B6D] border-blue-200',
-    description: 'Billed monthly • Complete software access',
+    description: 'Full software access for 1 month',
   },
   {
     id: '3-months',
     name: '3 Months',
     priceINR: 3999,
     duration: '90 Days',
-    badge: 'Most Popular',
+    badge: 'Most Popular Choice',
     badgeColor: 'bg-amber-100 text-amber-900 border-amber-300',
-    description: '₹1,333/month • Billed quarterly',
+    description: 'Full software access for 3 months',
   },
   {
     id: '1-year',
@@ -101,7 +110,7 @@ export const REGISTRATION_PACKAGES = [
     duration: '365 Days',
     badge: 'Best Value',
     badgeColor: 'bg-indigo-100 text-indigo-900 border-indigo-200',
-    description: '₹999/month • Maximum annual savings',
+    description: 'Full software access for 1 year',
   },
 ];
 
@@ -164,7 +173,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
   // -------------------------------------------------------------
   const [createLabName, setCreateLabName] = useState('');
   const [createState, setCreateState] = useState('Punjab');
-  const [createPackage, setCreatePackage] = useState<string>('3 Months');
+  const [createPackage, setCreatePackage] = useState<string>('Free Demo Plan');
   const [createMobile, setCreateMobile] = useState('');
   const [createPassword, setCreatePassword] = useState('');
   const [createPin, setCreatePin] = useState('');
@@ -188,12 +197,16 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
   useEffect(() => {
     if (selectedRegistrationPackage) {
       const lower = selectedRegistrationPackage.toLowerCase();
-      if (lower.includes('1 month') || lower.includes('starter') || lower.includes('monthly')) {
+      if (lower.includes('demo') || lower.includes('free')) {
+        setCreatePackage('Free Demo Plan');
+      } else if (lower.includes('1 month') || lower.includes('starter') || lower.includes('monthly')) {
         setCreatePackage('1 Month');
       } else if (lower.includes('year') || lower.includes('annual') || lower.includes('12')) {
         setCreatePackage('1 Year');
-      } else {
+      } else if (lower.includes('3 month') || lower.includes('quarterly')) {
         setCreatePackage('3 Months');
+      } else {
+        setCreatePackage(selectedRegistrationPackage);
       }
     }
   }, [selectedRegistrationPackage, isOpen]);
@@ -1373,7 +1386,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                         setCreateMobile('');
                         setCreatePassword('');
                         setCreatePin('');
-                        setCreatePackage(selectedRegistrationPackage || '3 Months');
+                        setCreatePackage(selectedRegistrationPackage || 'Free Demo Plan');
                       }}
                       className="text-xs text-slate-500 hover:text-slate-800 font-bold hover:underline cursor-pointer"
                     >
@@ -1442,7 +1455,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     </div>
                   </div>
 
-                  {/* GROUP 2: Package Selection (3 package options: 1 Month, 3 Months, 1 Year) */}
+                  {/* GROUP 2: Package Selection (4 package options: Free Demo Plan, 1 Month, 3 Months, 1 Year) */}
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
@@ -1454,10 +1467,11 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       </span>
                     </div>
 
-                    {/* 3 Interactive Package Option Cards (Radio Button Tabs) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {/* 4 Interactive Package Option Cards (Radio Button Tabs) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                       {REGISTRATION_PACKAGES.map((pkg) => {
                         const isSelected = createPackage === pkg.name;
+                        const isFree = pkg.priceINR === 0;
                         return (
                           <button
                             key={pkg.id}
@@ -1468,22 +1482,44 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                             }}
                             className={`p-3 rounded-xl border text-left transition-all relative cursor-pointer ${
                               isSelected
-                                ? 'border-[#123B6D] bg-white ring-2 ring-[#123B6D]/20 shadow-xs'
+                                ? isFree
+                                  ? 'border-emerald-600 bg-emerald-50/40 ring-2 ring-emerald-500/20 shadow-xs'
+                                  : 'border-[#123B6D] bg-blue-50/30 ring-2 ring-[#123B6D]/20 shadow-xs'
                                 : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50'
                             }`}
                           >
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                                isSelected ? 'border-[#123B6D] bg-[#123B6D]' : 'border-slate-300'
-                              }`}>
-                                {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div
+                                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${
+                                    isSelected
+                                      ? isFree
+                                        ? 'border-emerald-600 bg-emerald-600'
+                                        : 'border-[#123B6D] bg-[#123B6D]'
+                                      : 'border-slate-300'
+                                  }`}
+                                >
+                                  {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                </div>
+                                <span className="font-extrabold text-xs text-slate-900 truncate">{pkg.name}</span>
                               </div>
-                              <span className="font-extrabold text-xs text-slate-900">{pkg.name}</span>
                             </div>
-                            <div className="text-base font-black text-[#123B6D] mt-1">
-                              ₹{pkg.priceINR.toLocaleString('en-IN')}
+                            <div
+                              className={`text-base font-black ${
+                                isFree ? 'text-emerald-700' : 'text-[#123B6D]'
+                              } mt-1 flex items-baseline gap-1`}
+                            >
+                              <span>₹{pkg.priceINR.toLocaleString('en-IN')}</span>
+                              <span className="text-[10px] text-slate-500 font-bold">/ {pkg.duration}</span>
                             </div>
-                            <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">
+                            {pkg.badge && (
+                              <div className="mt-1">
+                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${pkg.badgeColor} inline-block`}>
+                                  {pkg.badge}
+                                </span>
+                              </div>
+                            )}
+                            <p className="text-[10px] text-slate-500 mt-1 leading-tight">
                               {pkg.description}
                             </p>
                           </button>

@@ -108,7 +108,7 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
     companySettings,
   } = useCms();
 
-  const [selectedRenewPlan, setSelectedRenewPlan] = useState<'1 Month' | '3 Months' | '1 Year'>('3 Months');
+  const [selectedRenewPlan, setSelectedRenewPlan] = useState<'Free Demo' | '1 Month' | '3 Months' | '1 Year'>('3 Months');
   const [renewNotes, setRenewNotes] = useState('');
   const [renewSubmittedToast, setRenewSubmittedToast] = useState<string | null>(null);
   const [copiedSuperAdminUpi, setCopiedSuperAdminUpi] = useState(false);
@@ -530,9 +530,10 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
 
   // Pricing info lookup
   const planPriceMap: Record<string, { price: number; cycle: string; badge: string; popular?: boolean }> = {
+    'Free Demo': { price: 0, cycle: '1 Day', badge: 'Free Demo (1 Day)' },
     '1 Month': { price: 1499, cycle: 'Per Month', badge: 'Flexible Starter' },
-    '3 Months': { price: 3999, cycle: 'Per 3 Months', badge: 'Quarterly Choice', popular: true },
-    '1 Year': { price: 11999, cycle: 'Per Year', badge: 'Annual Value Pack' },
+    '3 Months': { price: 3999, cycle: 'Per 3 Months', badge: 'Most Popular Choice', popular: true },
+    '1 Year': { price: 11999, cycle: 'Per Year', badge: 'Best Value (Annual)' },
   };
 
   const planInfo = planPriceMap[currentPlan] || planPriceMap['1 Month'];
@@ -541,8 +542,8 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
   const handleSubmitPlanRenewal = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    const planDuration = selectedRenewPlan === '1 Year' ? 365 : selectedRenewPlan === '3 Months' ? 90 : 30;
-    const planPrice = selectedRenewPlan === '1 Year' ? 11999 : selectedRenewPlan === '3 Months' ? 3999 : 1499;
+    const planDuration = selectedRenewPlan === '1 Year' ? 365 : selectedRenewPlan === '3 Months' ? 90 : selectedRenewPlan === 'Free Demo' ? 1 : 30;
+    const planPrice = selectedRenewPlan === '1 Year' ? 11999 : selectedRenewPlan === '3 Months' ? 3999 : selectedRenewPlan === 'Free Demo' ? 0 : 1499;
 
     submitPlanRenewalRequest({
       labId: currentLabId,
@@ -2359,7 +2360,44 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
                 Select Package (Radio Option):
               </label>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                {/* 0. Free Demo Plan */}
+                <label
+                  onClick={() => setSelectedRenewPlan('Free Demo')}
+                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3 relative ${
+                    selectedRenewPlan === 'Free Demo'
+                      ? 'bg-emerald-50/70 border-emerald-600 ring-2 ring-emerald-600/20 shadow-md'
+                      : 'bg-white border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Free Trial
+                      </span>
+                      <input
+                        type="radio"
+                        name="renewPackageRadio"
+                        value="Free Demo"
+                        checked={selectedRenewPlan === 'Free Demo'}
+                        onChange={() => setSelectedRenewPlan('Free Demo')}
+                        className="w-4 h-4 text-emerald-600 focus:ring-emerald-600"
+                      />
+                    </div>
+                    <h4 className="text-base font-black text-slate-900">Free Demo Plan</h4>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black text-emerald-700">₹0</span>
+                      <span className="text-xs text-slate-500 font-bold">/ 1 Day</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Full software access for 1 day. Test all features and diagnostic tools completely free.
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 text-[10px] font-bold text-emerald-700">
+                    +1 Day Trial Access
+                  </div>
+                </label>
+
                 {/* 1. 1 Month Plan */}
                 <label
                   onClick={() => setSelectedRenewPlan('1 Month')}

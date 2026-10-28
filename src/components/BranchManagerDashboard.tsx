@@ -24,6 +24,8 @@ import {
   Receipt,
   Download,
   ArrowLeft,
+  Globe,
+  LogOut,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView } from '../types';
@@ -84,7 +86,7 @@ export const BranchManagerDashboard: React.FC<BranchManagerDashboardProps> = ({
   onNavigateView,
   onOpenReportPortal,
 }) => {
-  const { currentUser, receptionEntries, vendorBranches, activeBranchId } = useCms();
+  const { currentUser, logout, receptionEntries, vendorBranches, activeBranchId } = useCms();
   const [activeTab, setActiveTab] = useState<'reconciliation' | 'worklist' | 'logistics' | 'staff'>(
     'reconciliation'
   );
@@ -194,25 +196,46 @@ export const BranchManagerDashboard: React.FC<BranchManagerDashboardProps> = ({
             </p>
           </div>
 
-          {/* Back Button & Quick Action to open Reception Desk for this branch */}
-          <div className="flex items-center gap-2">
+          {/* Top Actions: Visit Website, Reception switch & Logout */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Visit Website Button */}
             <button
               type="button"
-              onClick={() => onNavigateView('vendor_website')}
-              className="bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-white/20"
-              title="Back"
+              id="branch-header-visit-website-btn"
+              onClick={() => {
+                onNavigateView('vendor_website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-3 py-2 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-emerald-400/30"
+              title="Visit Laboratory Website"
             >
-              <ArrowLeft className="w-4 h-4 text-amber-300" />
-              <span>Back</span>
+              <Globe className="w-4 h-4 text-emerald-200" />
+              <span>Visit Website</span>
             </button>
 
             <button
               type="button"
               onClick={() => onNavigateView('reception_dashboard')}
-              className="bg-teal-400 hover:bg-teal-300 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs sm:text-sm transition shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+              className="bg-teal-400 hover:bg-teal-300 text-slate-950 font-black px-3.5 py-2 rounded-xl text-xs sm:text-sm transition shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95"
             >
               <Receipt className="w-4 h-4" />
-              <span>Open Branch Reception Counter</span>
+              <span>Reception Counter</span>
+            </button>
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              id="branch-header-logout-btn"
+              onClick={() => {
+                logout();
+                onNavigateView('vendor_website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-white/15 hover:bg-rose-600 active:scale-95 text-white px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 shadow-sm border border-white/20 hover:border-rose-400 cursor-pointer shrink-0"
+              title="Logout from Branch Desk"
+            >
+              <LogOut className="w-4 h-4 text-amber-300" />
+              <span>Logout</span>
             </button>
           </div>
         </div>

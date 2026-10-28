@@ -804,7 +804,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
               title="Visit Laboratory Website"
             >
               <Globe className="w-3.5 h-3.5 text-emerald-200" />
-              <span>Visit website</span>
+              <span>Visit Website</span>
             </button>
 
             {/* Logout Button */}

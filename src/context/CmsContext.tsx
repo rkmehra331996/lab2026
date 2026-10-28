@@ -178,6 +178,23 @@ export const STANDARD_PLAN_FEATURES = [
 
 export const DEFAULT_PRICING_PLANS: PricingPlan[] = [
   {
+    id: 'plan-free-demo',
+    name: 'Free Demo',
+    target: 'Free Trial • 1 Day',
+    duration: '1 Day',
+    priceINR: 0,
+    monthlyPriceINR: 0,
+    yearlyPriceINR: 0,
+    billingCycle: '1 Day Access',
+    description: 'Full software access for 1 day.',
+    isPopular: false,
+    badge: 'Free Demo Plan',
+    features: [
+      'Full software access for 1 day',
+      ...STANDARD_PLAN_FEATURES,
+    ],
+  },
+  {
     id: 'plan-1month',
     name: '1 Month',
     target: 'Starter & Flexible',
@@ -186,35 +203,49 @@ export const DEFAULT_PRICING_PLANS: PricingPlan[] = [
     monthlyPriceINR: 1499,
     yearlyPriceINR: 1499,
     billingCycle: 'Per Month',
-    description: 'Full software access with complete features for 1 month. No long-term commitment.',
+    description: 'Full software access for 1 month.',
     isPopular: false,
-    features: [...STANDARD_PLAN_FEATURES],
+    badge: '1 Month Plan',
+    features: [
+      'Full software access for 1 month',
+      ...STANDARD_PLAN_FEATURES,
+    ],
   },
   {
     id: 'plan-3months',
     name: '3 Months',
-    target: 'Quarterly • Most Popular',
+    target: 'Most Popular Choice',
     duration: '3 Months',
     priceINR: 3999,
     monthlyPriceINR: 3999,
     yearlyPriceINR: 3999,
     billingCycle: 'Per 3 Months',
-    description: 'Quarterly access with complete features. Best for steady diagnostic workflow.',
+    description: 'Full software access for 3 months. Most Popular Choice',
     isPopular: true,
-    features: [...STANDARD_PLAN_FEATURES],
+    badge: 'Most Popular Choice',
+    features: [
+      'Full software access for 3 months',
+      ...STANDARD_PLAN_FEATURES,
+    ],
   },
   {
     id: 'plan-1year',
     name: '1 Year',
-    target: 'Annual • Best Value',
+    target: 'Best Value',
     duration: '1 Year',
     priceINR: 11999,
     monthlyPriceINR: 11999,
     yearlyPriceINR: 11999,
     billingCycle: 'Per Year',
-    description: 'Full 1-year license with all features, maximum savings, and priority onboarding.',
+    description: 'Full software access for 1 year. Best Value',
     isPopular: false,
-    features: [...STANDARD_PLAN_FEATURES],
+    badge: 'Best Value',
+    features: [
+      'Full software access for 1 year',
+      ...STANDARD_PLAN_FEATURES,
+      'Priority Indian WhatsApp & Phone Support',
+      'Free Domain Setup & Custom Lab Branding',
+    ],
   },
 ];
 
@@ -1194,11 +1225,41 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
     homeCollectionCharge: 100,
     featureImageUrl: '',
     siteDescription: `${dirItem.name}, located in ${dirItem.city || 'City'}, ${dirItem.state || 'India'}. ${dirItem.tagline || ''}. Authorized NABL accredited pathology services with automated WhatsApp report delivery.`,
-    purchasedPlan: dirItem.subscriptionPlan?.includes('1 Year') ? '1 Year' : dirItem.subscriptionPlan?.includes('3 Month') ? '3 Months' : '1 Month',
-    planDurationDays: dirItem.subscriptionPlan?.includes('1 Year') ? 365 : dirItem.subscriptionPlan?.includes('3 Month') ? 90 : 30,
-    remainingVisibilityDays: dirItem.subscriptionPlan?.includes('1 Year') ? 312 : dirItem.subscriptionPlan?.includes('3 Month') ? 78 : 24,
+    purchasedPlan: dirItem.subscriptionPlan?.includes('Demo') || dirItem.subscriptionPlan?.includes('Free')
+      ? 'Free Demo Plan'
+      : dirItem.subscriptionPlan?.includes('1 Year')
+      ? '1 Year'
+      : dirItem.subscriptionPlan?.includes('3 Month')
+      ? '3 Months'
+      : '1 Month',
+    planDurationDays: dirItem.subscriptionPlan?.includes('Demo') || dirItem.subscriptionPlan?.includes('Free')
+      ? 1
+      : dirItem.subscriptionPlan?.includes('1 Year')
+      ? 365
+      : dirItem.subscriptionPlan?.includes('3 Month')
+      ? 90
+      : 30,
+    remainingVisibilityDays: dirItem.subscriptionPlan?.includes('Demo') || dirItem.subscriptionPlan?.includes('Free')
+      ? 1
+      : dirItem.subscriptionPlan?.includes('1 Year')
+      ? 365
+      : dirItem.subscriptionPlan?.includes('3 Month')
+      ? 90
+      : 30,
     planPurchasedAt: new Date().toISOString().slice(0, 10),
-    planExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+    planExpiresAt: new Date(
+      Date.now() +
+        (dirItem.subscriptionPlan?.includes('Demo') || dirItem.subscriptionPlan?.includes('Free')
+          ? 1
+          : dirItem.subscriptionPlan?.includes('1 Year')
+          ? 365
+          : dirItem.subscriptionPlan?.includes('3 Month')
+          ? 90
+          : 30) *
+          86400000
+    )
+      .toISOString()
+      .slice(0, 10),
     sections: { ...DEFAULT_VENDOR_SECTIONS },
     heroBanners: [],
     banners: [],
@@ -2599,8 +2660,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = JSON.parse(saved);
         if (
           Array.isArray(parsed) &&
-          parsed.length === 3 &&
-          parsed.some((p) => p.id === 'plan-1month' || p.name?.includes('1 Month'))
+          parsed.length === 4 &&
+          parsed.some((p) => p.id === 'plan-free-demo' || p.name?.toLowerCase().includes('demo'))
         ) {
           return parsed;
         }
@@ -3785,11 +3846,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 13. Subscribe to Pricing Plans
     const unsubscribePricing = subscribeToPricingPlans((cloudPlans) => {
       if (cloudPlans && cloudPlans.length > 0) {
-        const has3Packages = cloudPlans.some(
-          (p) => p.id === 'plan-1month' || p.name?.includes('1 Month') || p.duration === '1 Month'
+        const has4Packages = cloudPlans.some(
+          (p) => p.id === 'plan-free-demo' || p.name?.toLowerCase().includes('demo')
         );
-        if (has3Packages) {
-          const sortOrder: Record<string, number> = { 'plan-1month': 1, 'plan-3months': 2, 'plan-1year': 3 };
+        if (has4Packages && cloudPlans.length >= 4) {
+          const sortOrder: Record<string, number> = {
+            'plan-free-demo': 1,
+            'plan-1month': 2,
+            'plan-3months': 3,
+            'plan-1year': 4,
+          };
           const sorted = [...cloudPlans].sort((a, b) => (sortOrder[a.id] || 99) - (sortOrder[b.id] || 99));
           setPricingPlans(sorted);
         } else {
@@ -6004,18 +6070,24 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthModalOpen(true);
   };
 
-  const [selectedRegistrationPackage, setSelectedRegistrationPackage] = useState<string>('3 Months');
+  const [selectedRegistrationPackage, setSelectedRegistrationPackage] = useState<string>('Free Demo Plan');
 
   const openRegisterLabModal = (selectedPackage?: string | React.MouseEvent) => {
     if (typeof selectedPackage === 'string') {
       const lower = selectedPackage.toLowerCase();
-      if (lower.includes('1 month') || lower.includes('starter') || lower.includes('monthly')) {
+      if (lower.includes('demo') || lower.includes('free')) {
+        setSelectedRegistrationPackage('Free Demo Plan');
+      } else if (lower.includes('1 month') || lower.includes('starter') || lower.includes('monthly')) {
         setSelectedRegistrationPackage('1 Month');
       } else if (lower.includes('year') || lower.includes('annual') || lower.includes('12')) {
         setSelectedRegistrationPackage('1 Year');
-      } else {
+      } else if (lower.includes('3 month') || lower.includes('quarterly')) {
         setSelectedRegistrationPackage('3 Months');
+      } else {
+        setSelectedRegistrationPackage(selectedPackage);
       }
+    } else {
+      setSelectedRegistrationPackage('Free Demo Plan');
     }
     openLoginModal(undefined, 'register');
   };
@@ -7504,8 +7576,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isWebsiteApproved: false,
       ownerName: payload.ownerName || `${payload.labName} Owner`,
       email: payload.email || `${cleanPhone}@indianlalaji.com`,
-      subscriptionPlan: payload.subscriptionPlan || 'Professional',
-      subscriptionAmount: payload.subscriptionPlan === 'Enterprise' ? 3999 : 1499,
+      subscriptionPlan: payload.subscriptionPlan || 'Free Demo Plan',
+      subscriptionAmount:
+        payload.subscriptionPlan === '1 Year'
+          ? 11999
+          : payload.subscriptionPlan === '3 Months'
+          ? 3999
+          : payload.subscriptionPlan === '1 Month'
+          ? 1499
+          : 0,
       joinedDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
       domainPreview: `indianlalaji.com/shop/${newLabId}`,
       websiteUrl: `https://indianlalaji.com/shop/${newLabId}`,

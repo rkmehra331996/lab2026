@@ -19,6 +19,8 @@ import {
   Building,
   RefreshCw,
   ArrowLeft,
+  Globe,
+  LogOut,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView, LabReport, ReportItem } from '../types';
@@ -36,7 +38,7 @@ export const PathologistDashboard: React.FC<PathologistDashboardProps> = ({
   onOpenReportPreview,
   onOpenReportPortal,
 }) => {
-  const { currentUser, labReports, updateLabReport, vendorLabSettings } = useCms();
+  const { currentUser, logout, labReports, updateLabReport, vendorLabSettings } = useCms();
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<'pending' | 'critical' | 'verified'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
@@ -161,25 +163,46 @@ export const PathologistDashboard: React.FC<PathologistDashboardProps> = ({
             </p>
           </div>
 
-          {/* Back Button & Direct Link to Technician Workstation */}
-          <div className="flex items-center gap-2">
+          {/* Top Actions: Visit Website, Workstation switch & Logout */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Visit Website Button */}
             <button
               type="button"
-              onClick={() => onNavigateView('vendor_website')}
-              className="bg-indigo-900/80 hover:bg-indigo-800 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-indigo-700/60"
-              title="Back"
+              id="pathologist-header-visit-website-btn"
+              onClick={() => {
+                onNavigateView('vendor_website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-emerald-400/30"
+              title="Visit Laboratory Website"
             >
-              <ArrowLeft className="w-4 h-4 text-amber-300" />
-              <span>Back</span>
+              <Globe className="w-3.5 h-3.5 text-emerald-200" />
+              <span>Visit Website</span>
             </button>
 
             <button
               type="button"
               onClick={() => onNavigateView('technician_dashboard')}
-              className="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer shadow-xs"
+              className="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-indigo-500/40"
             >
-              <span>Switch to Analyzer Workstation</span>
-              <ChevronRight className="w-4 h-4" />
+              <span>Analyzer Workstation</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              id="pathologist-header-logout-btn"
+              onClick={() => {
+                logout();
+                onNavigateView('vendor_website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-white/15 hover:bg-rose-600 active:scale-95 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 shadow-sm border border-white/20 hover:border-rose-400 cursor-pointer shrink-0"
+              title="Logout from Pathologist Desk"
+            >
+              <LogOut className="w-3.5 h-3.5 text-amber-300" />
+              <span>Logout</span>
             </button>
           </div>
         </div>

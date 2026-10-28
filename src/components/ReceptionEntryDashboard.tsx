@@ -1410,11 +1410,25 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
             </div>
           </div>
 
-          {/* Action Buttons: Sync Now + Lab Owner return (if admin) + Staff Logout */}
+          {/* Action Buttons: Sync Now + Visit Website + Lab Owner return + Logout */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Hostinger MySQL Sync Button */}
             <SyncNowButton variant="teal" />
 
+            {/* Visit Website Button */}
+            <button
+              type="button"
+              id="reception-header-visit-website-btn"
+              onClick={() => {
+                onNavigateView('vendor_website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-emerald-400/30 cursor-pointer shrink-0"
+              title="Visit Laboratory Website"
+            >
+              <Globe className="w-3.5 h-3.5 text-emerald-200" />
+              <span>Visit Website</span>
+            </button>
 
             {/* If Admin is inspecting Reception Desk, provide quick return to Lab Owner CMS */}
             {currentUser?.role === 'admin' && (
@@ -1428,22 +1442,21 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
               </button>
             )}
 
-            {/* Logout Option for Staff Side Login on the right side of header */}
-            {!isEmbedded && (
-              <button
-                type="button"
-                id="reception-header-logout-btn"
-                onClick={() => {
-                  logout();
-                  onNavigateView('vendor_website');
-                }}
-                className="bg-white/15 hover:bg-rose-600 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border border-white/20 hover:border-rose-400 cursor-pointer shrink-0"
-                title="Logout from Reception Desk"
-              >
-                <LogOut className="w-3.5 h-3.5 text-amber-300" />
-                <span>Logout</span>
-              </button>
-            )}
+            {/* Logout Button */}
+            <button
+              type="button"
+              id="reception-header-logout-btn"
+              onClick={() => {
+                logout();
+                onNavigateView('vendor_website');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-white/15 hover:bg-rose-600 active:scale-95 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border border-white/20 hover:border-rose-400 cursor-pointer shrink-0"
+              title="Logout from Reception Desk"
+            >
+              <LogOut className="w-3.5 h-3.5 text-amber-300" />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </header>

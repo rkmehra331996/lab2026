@@ -22,9 +22,9 @@ interface PricingSectionProps {
   onOpenDemo?: () => void;
 }
 
-export const PricingSection: React.FC<PricingSectionProps> = () => {
+export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) => {
   const { pricingPlans, openRegisterLabModal, companySettings } = useCms();
-  const [activeSlide, setActiveSlide] = useState(1); // Default to 3 Month (index 1)
+  const [activeSlide, setActiveSlide] = useState(2); // Default to 3 Months (index 2)
 
   // Dynamic UPI Plan Modal State
   const [selectedUpiPlan, setSelectedUpiPlan] = useState<PricingPlan | null>(null);
@@ -67,37 +67,60 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
   // Helper to get formatted duration / billing cycle subtitle
   const getBillingSubtitle = (name: string, price: number) => {
     const lower = name.toLowerCase();
+    if (lower.includes('demo') || lower.includes('free') || price === 0) {
+      return {
+        rateText: `/ 1 Day`,
+        breakdownText: 'Full software access for 1 day • Zero commitment',
+        badge: 'Free Demo Plan',
+        ribbon: 'Free Demo (₹0)',
+        isDemo: true,
+        isPopular: false,
+        isBestValue: false,
+      };
+    }
     if (lower.includes('1 month') || lower.includes('1mopnth') || lower.includes('monthly')) {
       return {
         rateText: `/ 1 Month`,
-        breakdownText: 'Billed monthly • Complete software access',
+        breakdownText: 'Full software access for 1 month • Billed monthly',
         badge: 'Flexible Monthly',
-        accentColor: 'blue',
+        ribbon: null,
+        isDemo: false,
+        isPopular: false,
+        isBestValue: false,
       };
     }
     if (lower.includes('3 month') || lower.includes('quarterly')) {
       const perMonth = Math.round(price / 3);
       return {
         rateText: `/ 3 Months`,
-        breakdownText: `₹${perMonth.toLocaleString('en-IN')}/month • Billed quarterly`,
-        badge: 'Most Popular',
-        accentColor: 'teal',
+        breakdownText: `Full software access for 3 months • ₹${perMonth.toLocaleString('en-IN')}/mo`,
+        badge: 'Most Popular Choice',
+        ribbon: 'Most Popular Choice',
+        isDemo: false,
+        isPopular: true,
+        isBestValue: false,
       };
     }
     if (lower.includes('year') || lower.includes('annual') || lower.includes('1 year')) {
       const perMonth = Math.round(price / 12);
       return {
         rateText: `/ 1 Year`,
-        breakdownText: `₹${perMonth.toLocaleString('en-IN')}/month • Best Value Annual Saver`,
-        badge: 'Best Value • Maximum Savings',
-        accentColor: 'indigo',
+        breakdownText: `Full software access for 1 year • ₹${perMonth.toLocaleString('en-IN')}/mo`,
+        badge: 'Best Value',
+        ribbon: 'Best Value',
+        isDemo: false,
+        isPopular: false,
+        isBestValue: true,
       };
     }
     return {
       rateText: `/ period`,
-      breakdownText: 'Full access with all features',
+      breakdownText: 'Full software access with all features',
       badge: 'Standard Plan',
-      accentColor: 'blue',
+      ribbon: null,
+      isDemo: false,
+      isPopular: false,
+      isBestValue: false,
     };
   };
 
@@ -113,14 +136,15 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
             Simple, All-Inclusive Plans for Every Laboratory
           </h2>
           <p className="text-xs sm:text-base text-slate-600 mt-3 leading-relaxed">
-            Choose your duration: <span className="font-semibold text-slate-900">1 Month</span>,{' '}
-            <span className="font-semibold text-slate-900">3 Months</span>, or{' '}
-            <span className="font-semibold text-slate-900">1 Year</span>. All software features, test libraries, WhatsApp PDF sharing, and Indian support are 100% included in every package.
+            Choose your plan: <span className="font-semibold text-slate-900">Free Demo Plan</span> (₹0),{' '}
+            <span className="font-semibold text-slate-900">1 Month Plan</span> (₹1,499),{' '}
+            <span className="font-semibold text-slate-900">3 Months Plan</span> (₹3,999), or{' '}
+            <span className="font-semibold text-slate-900">1 Year Plan</span> (₹11,999). Full software access, test catalog, WhatsApp PDF reports, and Indian support included.
           </p>
 
           <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] sm:text-xs font-semibold">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Same Full Features Across All 3 Packages • No Hidden Setup Fees</span>
+            <span>Full Software Access Across All Packages • No Hidden Setup Fees</span>
           </div>
         </div>
 
@@ -129,22 +153,23 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
             ========================================================================= */}
         <div className="block md:hidden max-w-md mx-auto">
           {/* Quick Pill Selector Tabs */}
-          <div className="flex items-center justify-between p-1 bg-slate-100 rounded-2xl border border-slate-200 mb-5">
+          <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200 mb-5 text-center">
             {pricingPlans.map((p, idx) => {
               const isCurrent = validActiveIndex === idx;
+              const isPopular = p.isPopular || p.name.includes('3 Month');
               return (
                 <button
                   key={p.id || idx}
                   onClick={() => setActiveSlide(idx)}
-                  className={`flex-1 py-2 px-1.5 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
+                  className={`py-2 px-1 rounded-xl text-[11px] font-bold transition-all text-center cursor-pointer truncate ${
                     isCurrent
                       ? 'bg-[#123B6D] text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <span>{p.name}</span>
-                  {p.isPopular && (
-                    <span className={`block text-[9px] font-extrabold leading-none mt-0.5 ${isCurrent ? 'text-amber-300' : 'text-amber-600'}`}>
+                  <span className="block truncate">{p.name}</span>
+                  {isPopular && (
+                    <span className={`block text-[8px] font-extrabold leading-none mt-0.5 truncate ${isCurrent ? 'text-amber-300' : 'text-amber-600'}`}>
                       ★ Popular
                     </span>
                   )}
@@ -157,7 +182,12 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
           {activeMobilePlan && (() => {
             const price = activeMobilePlan.priceINR ?? activeMobilePlan.monthlyPriceINR;
             const meta = getBillingSubtitle(activeMobilePlan.name, price);
-            const isHighlighted = activeMobilePlan.isPopular || activeMobilePlan.name.includes('3 Month');
+            const isHighlighted = meta.isPopular;
+            const isBestValue = meta.isBestValue;
+            const isDemo = meta.isDemo;
+            const planDisplayName = activeMobilePlan.name.toLowerCase().includes('plan')
+              ? activeMobilePlan.name
+              : `${activeMobilePlan.name} Plan`;
 
             return (
               <div
@@ -171,14 +201,28 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
                   className={`rounded-3xl transition-all duration-300 flex flex-col justify-between relative bg-white ${
                     isHighlighted
                       ? 'border-2 border-[#123B6D] shadow-xl ring-4 ring-[#123B6D]/5'
+                      : isBestValue
+                      ? 'border-2 border-emerald-500 shadow-lg'
+                      : isDemo
+                      ? 'border-2 border-teal-500 shadow-md'
                       : 'border border-slate-200 shadow-md'
                   } p-6`}
                 >
                   {/* Highlight Ribbon */}
-                  {isHighlighted && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#123B6D] text-amber-300 text-[10px] font-extrabold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md flex items-center gap-1 whitespace-nowrap">
-                      <Sparkles className="w-3 h-3 text-amber-300" />
-                      <span>Most Popular Choice</span>
+                  {meta.ribbon && (
+                    <div
+                      className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-extrabold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md flex items-center gap-1 whitespace-nowrap ${
+                        isHighlighted
+                          ? 'bg-[#123B6D] text-amber-300'
+                          : isBestValue
+                          ? 'bg-emerald-700 text-white'
+                          : 'bg-teal-700 text-white'
+                      }`}
+                    >
+                      {isHighlighted && <Sparkles className="w-3 h-3 text-amber-300" />}
+                      {isBestValue && <Award className="w-3 h-3 text-amber-300" />}
+                      {isDemo && <Zap className="w-3 h-3 text-amber-300" />}
+                      <span>{meta.ribbon}</span>
                     </div>
                   )}
 
@@ -188,6 +232,10 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
                         className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
                           isHighlighted
                             ? 'bg-amber-50 text-amber-900 border-amber-200'
+                            : isBestValue
+                            ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                            : isDemo
+                            ? 'bg-teal-50 text-teal-900 border-teal-200'
                             : 'bg-blue-50 text-[#123B6D] border-blue-200'
                         }`}
                       >
@@ -199,7 +247,7 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
                       </span>
                     </div>
 
-                    <h3 className="text-2xl font-black text-slate-900">{activeMobilePlan.name} Plan</h3>
+                    <h3 className="text-2xl font-black text-slate-900">{planDisplayName}</h3>
                     <p className="text-xs text-slate-500 mt-1 min-h-[30px] leading-relaxed">
                       {activeMobilePlan.description || 'Full software access with all features included.'}
                     </p>
@@ -217,12 +265,12 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
                       </div>
                     </div>
 
-                    {/* Features List - Identical across all plans */}
+                    {/* Features List */}
                     <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs">
                       <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center justify-between">
-                        <span>Included in this package:</span>
+                        <span>Included in this plan:</span>
                         <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                          100% Features
+                          Full Access
                         </span>
                       </div>
                       {activeMobilePlan.features.map((feat, fIdx) => (
@@ -235,30 +283,55 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
                   </div>
 
                   <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
-                    <button
-                      onClick={() => openRegisterLabModal(activeMobilePlan.name)}
-                      className={`w-full py-3 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer ${
-                        isHighlighted
-                          ? 'bg-[#123B6D] hover:bg-[#0e2c52] text-white shadow-md active:scale-98'
-                          : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-98'
-                      }`}
-                    >
-                      <span>Choose {activeMobilePlan.name} • Register Lab</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedUpiPlan(activeMobilePlan);
-                        setIsUpiModalOpen(true);
-                        setIsSubmitted(false);
-                        setUtrNumber('');
-                      }}
-                      className="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                    >
-                      <QrCode className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Pay ₹{price.toLocaleString('en-IN')} via Dynamic UPI QR</span>
-                    </button>
+                    {isDemo ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            if (onOpenDemo) onOpenDemo();
+                            else openRegisterLabModal(activeMobilePlan.name);
+                          }}
+                          className="w-full py-3 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-98"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Start Free Demo • 1 Day Access</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openRegisterLabModal('Free Demo Plan')}
+                          className="w-full py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Register Lab for Free Demo (₹0)</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => openRegisterLabModal(activeMobilePlan.name)}
+                          className={`w-full py-3 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer ${
+                            isHighlighted
+                              ? 'bg-[#123B6D] hover:bg-[#0e2c52] text-white shadow-md active:scale-98'
+                              : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-98'
+                          }`}
+                        >
+                          <span>Choose {planDisplayName} • Register Lab</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedUpiPlan(activeMobilePlan);
+                            setIsUpiModalOpen(true);
+                            setIsSubmitted(false);
+                            setUtrNumber('');
+                          }}
+                          className="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <QrCode className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Pay ₹{price.toLocaleString('en-IN')} via Dynamic UPI QR</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -310,13 +383,18 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
         </div>
 
         {/* =========================================================================
-            DESKTOP & TABLET VIEW: 3 Side-by-Side Grid (>= md breakpoint)
+            DESKTOP & TABLET VIEW: 4 Side-by-Side Responsive Grid
             ========================================================================= */}
-        <div className="hidden md:grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
           {pricingPlans.map((plan, idx) => {
             const price = plan.priceINR ?? plan.monthlyPriceINR;
             const meta = getBillingSubtitle(plan.name, price);
-            const isHighlighted = plan.isPopular || plan.name.includes('3 Month');
+            const isHighlighted = meta.isPopular;
+            const isBestValue = meta.isBestValue;
+            const isDemo = meta.isDemo;
+            const planDisplayName = plan.name.toLowerCase().includes('plan')
+              ? plan.name
+              : `${plan.name} Plan`;
 
             return (
               <div
@@ -324,23 +402,41 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
                 className={`rounded-3xl transition-all duration-200 flex flex-col justify-between relative ${
                   isHighlighted
                     ? 'border-2 border-[#123B6D] bg-white shadow-xl ring-4 ring-[#123B6D]/5 -translate-y-1'
+                    : isBestValue
+                    ? 'border-2 border-emerald-500 bg-white shadow-lg -translate-y-0.5'
+                    : isDemo
+                    ? 'border-2 border-teal-500 bg-white shadow-sm'
                     : 'border border-slate-200 bg-white shadow-xs hover:shadow-md hover:border-slate-300'
-                } p-6 sm:p-8`}
+                } p-5 sm:p-6`}
               >
                 {/* Highlight Ribbon */}
-                {isHighlighted && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#123B6D] text-amber-300 text-[11px] font-extrabold uppercase tracking-wider px-4 py-1 rounded-full shadow-md flex items-center gap-1.5 whitespace-nowrap">
-                    <Sparkles className="w-3 h-3 text-amber-300" />
-                    <span>Most Popular Choice</span>
+                {meta.ribbon && (
+                  <div
+                    className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-[11px] font-extrabold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md flex items-center gap-1.5 whitespace-nowrap ${
+                      isHighlighted
+                        ? 'bg-[#123B6D] text-amber-300'
+                        : isBestValue
+                        ? 'bg-emerald-700 text-white'
+                        : 'bg-teal-700 text-white'
+                    }`}
+                  >
+                    {isHighlighted && <Sparkles className="w-3 h-3 text-amber-300" />}
+                    {isBestValue && <Award className="w-3 h-3 text-amber-300" />}
+                    {isDemo && <Zap className="w-3 h-3 text-amber-300" />}
+                    <span>{meta.ribbon}</span>
                   </div>
                 )}
 
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-4">
                     <span
-                      className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full border truncate ${
                         isHighlighted
                           ? 'bg-amber-50 text-amber-900 border-amber-200'
+                          : isBestValue
+                          ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                          : isDemo
+                          ? 'bg-teal-50 text-teal-900 border-teal-200'
                           : 'bg-blue-50 text-[#123B6D] border-blue-200'
                       }`}
                     >
@@ -348,25 +444,32 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
                     </span>
 
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        isHighlighted ? 'bg-[#123B6D] text-amber-400' : 'bg-slate-100 text-slate-700'
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                        isHighlighted
+                          ? 'bg-[#123B6D] text-amber-400'
+                          : isBestValue
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : isDemo
+                          ? 'bg-teal-100 text-teal-800'
+                          : 'bg-slate-100 text-slate-700'
                       }`}
                     >
-                      {idx === 0 && <Zap className="w-4 h-4" />}
-                      {idx === 1 && <Sparkles className="w-4 h-4" />}
-                      {idx === 2 && <Award className="w-4 h-4" />}
+                      {isDemo && <Zap className="w-4 h-4" />}
+                      {!isDemo && idx === 1 && <Smartphone className="w-4 h-4" />}
+                      {!isDemo && isHighlighted && <Sparkles className="w-4 h-4" />}
+                      {!isDemo && isBestValue && <Award className="w-4 h-4" />}
                     </div>
                   </div>
 
-                  <h3 className="text-2xl font-black text-slate-900">{plan.name} Plan</h3>
-                  <p className="text-xs text-slate-500 mt-1.5 min-h-[32px] leading-relaxed">
+                  <h3 className="text-xl font-black text-slate-900">{planDisplayName}</h3>
+                  <p className="text-xs text-slate-500 mt-1 min-h-[36px] leading-relaxed">
                     {plan.description || 'Full software access with all features included.'}
                   </p>
 
                   {/* Price Block */}
-                  <div className="my-6 p-4 rounded-2xl bg-slate-50/80 border border-slate-100">
+                  <div className="my-5 p-3.5 rounded-2xl bg-slate-50/80 border border-slate-100">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-3xl sm:text-4xl font-black text-[#123B6D]">
+                      <span className="text-2xl sm:text-3xl font-black text-[#123B6D]">
                         ₹{price.toLocaleString('en-IN')}
                       </span>
                       <span className="text-xs text-slate-500 font-semibold">{meta.rateText}</span>
@@ -376,45 +479,75 @@ export const PricingSection: React.FC<PricingSectionProps> = () => {
                     </div>
                   </div>
 
-                  {/* Features List - Identical across all 3 plans */}
-                  <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                      Included in this package:
+                  {/* Features List */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                      Included in this plan:
                     </div>
-                    {plan.features.map((feat, fIdx) => (
-                      <div key={fIdx} className="flex items-start gap-2.5 text-slate-700 leading-snug">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span>{feat}</span>
+                    {plan.features.slice(0, 6).map((feat, fIdx) => (
+                      <div key={fIdx} className="flex items-start gap-2 text-slate-700 leading-snug">
+                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span className="text-[11px]">{feat}</span>
                       </div>
                     ))}
+                    {plan.features.length > 6 && (
+                      <div className="text-[10px] font-semibold text-slate-500 italic pt-1">
+                        + {plan.features.length - 6} more included features
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-slate-100 space-y-2">
-                  <button
-                    onClick={() => openRegisterLabModal(plan.name)}
-                    className={`w-full py-3 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer ${
-                      isHighlighted
-                        ? 'bg-[#123B6D] hover:bg-[#0e2c52] text-white shadow-md hover:shadow-lg active:scale-98'
-                        : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-98'
-                    }`}
-                  >
-                    <span>Choose {plan.name} • Register Lab</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedUpiPlan(plan);
-                      setIsUpiModalOpen(true);
-                      setIsSubmitted(false);
-                      setUtrNumber('');
-                    }}
-                    className="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                  >
-                    <QrCode className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Pay ₹{(plan.priceINR ?? plan.monthlyPriceINR).toLocaleString('en-IN')} via Dynamic UPI QR</span>
-                  </button>
+                <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
+                  {isDemo ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          if (onOpenDemo) onOpenDemo();
+                          else openRegisterLabModal(plan.name);
+                        }}
+                        className="w-full py-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-98"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Start Free Demo (1 Day)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openRegisterLabModal('Free Demo Plan')}
+                        className="w-full py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 font-black text-xs transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Register Lab Free</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => openRegisterLabModal(plan.name)}
+                        className={`w-full py-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
+                          isHighlighted
+                            ? 'bg-[#123B6D] hover:bg-[#0e2c52] text-white shadow-md hover:shadow-lg active:scale-98'
+                            : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-98'
+                        }`}
+                      >
+                        <span>Choose {plan.name}</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedUpiPlan(plan);
+                          setIsUpiModalOpen(true);
+                          setIsSubmitted(false);
+                          setUtrNumber('');
+                        }}
+                        className="w-full py-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 font-black text-[11px] transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
+                      >
+                        <QrCode className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Pay ₹{price.toLocaleString('en-IN')} via UPI QR</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             );
