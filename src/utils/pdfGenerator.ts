@@ -1040,6 +1040,16 @@ export async function buildReceiptInvoicePdf(
     doc.text('Full Payment Cleared', 93, bY, { align: 'right' });
   }
 
+  if (entry?.upiTransactionRef) {
+    bY += 4.5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(109, 40, 217); // Purple
+    doc.text('UPI Ref / UTR:', 12, bY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(entry.upiTransactionRef), 93, bY, { align: 'right' });
+  }
+
   curY += breakdownHeight + 5;
 
   // 7. Footer Strip

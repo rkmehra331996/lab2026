@@ -53,6 +53,7 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { generateThermalReceiptPdf, buildReceiptInvoicePdf } from '../utils/pdfGenerator';
 import { isReportAccessibleToTenant } from '../utils/tenantSecurity';
 import { buildPatientReportUrl } from '../utils/domainRouting';
+import { getTenantDirectUrl } from '../constants/domains';
 import { buildReceiptSlipImage, downloadReceiptImage } from '../utils/receiptImageGenerator';
 import { WebsiteTokenReceiptCard } from './vendor/WebsiteTokenReceiptCard';
 
@@ -632,14 +633,14 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
         `🧪 *Tests:* ${testNamesStr}`,
         `💰 *Bill Summary:* Gross ₹${total}${discount > 0 ? `, Concession -₹${discount}` : ''} | *Net ₹${net}*`,
         `💵 *Paid:* ₹${paid} (${entry.paymentMode || 'Cash'})`,
+        entry.upiTransactionRef ? `🔍 *UPI / UTR:* *${entry.upiTransactionRef}*` : '',
         due > 0 ? `⚠️ *Balance Due:* ₹${due} (Pay on Spot)` : `✅ *Payment Status:* Paid in Full`,
         entry.visitType === 'Home Collection' && entry.address ? `🏠 *Home Pickup:* ${entry.address}${entry.preferredTimeSlot ? ` (${entry.preferredTimeSlot})` : ''}` : '',
         `📅 *Date:* ${entry.registeredAt || new Date().toLocaleDateString('en-IN')}`,
         `━━━━━━━━━━━━━━━━━━━━`,
-        ``,
-        `🔗 *View Report:* ${reportUrl}`,
-        ``,
-        `🖼️ *Receipt Slip:* Attached / Downloaded with this WhatsApp message.`,
+        `🔗 *REPORT Download:* ${reportUrl}`,
+        `🌐 *Website:* ${getTenantDirectUrl(labId)}`,
+        `━━━━━━━━━━━━━━━━━━━━`,
         `📍 *${labName}*${vendorLabSettings?.phone ? ` • Ph: ${vendorLabSettings.phone}` : ''}`,
       ].filter(Boolean).join('\n');
 
@@ -665,6 +666,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
         labName: labName,
         labPhone: vendorLabSettings?.phone || '7087033009',
         showPrices: true,
+        upiTransactionRef: entry.upiTransactionRef,
       }, labName);
 
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(

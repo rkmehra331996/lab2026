@@ -23,6 +23,7 @@ export interface ReceiptSlipInput {
   labName?: string;
   labPhone?: string;
   showPrices?: boolean;
+  upiTransactionRef?: string;
 }
 
 export interface ReceiptSlipImageResult {
@@ -43,7 +44,8 @@ export async function buildReceiptSlipImage(
   // Estimate canvas height
   const testItems = Array.isArray(data.tests) ? data.tests : [];
   const testCount = Math.max(1, testItems.length);
-  const height = 800 + testCount * 30;
+  const hasUtr = Boolean(data.upiTransactionRef);
+  const height = (hasUtr ? 870 : 840) + testCount * 30;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -181,8 +183,9 @@ export async function buildReceiptSlipImage(
     ctx.fillStyle = '#F8FAFC';
     ctx.strokeStyle = '#E2E8F0';
     ctx.lineWidth = 1;
+    const boxH = hasUtr ? 110 : 85;
     ctx.beginPath();
-    ctx.roundRect(cardX + 24, y, cardW - 48, 85, 10);
+    ctx.roundRect(cardX + 24, y, cardW - 48, boxH, 10);
     ctx.fill();
     ctx.stroke();
 
@@ -197,6 +200,12 @@ export async function buildReceiptSlipImage(
     ctx.fillText(`Total Amount: ₹${total}${discount > 0 ? ` (Disc: -₹${discount})` : ''}`, cardX + 40, y + 30);
     ctx.fillText(`Paid: ₹${paid} (${data.paymentMode || 'Cash'})`, cardX + 40, y + 54);
 
+    if (hasUtr) {
+      ctx.fillStyle = '#6D28D9';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText(`UPI Ref / UTR: ${data.upiTransactionRef}`, cardX + 40, y + 78);
+    }
+
     ctx.textAlign = 'right';
     ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
     if (due > 0) {
@@ -206,7 +215,7 @@ export async function buildReceiptSlipImage(
       ctx.fillStyle = '#16A34A';
       ctx.fillText('PAID IN FULL', cardX + cardW - 40, y + 45);
     }
-    y += 95;
+    y += hasUtr ? 120 : 95;
   } else {
     y += 20;
   }
@@ -248,9 +257,17 @@ export async function buildReceiptSlipImage(
     ctx.fillText('SCAN WITH CAMERA TO VIEW & DOWNLOAD REPORT', width / 2, y);
 
     y += 18;
-    ctx.fillStyle = '#64748B';
-    ctx.font = '10px monospace';
-    ctx.fillText(reportUrl, width / 2, y);
+    ctx.fillStyle = '#1D4ED8';
+    ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+    ctx.fillText(`REPORT Download: ${reportUrl}`, width / 2, y);
+
+    const labWebsiteUrl = cleanShop
+      ? `${origin}/shop/${cleanShop}`
+      : origin;
+    y += 16;
+    ctx.fillStyle = '#0F766E';
+    ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+    ctx.fillText(`Website: ${labWebsiteUrl}`, width / 2, y);
   } catch (err) {
     console.error('QR code generation failed on slip image:', err);
   }

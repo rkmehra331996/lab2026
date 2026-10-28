@@ -35,6 +35,7 @@ import { optimizeImageFile } from '../../utils/imageOptimizer';
 import { WebsiteTokenReceiptCard } from './WebsiteTokenReceiptCard';
 import { buildReceiptInvoicePdf } from '../../utils/pdfGenerator';
 import { buildPatientReportUrl } from '../../utils/domainRouting';
+import { getTenantDirectUrl } from '../../constants/domains';
 import { buildReceiptSlipImage, downloadReceiptImage } from '../../utils/receiptImageGenerator';
 
 interface HeroBookingFormProps {
@@ -671,14 +672,22 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
       reportToken
     );
 
+    const bookingLabId = (createdReceipt as any).labId || targetLabId || effectiveLabId || vendorLabSettings?.labId;
+    const labWebsiteUrl = getTenantDirectUrl(bookingLabId);
+
     const message =
-      `🏥 Registration Confirmed!\n\n` +
-      `Dear ${createdReceipt.patientName}, your lab test registration is confirmed. ✅\n\n` +
-      `🎫 Token No.: ${reportToken}\n` +
-      `🧪 Tests: ${testNamesStr}\n` +
-      `📅 Date: ${createdReceipt.bookingDate || new Date().toLocaleDateString('en-IN')}\n` +
-      `🔗 View Report: ${reportUrl}\n\n` +
-      `🖼️ Receipt Slip: Attached with this WhatsApp message.`;
+      `🏥 *${labMerchantName.toUpperCase()}*\n` +
+      `📍 *Official Patient Registration & Billing Slip*\n\n` +
+      `Dear *${createdReceipt.patientName}*, your lab test registration is confirmed. ✅\n\n` +
+      `🎫 *Token No.:* ${reportToken}\n` +
+      `🧪 *Tests:* ${testNamesStr}\n` +
+      `📅 *Date:* ${createdReceipt.bookingDate || new Date().toLocaleDateString('en-IN')}\n` +
+      (createdReceipt.utrNumber ? `🔍 *UPI Reference / UTR:* *${createdReceipt.utrNumber}*\n` : '') +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `🔗 *REPORT Download:* ${reportUrl}\n` +
+      `🌐 *Website:* ${labWebsiteUrl}\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `📍 *${labMerchantName}*`;
 
     try {
       const { file, dataUrl, filename } = await buildReceiptSlipImage({
@@ -701,6 +710,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
         labId: (createdReceipt as any).labId || targetLabId || effectiveLabId || vendorLabSettings?.labId,
         labName: labMerchantName,
         showPrices: showWebsitePrices,
+        upiTransactionRef: createdReceipt.utrNumber,
       }, labMerchantName);
 
       if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {

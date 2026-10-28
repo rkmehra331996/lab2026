@@ -57,6 +57,7 @@ import { SyncNowButton } from './SyncNowButton';
 import { generateThermalReceiptPdf, buildReceiptInvoicePdf, getReceiptPdfFilename, downloadReportPdf } from '../utils/pdfGenerator';
 import { safePrint } from '../utils/printHelper';
 import { buildPatientReportUrl } from '../utils/domainRouting';
+import { getTenantDirectUrl } from '../constants/domains';
 import { buildReceiptSlipImage, downloadReceiptImage, uploadReceiptSlipImage } from '../utils/receiptImageGenerator';
 import { WebsiteTokenReceiptCard } from './vendor/WebsiteTokenReceiptCard';
 
@@ -221,6 +222,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const [advancePercent, setAdvancePercent] = useState<number>(50);
   const [customPaidAmount, setCustomPaidAmount] = useState<string>('');
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Card'>('UPI');
+  const [upiTransactionRef, setUpiTransactionRef] = useState('');
   const [notes, setNotes] = useState('');
   const [testSearch, setTestSearch] = useState('');
   const [selectedParentCategory, setSelectedParentCategory] = useState<string>('Popular');
@@ -645,6 +647,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     }
 
     setPaymentMode(entry.paymentMode === 'Cash' || entry.paymentMode === 'Card' ? entry.paymentMode : 'UPI');
+    setUpiTransactionRef(entry.upiTransactionRef || '');
     setNotes(entry.notes || '');
 
     // Scroll smoothly to the form container
@@ -692,6 +695,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       paidAmount,
       dueAmount,
       paymentMode,
+      upiTransactionRef: paymentMode === 'UPI' && upiTransactionRef.trim() ? upiTransactionRef.trim() : undefined,
       paymentStatus: calculatedPaymentStatus,
       notes: notes.trim() || undefined,
     };
@@ -744,6 +748,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       paidAmount,
       dueAmount,
       paymentMode,
+      upiTransactionRef: paymentMode === 'UPI' && upiTransactionRef.trim() ? upiTransactionRef.trim() : undefined,
+      paymentVerificationStatus: paymentMode === 'UPI' && upiTransactionRef.trim() ? 'Pending Verification' : undefined,
       paymentStatus: calculatedPaymentStatus,
       status: 'Waiting',
       sentToTechnician: false,
@@ -802,6 +808,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       paidAmount,
       dueAmount,
       paymentMode,
+      upiTransactionRef: paymentMode === 'UPI' && upiTransactionRef.trim() ? upiTransactionRef.trim() : undefined,
+      paymentVerificationStatus: paymentMode === 'UPI' && upiTransactionRef.trim() ? 'Pending Verification' : undefined,
       paymentStatus: calculatedPaymentStatus,
       status: 'Sample Collected',
       sentToTechnician: true,
@@ -1062,6 +1070,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     setPaymentChoice('Full Payment');
     setAdvancePercent(50);
     setCustomPaidAmount('');
+    setUpiTransactionRef('');
     setNotes('');
     try {
       localStorage.removeItem('reception_form_active_draft');
@@ -1248,6 +1257,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         labName: labName,
         labPhone: labPhone,
         showPrices: true,
+        upiTransactionRef: entry.upiTransactionRef,
       }, labName);
 
       // Upload slip image to get a permanent public link for WhatsApp
@@ -1260,6 +1270,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       } catch (uploadErr) {
         console.warn('Slip image upload warning:', uploadErr);
       }
+
+      const labWebsiteUrl = getTenantDirectUrl(labId);
 
       const shareText = [
         `🏥 *${labName.toUpperCase()}*`,
@@ -1287,15 +1299,11 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         `• Gross Total: ₹${total}${discount > 0 ? ` | Concession: -₹${discount}` : ''}`,
         `• Net Payable: *₹${net}*`,
         `• Amount Paid: ₹${paid} (${entry.paymentMode || 'Cash'})`,
+        entry.upiTransactionRef ? `• 🔍 *UPI Reference / UTR:* *${entry.upiTransactionRef}*` : '',
         due > 0 ? `• Status: ⚠️ *Balance Due: ₹${due}* (Pay on Spot)` : `• Status: ✅ *PAID IN FULL*`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        publicSlipUrl ? `🖼️ *OFFICIAL SLIP IMAGE (Click to View):*` : '',
-        publicSlipUrl ? `${publicSlipUrl}` : '',
-        publicSlipUrl ? `` : '',
-        `🔗 *LIVE ONLINE REPORT:*`,
-        `${reportUrl}`,
-        ``,
-        `📲 *Tip:* Scan the QR code on the slip image with your phone camera to view test status anytime.`,
+        `🔗 *REPORT Download:* ${reportUrl}`,
+        `🌐 *Website:* ${labWebsiteUrl}`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
         `📍 *${labName}*${labPhone ? ` • Helpline: ${labPhone}` : ''}`,
       ].filter(Boolean).join('\n');
@@ -2295,6 +2303,22 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                     </button>
                   </div>
                 </div>
+
+                {paymentMode === 'UPI' && (
+                  <div className="pt-2 border-t border-purple-100 flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-purple-900 flex items-center justify-between">
+                      <span>🔍 UPI UTR / Ref Number:</span>
+                      <span className="text-[10px] text-purple-600 font-normal">(QR / App Payment)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={upiTransactionRef}
+                      onChange={(e) => setUpiTransactionRef(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                      placeholder="e.g. 526371829102 (From PhonePe / GPay / Paytm)"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-purple-200 bg-purple-50/60 focus:bg-white text-xs font-mono font-bold text-purple-950 focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* 4. Submit & Token Generation */}

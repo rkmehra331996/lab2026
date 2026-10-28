@@ -125,6 +125,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>(
     entry.paymentMode === 'Cash' ? 'Cash' : 'UPI'
   );
+  const [upiTransactionRef, setUpiTransactionRef] = useState(entry.upiTransactionRef || '');
   const [paymentStatus, setPaymentStatus] = useState<ReceptionPatientEntry['paymentStatus']>(
     entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid'
       ? 'Full Payment'
@@ -155,6 +156,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
       setDiscountINR(entry.discountINR || 0);
       setPaidAmount(entry.paidAmount);
       setPaymentMode(entry.paymentMode === 'Cash' ? 'Cash' : 'UPI');
+      setUpiTransactionRef(entry.upiTransactionRef || '');
       setPaymentStatus(
         entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid'
           ? 'Full Payment'
@@ -333,6 +335,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
       paidAmount,
       dueAmount,
       paymentMode,
+      upiTransactionRef: paymentMode === 'UPI' ? (upiTransactionRef.trim() || undefined) : undefined,
       paymentStatus: finalPaymentStatus,
       status: isReportReady ? entry.status : sendToLab ? 'In Lab' : status,
       sentToTechnician: isReportReady ? entry.sentToTechnician : sendToLab ? true : entry.sentToTechnician,
@@ -965,6 +968,21 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                 </button>
               ))}
             </div>
+
+            {paymentMode === 'UPI' && (
+              <div className="pt-2">
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  UPI UTR / Reference Number:
+                </label>
+                <input
+                  type="text"
+                  value={upiTransactionRef}
+                  onChange={(e) => setUpiTransactionRef(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                  placeholder="e.g. 526371829102"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-purple-200 bg-purple-50/50 text-xs font-mono font-bold text-purple-950 focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+              </div>
+            )}
           </div>
         </div>
 

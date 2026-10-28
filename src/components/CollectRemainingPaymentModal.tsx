@@ -32,6 +32,7 @@ export const CollectRemainingPaymentModal: React.FC<CollectRemainingPaymentModal
 
   const [collectAmount, setCollectAmount] = useState<number>(currentDue);
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Card'>('UPI');
+  const [utrNumber, setUtrNumber] = useState('');
   const [receiptNote, setReceiptNote] = useState('');
 
   const remainingAfterCollection = Math.max(0, currentDue - collectAmount);
@@ -65,6 +66,7 @@ export const CollectRemainingPaymentModal: React.FC<CollectRemainingPaymentModal
       balancePaidAmount: collectAmount,
       balancePaymentMode: paymentMode,
       balancePaidAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      upiTransactionRef: utrNumber.trim() || entry.upiTransactionRef,
     };
 
     if (onCollectPayment) {
@@ -261,6 +263,18 @@ export const CollectRemainingPaymentModal: React.FC<CollectRemainingPaymentModal
                         <Smartphone className="w-3 h-3" />
                         <span>Open on UPI App</span>
                       </a>
+                    </div>
+                    <div className="pt-2">
+                      <label className="text-[10px] font-bold text-amber-900 block">
+                        UPI Transaction Reference / UTR Number:
+                      </label>
+                      <input
+                        type="text"
+                        value={utrNumber}
+                        onChange={(e) => setUtrNumber(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                        placeholder="e.g. 526371829102"
+                        className="mt-1 w-full px-2.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      />
                     </div>
                   </div>
                 </div>

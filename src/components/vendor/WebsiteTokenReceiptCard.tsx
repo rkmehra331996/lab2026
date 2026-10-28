@@ -26,6 +26,7 @@ import {
 import { generateThermalReceiptPdf } from '../../utils/pdfGenerator';
 import { safePrint } from '../../utils/printHelper';
 import { buildPatientReportUrl } from '../../utils/domainRouting';
+import { getTenantDirectUrl } from '../../constants/domains';
 import {
   buildReceiptSlipImage,
   downloadReceiptImage,
@@ -151,6 +152,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
           labName: receipt.labName,
           labPhone: receipt.labPhone,
           showPrices: showPrices,
+          upiTransactionRef: receipt.upiTransactionRef,
         },
         receipt.labName
       )
@@ -192,19 +194,15 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
       showPrices && discount > 0 ? `• Concession: -₹${discount}` : '',
       showPrices ? `• Net Payable: *₹${net}*` : '',
       showPrices ? `• Amount Paid: ₹${paid} (${receipt.paymentMode || 'Cash'})` : '',
+      receipt.upiTransactionRef ? `• 🔍 *UPI Reference / UTR:* *${receipt.upiTransactionRef}*` : '',
       showPrices
         ? due > 0
           ? `• Status: ⚠️ *Balance Due: ₹${due}* (Pay on Spot)`
           : `• Status: ✅ *PAID IN FULL*`
         : '',
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-      uploadedSlipUrl ? `🖼️ *OFFICIAL SLIP IMAGE (Click to View):*` : '',
-      uploadedSlipUrl ? `${uploadedSlipUrl}` : '',
-      uploadedSlipUrl ? `` : '',
-      `🔗 *LIVE ONLINE REPORT:*`,
-      `${reportUrl}`,
-      ``,
-      `📲 *Tip:* Scan the QR code on the slip image with your phone camera to view test status anytime.`,
+      `🔗 *REPORT Download:* ${reportUrl}`,
+      `🌐 *Website:* ${getTenantDirectUrl(receipt.labId)}`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       `📍 *${receipt.labName}*${receipt.labPhone ? ` • Helpline: ${receipt.labPhone}` : ''}`,
     ]
@@ -228,6 +226,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
     paidAmount: showPrices ? receipt.paidAmount : 0,
     dueAmount: showPrices ? receipt.dueAmount : 0,
     paymentMode: receipt.paymentMode,
+    upiTransactionRef: receipt.upiTransactionRef,
     registeredAt: receipt.registeredAt,
     bookingSource: 'Website',
   };
@@ -271,6 +270,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
           labName: receipt.labName,
           labPhone: receipt.labPhone,
           showPrices: showPrices,
+          upiTransactionRef: receipt.upiTransactionRef,
         },
         receipt.labName
       );
@@ -309,6 +309,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
           labName: receipt.labName,
           labPhone: receipt.labPhone,
           showPrices: showPrices,
+          upiTransactionRef: receipt.upiTransactionRef,
         },
         receipt.labName
       );
@@ -371,6 +372,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
           labName: receipt.labName,
           labPhone: receipt.labPhone,
           showPrices: showPrices,
+          upiTransactionRef: receipt.upiTransactionRef,
         },
         receipt.labName
       );
@@ -733,14 +735,17 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
                   </div>
                 )}
 
-                {receipt.upiTransactionRef && (
-                  <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1">
-                    <span>UPI Reference / UTR:</span>
-                    <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">
+                {receipt.upiTransactionRef ? (
+                  <div className="flex justify-between items-center text-xs p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-950 font-medium mt-1">
+                    <span className="flex items-center gap-1.5 font-bold">
+                      <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
+                      <span>UPI Reference / UTR Number:</span>
+                    </span>
+                    <span className="font-mono font-black text-xs sm:text-sm text-purple-900 bg-white px-2.5 py-0.5 rounded-lg border border-purple-300 shadow-2xs tracking-wider">
                       {receipt.upiTransactionRef}
                     </span>
                   </div>
-                )}
+                ) : null}
               </div>
             ) : null}
 
@@ -776,9 +781,21 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1D4ED8] hover:underline"
                   >
-                    <span className="truncate max-w-[200px]">{reportUrl}</span>
+                    <span>🔗 REPORT Download</span>
                     <ExternalLink className="w-3 h-3 shrink-0" />
                   </a>
+                  <div className="pt-0.5">
+                    <a
+                      href={getTenantDirectUrl(receipt.labId)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 hover:underline"
+                    >
+                      <Globe className="w-3 h-3 shrink-0" />
+                      <span>🌐 Lab Website</span>
+                      <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
