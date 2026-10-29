@@ -57,6 +57,8 @@ const RESERVED_PATH_SEGMENTS = [
   'branch',
   'reports',
   'report',
+  'verify',
+  'check',
   'portal',
   'patient_portal',
   'lab_app',
@@ -157,17 +159,27 @@ export function resolveAppRoute(
   const cleanHost = (hostname || '').toLowerCase().trim().replace(/^https?:\/\//, '').split(':')[0];
   const params = new URLSearchParams(search);
   const viewParam = params.get('view') as AppView | null;
+  const effectivePath = pathname !== undefined ? pathname : (typeof window !== 'undefined' ? window.location.pathname : '');
+  const effectiveHash = hash !== undefined ? hash : (typeof window !== 'undefined' ? window.location.hash : '');
+
+  // Detect if 'id' parameter or path looks like a medical report/token/UHID identifier rather than a vendor lab ID
+  const rawIdParam = (params.get('id') || '').trim();
+  const isVerifyOrReportPath = /^\/(?:verify|check|report|reports)(?:[/?#]|$)/i.test(effectivePath) ||
+    /^\/(?:verify|check|report|reports)(?:[/?#]|$)/i.test(effectiveHash.replace(/^#\/?/, '/'));
+  const isIdReportLike = Boolean(
+    rawIdParam &&
+    (/^(?:rpt|tk|rcp|uhid)[-_\s]?/i.test(rawIdParam) || isVerifyOrReportPath)
+  );
+
   const labParam =
     params.get('lab') ||
     params.get('subdomain') ||
     params.get('vendor') ||
-    params.get('id') ||
+    (!isIdReportLike ? params.get('id') : null) ||
     params.get('labId') ||
     params.get('slug') ||
     params.get('tenant');
   const shopParam = params.get('shop');
-  const effectivePath = pathname !== undefined ? pathname : (typeof window !== 'undefined' ? window.location.pathname : '');
-  const effectiveHash = hash !== undefined ? hash : (typeof window !== 'undefined' ? window.location.hash : '');
 
   // 0a. Blog / SEO Post Routing: /blog/:slug, /post/:slug, /articles/:slug, or ?post=:slug
   const postParam = params.get('post') || params.get('blog') || params.get('article');
@@ -186,7 +198,33 @@ export function resolveAppRoute(
     };
   }
 
-  // 00. Unique Patient Report URL Pattern:
+  // 00a. Verification Route Pattern:
+  // Examples:
+  // - https://yourdomain.com/verify?id=RPT-101
+  // - https://yourdomain.com/verify/RPT-101
+  // - https://yourdomain.com/check/RPT-101
+  const verifyPathMatch = effectivePath.match(/^\/(?:verify|check)(?:\/([a-zA-Z0-9_\-]+))?\/?$/i);
+  if (verifyPathMatch) {
+    const rawToken = (
+      verifyPathMatch[1] ||
+      params.get('id') ||
+      params.get('report') ||
+      params.get('reportId') ||
+      params.get('token') ||
+      params.get('tokenNumber') ||
+      params.get('uhid') ||
+      ''
+    ).trim();
+    const rawShop = shopParam || params.get('lab') || params.get('subdomain') || params.get('vendor') || params.get('tenant');
+    const resolvedLab = rawShop ? findMatchingLabId(rawShop, vendorLabsList) : undefined;
+    return {
+      view: 'patient_portal',
+      targetReport: rawToken ? decodeURIComponent(rawToken) : undefined,
+      targetLab: resolvedLab,
+    };
+  }
+
+  // 00b. Unique Patient Report URL Pattern:
   // Examples:
   // - https://yourdomain.com/shopnumber/report/TK-102
   // - https://yourdomain.com/shop/shopnumber/report/TK-102
@@ -210,7 +248,8 @@ export function resolveAppRoute(
   const directReportMatch = effectivePath.match(/^\/(?:(?:shop|lab|labs|vendor|v)\/)?(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i);
   if (directReportMatch && directReportMatch[1]) {
     const rawToken = decodeURIComponent(directReportMatch[1]).trim();
-    const resolvedLab = labParam ? findMatchingLabId(labParam, vendorLabsList) : undefined;
+    const rawShop = shopParam || (labParam && labParam !== rawToken ? labParam : undefined);
+    const resolvedLab = rawShop ? findMatchingLabId(rawShop, vendorLabsList) : undefined;
     return {
       view: 'patient_portal',
       targetReport: rawToken,
@@ -218,9 +257,28 @@ export function resolveAppRoute(
     };
   }
 
-  // 00b. Hash-based report routing (e.g. #/shopnumber/report/TK-102 or #/report/TK-102)
+  // 00c. Hash-based report or verify routing (e.g. #/verify?id=RPT-101, #/shopnumber/report/TK-102 or #/report/TK-102)
   if (effectiveHash) {
     const cleanHash = effectiveHash.replace(/^#\/?/, '/');
+    const hashVerifyMatch = cleanHash.match(/^\/?(?:verify|check)(?:\/([a-zA-Z0-9_\-]+))?\/?/i);
+    if (hashVerifyMatch) {
+      const hashParams = cleanHash.includes('?') ? new URLSearchParams(cleanHash.slice(cleanHash.indexOf('?'))) : null;
+      const rawToken = (
+        hashVerifyMatch[1] ||
+        hashParams?.get('id') ||
+        hashParams?.get('report') ||
+        hashParams?.get('reportId') ||
+        hashParams?.get('token') ||
+        params.get('id') ||
+        params.get('report') ||
+        ''
+      ).trim();
+      return {
+        view: 'patient_portal',
+        targetReport: rawToken ? decodeURIComponent(rawToken) : undefined,
+      };
+    }
+
     const hashReportWithShopMatch = cleanHash.match(
       /^\/?(?:(?:shop|lab|labs|vendor|v)\/)?([a-zA-Z0-9_\-]+)\/(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i
     );
@@ -247,11 +305,18 @@ export function resolveAppRoute(
     }
   }
 
-  // 00c. Direct query parameter report lookup: ?report=TK-102 or ?token=TK-102
-  const reportParam = params.get('report') || params.get('reportId') || params.get('token') || params.get('tokenNumber');
+  // 00d. Direct query parameter report lookup: ?report=TK-102 or ?token=TK-102 or ?id=RPT-101
+  const reportParam =
+    params.get('report') ||
+    params.get('reportId') ||
+    params.get('token') ||
+    params.get('tokenNumber') ||
+    params.get('report_id') ||
+    (isIdReportLike ? rawIdParam : null);
+
   if (reportParam) {
     const rawToken = decodeURIComponent(reportParam).trim();
-    const rawShop = shopParam || labParam;
+    const rawShop = shopParam || (labParam && labParam !== rawToken ? labParam : undefined);
     return {
       view: 'patient_portal',
       targetReport: rawToken,

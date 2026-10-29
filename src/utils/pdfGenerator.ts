@@ -110,16 +110,19 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   // Dynamically resolve vendor details
   const resolved = resolveLabDetails(report);
 
-  // 1. Prepare Verification URL (Single Canonical QR Code destination)
+  // 1. Prepare Verification & Online Patient Report URL (Canonical QR Code destination)
+  // When scanned with any smartphone camera or QR reader, this opens the patient's verified report directly.
   const currentOrigin =
-    typeof window !== 'undefined' && window.location.origin
-      ? window.location.origin
-      : 'https://labreport.online';
-  const verifyUrl = `${currentOrigin}/verify?id=${encodeURIComponent(
-    report.reportId
-  )}&uhid=${encodeURIComponent(report.uhid)}&auth=${encodeURIComponent(
-    (report.verificationHash || 'VERIFIED').slice(0, 16)
-  )}`;
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin.replace(/\/+$/, '')
+      : 'https://indianlalaji.com';
+
+  const reportIdentifier = report.reportId || report.tokenNumber || 'RPT-101';
+  const cleanShop = report.labId && report.labId !== 'all' ? report.labId : '';
+
+  const verifyUrl = cleanShop
+    ? `${currentOrigin}/shop/${encodeURIComponent(cleanShop)}/report/${encodeURIComponent(reportIdentifier)}`
+    : `${currentOrigin}/report/${encodeURIComponent(reportIdentifier)}`;
 
   // 2. Generate Assets in Parallel:
   // - ONE QR Code ONLY (top header)

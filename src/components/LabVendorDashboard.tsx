@@ -1464,152 +1464,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
-              {/* SECTION 5: DASHBOARD (- RECEPTION DASHBOARD, - TECHNICIAN DASHBOARD) */}
-              <div className="rounded-xl border border-indigo-300/80 bg-indigo-50/50 overflow-hidden shadow-2xs">
-                {/* Accordion Header */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('dashboard');
-                    toggleSidebarSection('dashboard');
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'dashboard'
-                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
-                      : 'bg-indigo-100/70 text-slate-900 font-bold hover:bg-indigo-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <LayoutDashboard className={`w-4 h-4 shrink-0 ${activeTab === 'dashboard' ? 'text-amber-400' : 'text-indigo-700'}`} />
-                    <span className="text-xs font-black truncate">5. Dashboard</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      activeTab === 'dashboard' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
-                    }`}>
-                      2 Desks
-                    </span>
-                    {isDashboardMenuOpen ? (
-                      <ChevronDown className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-white' : 'text-slate-800'}`} />
-                    ) : (
-                      <ChevronRight className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-white' : 'text-slate-800'}`} />
-                    )}
-                  </div>
-                </button>
-
-                {/* Sub-Items: - Reception Dashboard, - Technician Dashboard */}
-                {isDashboardMenuOpen && (
-                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-indigo-200/70">
-                    {/* - Reception Dashboard */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('dashboard');
-                        setDashboardSubTab('reception');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer group ${
-                        activeTab === 'dashboard' && dashboardSubTab === 'reception'
-                          ? 'bg-teal-700 text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="text-sm">🖥️</span>
-                        <div className="truncate">
-                          <span className={`block truncate font-extrabold ${
-                            activeTab === 'dashboard' && dashboardSubTab === 'reception'
-                              ? 'text-white'
-                              : 'text-slate-800 group-hover:text-teal-700'
-                          }`}>
-                            - Reception Dashboard
-                          </span>
-                          <span className={`text-[9px] font-medium block truncate ${
-                            activeTab === 'dashboard' && dashboardSubTab === 'reception'
-                              ? 'text-teal-100'
-                              : 'text-slate-400'
-                          }`}>
-                            Tokens, Billing &amp; Counter
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onNavigateView('reception_dashboard');
-                            setIsMobileSidebarOpen(false);
-                          }}
-                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 transition cursor-pointer ${
-                            activeTab === 'dashboard' && dashboardSubTab === 'reception'
-                              ? 'bg-white/20 text-white hover:bg-white/30'
-                              : 'bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-600 hover:text-white'
-                          }`}
-                          title="Open Full Screen Reception Desk"
-                        >
-                          <span>Open</span>
-                          <ArrowRight className="w-2.5 h-2.5" />
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* - Technician Dashboard */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('dashboard');
-                        setDashboardSubTab('technician');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer group ${
-                        activeTab === 'dashboard' && dashboardSubTab === 'technician'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-emerald-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="text-sm">🔬</span>
-                        <div className="truncate">
-                          <span className={`block truncate font-extrabold ${
-                            activeTab === 'dashboard' && dashboardSubTab === 'technician'
-                              ? 'text-white'
-                              : 'text-slate-800 group-hover:text-emerald-700'
-                          }`}>
-                            - Technician Dashboard
-                          </span>
-                          <span className={`text-[9px] font-medium block truncate ${
-                            activeTab === 'dashboard' && dashboardSubTab === 'technician'
-                              ? 'text-amber-200'
-                              : 'text-slate-400'
-                          }`}>
-                            Analyzer, Tests &amp; Reports
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onNavigateView('technician_dashboard');
-                            setIsMobileSidebarOpen(false);
-                          }}
-                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 transition cursor-pointer ${
-                            activeTab === 'dashboard' && dashboardSubTab === 'technician'
-                              ? 'bg-white/20 text-white hover:bg-white/30'
-                              : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-600 hover:text-white'
-                          }`}
-                          title="Open Full Screen Technician Console"
-                        >
-                          <span>Open</span>
-                          <ArrowRight className="w-2.5 h-2.5" />
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* SECTION 6: DOMAIN REQUEST (ADD - REQUEST TO SUPER ADMIN) */}
+              {/* SECTION 5: DOMAIN REQUEST (ADD - REQUEST TO SUPER ADMIN) */}
               <div className="rounded-xl border border-sky-300/80 bg-sky-50/50 overflow-hidden shadow-2xs">
                 {/* Accordion Header */}
                 <button
@@ -1626,7 +1481,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <Globe className={`w-4 h-4 shrink-0 ${activeTab === 'domain' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
-                    <span className="text-xs font-black truncate">6. Domain Request</span>
+                    <span className="text-xs font-black truncate">5. Domain Request</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -1675,7 +1530,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
-              {/* SECTION 7: SITE SETTINGS (Logo, Site Name, Site Description, Feature Image, Payment QR, Plan & Pricing) */}
+              {/* SECTION 6: SITE SETTINGS (Logo, Site Name, Site Description, Feature Image, Payment QR, Plan & Pricing) */}
               <div className="rounded-xl border border-indigo-300/80 bg-indigo-50/50 overflow-hidden shadow-2xs">
                 {/* Accordion Header */}
                 <button
@@ -1699,7 +1554,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <Settings className={`w-4 h-4 shrink-0 ${activeTab === 'settings' ? 'text-amber-400' : 'text-indigo-700'}`} />
-                    <span className="text-xs font-black truncate">7. Site Settings</span>
+                    <span className="text-xs font-black truncate">6. Site Settings</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -1912,7 +1767,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
-              {/* SECTION 8: ADMIN SETTINGS (PIN Code & Password — Edit) */}
+              {/* SECTION 7: ADMIN SETTINGS (PIN Code & Password — Edit) */}
               <div className="rounded-xl border border-rose-300/80 bg-rose-50/50 overflow-hidden shadow-2xs">
                 {/* Accordion Header */}
                 <button
@@ -1929,7 +1784,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <ShieldAlert className={`w-4 h-4 shrink-0 ${activeTab === 'admin_settings' ? 'text-amber-400' : 'text-rose-700'}`} />
-                    <span className="text-xs font-black truncate">8. Admin Settings</span>
+                    <span className="text-xs font-black truncate">7. Admin Settings</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -1976,7 +1831,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
-              {/* SECTION 9: BOOKING FORM SETTINGS (Home Sample Charges — Edit, Booking Timing — Edit) */}
+              {/* SECTION 8: BOOKING FORM SETTINGS (Home Sample Charges — Edit, Booking Timing — Edit) */}
               <div className="rounded-xl border border-amber-300/80 bg-amber-50/50 overflow-hidden shadow-2xs">
                 {/* Accordion Header */}
                 <button
@@ -1993,7 +1848,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <CalendarCheck className={`w-4 h-4 shrink-0 ${activeTab === 'booking_settings' ? 'text-amber-400' : 'text-amber-700'}`} />
-                    <span className="text-xs font-black truncate">9. Booking Form Settings</span>
+                    <span className="text-xs font-black truncate">8. Booking Form Settings</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -2069,7 +1924,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
-              {/* SECTION 10: STAFF MANAGEMENT (Reception & Technician) */}
+              {/* SECTION 9: STAFF MANAGEMENT (Reception & Technician) */}
               <div className="rounded-xl border border-teal-300/80 bg-teal-50/50 overflow-hidden shadow-2xs">
                 {/* Accordion Header */}
                 <button
@@ -2087,7 +1942,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <Users className={`w-4 h-4 shrink-0 ${activeTab === 'staff' ? 'text-amber-400' : 'text-teal-700'}`} />
-                    <span className="text-xs font-black truncate">10. Staff Management</span>
+                    <span className="text-xs font-black truncate">9. Staff Management</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -2163,7 +2018,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
-              {/* SECTION 11: BACKUP & REPORTS */}
+              {/* SECTION 10: BACKUP & REPORTS */}
               <div className="rounded-xl border border-indigo-200/80 bg-indigo-50/40 overflow-hidden shadow-2xs">
                 <button
                   type="button"
@@ -2181,7 +2036,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <Database className={`w-4 h-4 shrink-0 ${activeTab === 'backup' ? 'text-amber-400' : 'text-indigo-700'}`} />
-                    <span className="text-xs font-black truncate">11. Backup & Reports</span>
+                    <span className="text-xs font-black truncate">10. Backup & Reports</span>
                   </div>
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                     activeTab === 'backup' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
@@ -2191,7 +2046,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 </button>
               </div>
 
-              {/* SECTION 12: TECH SUPPORT */}
+              {/* SECTION 11: TECH SUPPORT */}
               <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 overflow-hidden shadow-2xs">
                 <button
                   type="button"
@@ -2209,7 +2064,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <Headphones className={`w-4 h-4 shrink-0 ${activeTab === 'support' ? 'text-amber-300' : 'text-emerald-700'}`} />
-                    <span className="text-xs font-black truncate">12. Tech Support</span>
+                    <span className="text-xs font-black truncate">11. Tech Support</span>
                   </div>
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                     activeTab === 'support' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-900'

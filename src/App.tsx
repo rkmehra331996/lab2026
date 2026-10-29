@@ -139,7 +139,8 @@ export default function App() {
   // Fetch and resolve specific lab directly from the current URL
   const fetchAndApplyLabFromUrl = async (
     targetIdentifier: string,
-    currentLabs: typeof vendorLabsList
+    currentLabs: typeof vendorLabsList,
+    intendedView?: AppView
   ) => {
     if (!targetIdentifier) return;
     const cleanId = targetIdentifier.trim();
@@ -154,6 +155,10 @@ export default function App() {
 
     setIsFetchingUrlLab(true);
     setUrlLabError(null);
+
+    const nextView = (intendedView && intendedView !== 'website')
+      ? intendedView
+      : 'vendor_website';
 
     try {
       const targetLower = cleanId.toLowerCase();
@@ -182,7 +187,7 @@ export default function App() {
       if (existing) {
         selectVendorLab(existing.id);
         setSelectedVendorLabId(existing.id);
-        setCurrentView('vendor_website');
+        setCurrentView(nextView);
         return;
       }
 
@@ -195,7 +200,7 @@ export default function App() {
             injectCloudLab(data.lab, data.settings);
             selectVendorLab(data.lab.id);
             setSelectedVendorLabId(data.lab.id);
-            setCurrentView('vendor_website');
+            setCurrentView(nextView);
             return;
           }
         }
@@ -229,12 +234,16 @@ export default function App() {
       if (matchAfterSync) {
         selectVendorLab(matchAfterSync.id);
         setSelectedVendorLabId(matchAfterSync.id);
-        setCurrentView('vendor_website');
+        setCurrentView(nextView);
       } else {
-        setUrlLabError({
-          identifier: cleanId,
-          message: `Laboratory '${cleanId}' could not be located in our directory.`,
-        });
+        if (intendedView === 'patient_portal') {
+          setCurrentView('patient_portal');
+        } else {
+          setUrlLabError({
+            identifier: cleanId,
+            message: `Laboratory '${cleanId}' could not be located in our directory.`,
+          });
+        }
       }
     } finally {
       isFetchingLabRef.current = false;
@@ -350,7 +359,7 @@ export default function App() {
           setUrlLabError(null);
           hasInitialSyncedRef.current = true;
         } else if (!isFetchingLabRef.current && !attemptedLabFetchesRef.current.has(cleanId.toLowerCase())) {
-          fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList);
+          fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList, resolution.view || 'patient_portal');
         }
       } else if (!selectedVendorLabId || selectedVendorLabId === 'all') {
         const defaultLab = vendorLabsList.find((l) => l.status === 'Active')?.id || vendorLabsList[0]?.id;
@@ -361,9 +370,8 @@ export default function App() {
 
       if (resolution.targetReport) {
         setSelectedReportId(resolution.targetReport);
-      }
-
-      if (resolution.view && !resolution.targetLab && resolution.view !== currentView) {
+        setCurrentView('patient_portal');
+      } else if (resolution.view && !resolution.targetLab && resolution.view !== currentView) {
         setCurrentView(resolution.view);
       }
 
@@ -393,12 +401,12 @@ export default function App() {
           }
         }
         if (resolution.targetLab) {
-          fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList);
+          fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList, resolution.view || (resolution.targetReport ? 'patient_portal' : undefined));
         }
         if (resolution.targetReport) {
           setSelectedReportId(resolution.targetReport);
-        }
-        if (resolution.view) {
+          setCurrentView('patient_portal');
+        } else if (resolution.view) {
           setCurrentView(resolution.view);
         }
       } catch {}

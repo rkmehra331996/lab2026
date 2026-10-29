@@ -305,10 +305,38 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     }
   }, [scopedReports, allReports, pendingSampleStatus, searchedReport]);
 
-  // Initialize from props only if explicitly passed (e.g. from unique URL /shop/:shop/report/:token or receipt link)
+  // Direct URL Report Resolution fallback in case user scanned QR code or refreshed page directly
+  const effectiveInitialReportId = React.useMemo(() => {
+    if (initialReportId && initialReportId.trim()) return initialReportId.trim();
+    if (typeof window !== 'undefined') {
+      const search = window.location.search;
+      const pathname = window.location.pathname;
+      const hash = window.location.hash;
+      const params = new URLSearchParams(search);
+      const urlReport = params.get('report') || params.get('reportId') || params.get('token') || params.get('tokenNumber');
+      if (urlReport) return urlReport.trim();
+      const idParam = params.get('id');
+      if (idParam && (/^(?:rpt|tk|rcp|uhid)[-_\s]?/i.test(idParam.trim()) || pathname.toLowerCase().includes('/verify') || pathname.toLowerCase().includes('/report'))) {
+        return idParam.trim();
+      }
+      const directMatch = pathname.match(/^\/(?:(?:shop|lab|labs|vendor|v)\/)?(?:report|reports|verify|check)\/([a-zA-Z0-9_\-]+)\/?$/i);
+      if (directMatch && directMatch[1]) return decodeURIComponent(directMatch[1]).trim();
+      const shopMatch = pathname.match(/^\/(?:(?:shop|lab|labs|vendor|v)\/)?([a-zA-Z0-9_\-]+)\/(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i);
+      if (shopMatch && shopMatch[2]) return decodeURIComponent(shopMatch[2]).trim();
+      if (hash) {
+        const cleanH = hash.replace(/^#\/?/, '/');
+        const hashMatch = cleanH.match(/(?:report|reports|verify|check)\/([a-zA-Z0-9_\-]+)/i);
+        if (hashMatch && hashMatch[1]) return decodeURIComponent(hashMatch[1]).trim();
+      }
+    }
+    return '';
+  }, [initialReportId]);
+
+  // Initialize from props or scanned QR URL (e.g. from /report/:id or /shop/:shop/report/:id or /verify?id=...)
   useEffect(() => {
-    if (initialReportId && initialReportId.trim()) {
-      const cleanId = initialReportId.trim().toLowerCase();
+    const targetReportId = effectiveInitialReportId;
+    if (targetReportId && targetReportId.trim()) {
+      const cleanId = targetReportId.trim().toLowerCase();
       const cleanDigits = cleanId.replace(/\D/g, '');
 
       // 1. Direct search in scopedReports and allReports by Report ID, Token, or UHID
@@ -325,7 +353,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             rToken === cleanId ||
             rToken === `tk-${cleanId}` ||
             `tk-${rToken}` === cleanId ||
-            (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
+            (cleanDigits.length > 0 && rTokenDigits === cleanDigits) ||
+            (cleanDigits.length > 0 && rId.replace(/\D/g, '') === cleanDigits)
           );
         }) ||
         (allReports || []).find((r) => {
@@ -340,7 +369,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             rToken === cleanId ||
             rToken === `tk-${cleanId}` ||
             `tk-${rToken}` === cleanId ||
-            (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
+            (cleanDigits.length > 0 && rTokenDigits === cleanDigits) ||
+            (cleanDigits.length > 0 && rId.replace(/\D/g, '') === cleanDigits)
           );
         });
 
@@ -426,6 +456,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             return;
           }
         }
+        if (found.labId && onSelectVendorLab && found.labId !== selectedVendorLabId) {
+          onSelectVendorLab(found.labId);
+        }
         setSearchedReport(found);
         setReportIdInput(found.tokenNumber || found.reportId);
         setSearchMethod('report_id');
@@ -435,6 +468,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         setMatchedEntry(entryMatch || null);
       } else if (entryMatch) {
         // Report is NOT made / verified yet -> Show "Waiting / Sample in Lab" progress card!
+        if (entryMatch.labId && onSelectVendorLab && entryMatch.labId !== selectedVendorLabId) {
+          onSelectVendorLab(entryMatch.labId);
+        }
         setMatchedEntry(entryMatch);
         setSearchedReport(null);
         setPendingSampleStatus({
@@ -518,7 +554,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         }
       }
     }
-  }, [initialReportId, initialMobile, initialPatientName, scopedReports, allReports, scopedReceptionEntries, allReceptionEntries]);
+  }, [effectiveInitialReportId, initialMobile, initialPatientName, scopedReports, allReports, scopedReceptionEntries, allReceptionEntries]);
 
   const handleSelectRecord = (match: { type: 'report' | 'entry'; report?: LabReport; entry?: ReceptionPatientEntry }) => {
     setErrorMessage(null);
