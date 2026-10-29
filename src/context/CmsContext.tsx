@@ -2550,16 +2550,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((p: any) => p.id || p.slug));
-          const missingDefaults = DEFAULT_SEO_POSTS.filter((p) => !existingIds.has(p.id) && !existingIds.has(p.slug));
-          if (missingDefaults.length > 0) {
-            const merged = [...parsed, ...missingDefaults];
-            try {
-              localStorage.setItem('cms_seo_posts', JSON.stringify(merged));
-            } catch {}
-            return merged;
-          }
-          return parsed;
+          // Always ensure the flagship post is updated with the latest master copy at the top
+          const flagshipPost = DEFAULT_SEO_POSTS[0];
+          const withoutFlagship = parsed.filter((p: any) => p.id !== flagshipPost.id && p.slug !== flagshipPost.slug);
+          const existingIds = new Set([flagshipPost.id, flagshipPost.slug, ...withoutFlagship.map((p: any) => p.id || p.slug)]);
+          const missingDefaults = DEFAULT_SEO_POSTS.slice(1).filter((p) => !existingIds.has(p.id) && !existingIds.has(p.slug));
+          const merged = [flagshipPost, ...withoutFlagship, ...missingDefaults];
+          try {
+            localStorage.setItem('cms_seo_posts', JSON.stringify(merged));
+          } catch {}
+          return merged;
         }
       }
       return DEFAULT_SEO_POSTS;

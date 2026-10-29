@@ -94,6 +94,76 @@ export const SeoPostCardsSection: React.FC<SeoPostCardsSectionProps> = ({
           )}
         </div>
 
+        {/* Featured Flagship Post Showcase Banner (When viewing All) */}
+        {selectedCategory === 'All' && displayedPosts[0] && displayedPosts[0].id === 'post-best-laboratory-management-software-india' && (
+          <div
+            onClick={() => onSelectPost && onSelectPost(displayedPosts[0])}
+            className={`mb-8 p-6 sm:p-8 rounded-3xl border transition-all cursor-pointer group relative overflow-hidden ${
+              isDark
+                ? 'bg-gradient-to-br from-[#123B6D]/80 via-[#0f243f] to-[#081528] border-teal-500/40 hover:border-teal-400 shadow-xl'
+                : 'bg-gradient-to-br from-blue-50 via-white to-teal-50/50 border-blue-200 hover:border-blue-400 shadow-md'
+            }`}
+          >
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="space-y-3 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-xs flex items-center gap-1">
+                    <span>🏆</span>
+                    <span>#1 Ranked Pillar Guide 2026</span>
+                  </span>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${isDark ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' : 'bg-blue-100 text-blue-800'}`}>
+                    Software & Technology
+                  </span>
+                  <span className={`text-[11px] font-semibold flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <Clock className="w-3 h-3" />
+                    <span>10 min read</span>
+                  </span>
+                </div>
+
+                <h3 className={`text-xl sm:text-2xl font-black leading-tight ${isDark ? 'text-white group-hover:text-amber-300' : 'text-slate-900 group-hover:text-blue-700'} transition-colors`}>
+                  {displayedPosts[0].title}
+                </h3>
+
+                <p className={`text-xs sm:text-sm leading-relaxed max-w-3xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {displayedPosts[0].excerpt}
+                </p>
+
+                {/* Keyword Pills */}
+                <div className="flex items-center gap-2 flex-wrap pt-1">
+                  {[
+                    'Best Laboratory Management Software in India',
+                    'Best Pathology Lab Software',
+                    'Top LIMS Software',
+                    'WhatsApp Reports',
+                    'UPI Payments',
+                    'NABL ISO 15189',
+                    'Multi-Branch',
+                  ].map((kw, i) => (
+                    <span
+                      key={i}
+                      className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
+                        isDark ? 'bg-slate-800 text-slate-300 border border-slate-700' : 'bg-white text-slate-700 border border-slate-200'
+                      }`}
+                    >
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="shrink-0 flex items-center">
+                <button
+                  type="button"
+                  className="px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-2 shadow-sm transition group-hover:scale-105 cursor-pointer"
+                >
+                  <span>Read Complete Post</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Article Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {postsToRender.map((post) => (
@@ -101,7 +171,11 @@ export const SeoPostCardsSection: React.FC<SeoPostCardsSectionProps> = ({
               key={post.id}
               onClick={() => onSelectPost && onSelectPost(post)}
               className={`group flex flex-col rounded-2xl border transition-all duration-200 overflow-hidden cursor-pointer ${
-                isDark
+                post.id === 'post-best-laboratory-management-software-india'
+                  ? isDark
+                    ? 'ring-2 ring-amber-400/80 bg-[#122844] border-amber-400/60 shadow-lg'
+                    : 'ring-2 ring-blue-500/80 bg-blue-50/40 border-blue-400 shadow-md'
+                  : isDark
                   ? 'bg-[#0f243f] hover:bg-[#132c4d] border-slate-800 hover:border-teal-500/40 shadow-xs hover:shadow-lg hover:shadow-teal-950/20'
                   : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-blue-400 shadow-2xs hover:shadow-md'
               }`}
