@@ -663,13 +663,22 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     return pBoxY + pBoxH + 3.5;
   };
 
-  // Determine starting position on Page 1
+  // Determine starting position on Page 1 and track drawn background pages
   let headerTotalHeight = 0;
   let cursorY = 0;
+  const drawnLetterheadPages = new Set<number>();
+
+  const ensurePageLetterheadBg = (targetDoc: jsPDF, targetPageNum: number) => {
+    if (isStaticLetterhead && letterheadBg && !drawnLetterheadPages.has(targetPageNum)) {
+      targetDoc.setPage(targetPageNum);
+      targetDoc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+      drawnLetterheadPages.add(targetPageNum);
+    }
+  };
 
   if (isStaticLetterhead && letterheadBg) {
-    // 1. Draw uploaded letterhead background on Page 1
-    doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+    // 1. Draw uploaded letterhead background on Page 1 BEFORE any content is drawn
+    ensurePageLetterheadBg(doc, 1);
     // 2. Draw dynamic patient info starting strictly at configured bodyTop
     cursorY = drawLetterheadPatientInfo(doc, bodyTop);
   } else {
@@ -683,8 +692,9 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     // If remaining space on current page is not enough for section header + 2 rows, break to new page
     if (cursorY > maxBodyY - 30) {
       doc.addPage();
+      const newPageNum = doc.getNumberOfPages();
       if (isStaticLetterhead && letterheadBg) {
-        doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        ensurePageLetterheadBg(doc, newPageNum);
         cursorY = bodyTop;
       } else {
         cursorY = headerTotalHeight + 2;
@@ -773,9 +783,11 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
         right: isStaticLetterhead ? marginXRight : marginX,
       },
       tableWidth: curWidth,
-      willDrawPage: () => {
-        if (isStaticLetterhead && letterheadBg) {
-          doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+      willDrawPage: (data) => {
+        // CRITICAL FIX: Only draw background on Page 2 and above!
+        // Page 1 background is drawn BEFORE Patient Demographics Box and Department Header.
+        if (data.pageNumber > 1 && isStaticLetterhead && letterheadBg) {
+          ensurePageLetterheadBg(doc, data.pageNumber);
         }
       },
       head: tableHeaders,
@@ -851,8 +863,9 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
 
     if (cursorY + noteBoxHeight > maxBodyY - 20) {
       doc.addPage();
+      const newPageNum = doc.getNumberOfPages();
       if (isStaticLetterhead && letterheadBg) {
-        doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        ensurePageLetterheadBg(doc, newPageNum);
         cursorY = bodyTop;
       } else {
         cursorY = headerTotalHeight + 2;
@@ -887,8 +900,9 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
 
     if (cursorY > maxBodyY - 18) {
       doc.addPage();
+      const newPageNum = doc.getNumberOfPages();
       if (isStaticLetterhead && letterheadBg) {
-        doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        ensurePageLetterheadBg(doc, newPageNum);
         cursorY = bodyTop;
       } else {
         cursorY = headerTotalHeight + 2;
@@ -917,8 +931,9 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     const requiredSignHeight = 26;
     if (cursorY > maxBodyY - requiredSignHeight) {
       doc.addPage();
+      const newPageNum = doc.getNumberOfPages();
       if (isStaticLetterhead && letterheadBg) {
-        doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        ensurePageLetterheadBg(doc, newPageNum);
         cursorY = bodyTop;
       } else {
         cursorY = headerTotalHeight + 2;

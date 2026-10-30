@@ -141,6 +141,7 @@ export const VendorLetterheadConfigCard: React.FC = () => {
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showTestPreview, setShowTestPreview] = useState(false);
+  const [diagramViewMode, setDiagramViewMode] = useState<'detailed' | 'wireframe'>('detailed');
 
   // Computed body dimensions in mm
   const printableWidth = Math.max(50, 210 - marginLeft - marginRight);
@@ -514,70 +515,312 @@ export const VendorLetterheadConfigCard: React.FC = () => {
 
             {/* Right 5 Cols: A4 Sheet Visual Layout Diagram */}
             <div className="lg:col-span-5 flex flex-col items-center">
-              <div className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1.5">
-                <Eye className="w-3.5 h-3.5 text-amber-500" />
-                <span>A4 Sheet Printable Layout (210 × 297 mm)</span>
+              <div className="w-full flex items-center justify-between mb-2 px-1">
+                <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5 text-amber-500" />
+                  <span>A4 Sheet Preview (210 × 297 mm)</span>
+                </div>
+
+                {/* View Mode Toggle: Detailed vs Wireframe */}
+                <div className="inline-flex rounded-lg bg-slate-200 p-0.5 text-[10px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setDiagramViewMode('detailed')}
+                    className={`px-2 py-0.5 rounded-md transition ${
+                      diagramViewMode === 'detailed'
+                        ? 'bg-white text-[#123B6D] shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Report View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDiagramViewMode('wireframe')}
+                    className={`px-2 py-0.5 rounded-md transition ${
+                      diagramViewMode === 'wireframe'
+                        ? 'bg-white text-[#123B6D] shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Margins
+                  </button>
+                </div>
               </div>
 
               {/* Scaled A4 Sheet Representation */}
-              <div className="w-[220px] h-[311px] bg-white rounded-lg shadow-xl border border-slate-300 relative overflow-hidden flex flex-col justify-between">
+              <div
+                onClick={() => setShowTestPreview(true)}
+                title="Click to view full-size high-resolution PDF report"
+                className="w-[270px] h-[382px] bg-white rounded-lg shadow-xl border border-slate-300 relative overflow-hidden flex flex-col justify-between cursor-pointer group hover:ring-2 hover:ring-[#123B6D]/40 transition select-none"
+              >
                 {/* Background image preview if uploaded */}
                 {bgDataUrl && (
                   <img
                     src={bgDataUrl}
                     alt="Letterhead Preview"
-                    className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-40"
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-40 z-0"
                   />
                 )}
 
                 {/* Header Zone */}
                 <div
-                  style={{ height: `${(bodyTop / 297) * 311}px` }}
-                  className="bg-amber-100/70 border-b border-amber-300 relative flex items-center justify-center p-1 text-center"
+                  style={{ height: `${(bodyTop / 297) * 382}px` }}
+                  className={`border-b relative flex items-center justify-center p-1 text-center shrink-0 z-10 ${
+                    enabled && bgDataUrl
+                      ? 'bg-amber-100/50 border-amber-300 text-amber-900'
+                      : 'bg-[#123B6D] border-blue-900 text-white'
+                  }`}
                 >
-                  <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">
-                    Header Zone ({bodyTop} mm)
-                  </span>
+                  {enabled && bgDataUrl ? (
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-white/80 px-2 py-0.5 rounded shadow-2xs">
+                      Protected Header ({bodyTop} mm)
+                    </span>
+                  ) : (
+                    <div className="w-full px-2 flex items-center justify-between">
+                      <div className="text-left leading-tight">
+                        <div className="text-[8px] font-black tracking-wide truncate max-w-[170px]">
+                          {(vendorLabSettings.labName || 'APEX DIAGNOSTIC LABORATORY').toUpperCase()}
+                        </div>
+                        <div className="text-[6.5px] opacity-80 truncate max-w-[170px]">
+                          {vendorLabSettings.address || 'SCO 101, Medical Enclave, Ludhiana'}
+                        </div>
+                        <div className="text-[6px] opacity-75">
+                          Ph: +91 {vendorLabSettings.phone || '7087033009'}
+                        </div>
+                      </div>
+                      {showReportQrCode && (
+                        <div className="w-5 h-5 bg-white rounded p-0.5 flex items-center justify-center text-[#123B6D]">
+                          <QrCode className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* Dynamic Body Area */}
+                {/* Dynamic Body Area (Full actual report details) */}
                 <div
                   style={{
-                    marginLeft: `${(marginLeft / 210) * 220}px`,
-                    marginRight: `${(marginRight / 210) * 220}px`,
+                    marginLeft: `${(marginLeft / 210) * 270}px`,
+                    marginRight: `${(marginRight / 210) * 270}px`,
                   }}
-                  className="flex-1 bg-emerald-50/80 border-2 border-dashed border-emerald-400 relative m-1 rounded flex flex-col items-center justify-center p-2 text-center"
+                  className="flex-1 bg-white/95 relative mx-1 my-0.5 rounded border border-emerald-400/80 shadow-2xs overflow-hidden flex flex-col justify-between p-1.5 z-10"
                 >
-                  <span className="text-[10px] font-black text-emerald-900 leading-tight">
-                    DYNAMIC REPORT BODY
-                  </span>
-                  <span className="text-[8px] font-mono text-emerald-700">
-                    {printableWidth} × {printableHeight} mm
-                  </span>
-                  <div className="mt-1 w-full space-y-0.5 opacity-60">
-                    <div className="h-1 bg-emerald-300 rounded w-full" />
-                    <div className="h-1 bg-emerald-300 rounded w-4/5 mx-auto" />
-                    <div className="h-1 bg-emerald-300 rounded w-full" />
+                  {diagramViewMode === 'wireframe' ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-2 bg-emerald-50/70 border-2 border-dashed border-emerald-400 rounded">
+                      <span className="text-[10px] font-black text-emerald-900 leading-tight">
+                        DYNAMIC REPORT BODY AREA
+                      </span>
+                      <span className="text-[8.5px] font-mono text-emerald-700 mt-0.5">
+                        {printableWidth} × {printableHeight} mm
+                      </span>
+                      <div className="mt-2 w-full space-y-1 opacity-60">
+                        <div className="h-1.5 bg-emerald-300 rounded w-full" />
+                        <div className="h-1.5 bg-emerald-300 rounded w-4/5 mx-auto" />
+                        <div className="h-1.5 bg-emerald-300 rounded w-full" />
+                      </div>
+                      <span className="text-[7.5px] text-emerald-700 mt-2 font-medium">
+                        Patient Box • Tests Table • Notes • Signatures
+                      </span>
+                    </div>
+                  ) : (
+                    /* Detailed Realistic Mini Report View */
+                    <div className="h-full flex flex-col justify-between text-[7px] text-slate-800 leading-tight font-sans">
+                      {/* 1. Patient Demographics Box */}
+                      <div className="bg-slate-50 border border-slate-300 rounded p-1 mb-1">
+                        <div className="flex justify-between items-start gap-1">
+                          <div className="space-y-0.5 truncate flex-1">
+                            <div className="font-extrabold text-[7.5px] text-slate-900">
+                              PATIENT: RAMESH KUMAR <span className="font-normal text-slate-600">(45 Y / Male)</span>
+                            </div>
+                            <div className="text-[6.5px] text-slate-600 flex items-center gap-1">
+                              <span>Ref: Dr. Self / Direct</span>
+                              <span>•</span>
+                              <span>Sample: EDTA Blood</span>
+                            </div>
+                            {showReportMobile && (
+                              <div className="text-[6px] text-slate-500">
+                                Contact: +91 98150 12345 | Reg: Today 08:30 AM
+                              </div>
+                            )}
+                          </div>
+                          {showReportQrCode && (
+                            <div className="w-4.5 h-4.5 bg-white border border-slate-300 rounded shrink-0 flex items-center justify-center text-slate-700">
+                              <QrCode className="w-3.5 h-3.5" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 2. Department & Test Section Header */}
+                      {showReportDepartmentHeader && (
+                        <div className="bg-slate-100 border-l-2 border-[#123B6D] px-1 py-0.5 mb-0.5 font-bold text-[6.5px] text-[#123B6D] uppercase flex justify-between">
+                          <span>DEPT. OF HEMATOLOGY &amp; CLINICAL PATHOLOGY</span>
+                          <span className="font-normal text-slate-500">CBC TEST</span>
+                        </div>
+                      )}
+
+                      {/* 3. Core Test Results Table */}
+                      <div className="border border-slate-200 rounded overflow-hidden mb-1">
+                        {/* Table Header */}
+                        <div className="bg-[#123B6D] text-white font-bold grid grid-cols-12 px-1 py-0.5 text-[6px]">
+                          <span className={showReportStatusColumn ? 'col-span-4' : 'col-span-5'}>Investigation</span>
+                          <span className="col-span-2 text-right">Value</span>
+                          <span className="col-span-2 text-center">Unit</span>
+                          <span className={showReportStatusColumn ? 'col-span-2 text-center' : 'col-span-3 text-center'}>Bio Range</span>
+                          {showReportStatusColumn && <span className="col-span-2 text-center">Status</span>}
+                        </div>
+
+                        {/* Row 1: Hemoglobin */}
+                        <div className="grid grid-cols-12 px-1 py-0.5 border-t border-slate-100 bg-white items-center text-[6px]">
+                          <span className={`font-semibold truncate ${showReportStatusColumn ? 'col-span-4' : 'col-span-5'}`}>Hemoglobin (Hb)</span>
+                          <span className="col-span-2 text-right font-bold text-slate-900">14.2</span>
+                          <span className="col-span-2 text-center text-slate-500">g/dL</span>
+                          <span className={`text-slate-600 text-center ${showReportStatusColumn ? 'col-span-2' : 'col-span-3'}`}>13.0 - 17.0</span>
+                          {showReportStatusColumn && (
+                            <span className="col-span-2 text-center">
+                              <span className="px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[5.5px] font-bold">NORMAL</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Row 2: TLC */}
+                        <div className="grid grid-cols-12 px-1 py-0.5 border-t border-slate-100 bg-slate-50/50 items-center text-[6px]">
+                          <span className={`font-semibold truncate ${showReportStatusColumn ? 'col-span-4' : 'col-span-5'}`}>Total Leucocytes (WBC)</span>
+                          <span className="col-span-2 text-right font-bold text-slate-900">8,400</span>
+                          <span className="col-span-2 text-center text-slate-500">/cumm</span>
+                          <span className={`text-slate-600 text-center ${showReportStatusColumn ? 'col-span-2' : 'col-span-3'}`}>4000 - 11000</span>
+                          {showReportStatusColumn && (
+                            <span className="col-span-2 text-center">
+                              <span className="px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[5.5px] font-bold">NORMAL</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Row 3: Platelets */}
+                        <div className="grid grid-cols-12 px-1 py-0.5 border-t border-slate-100 bg-white items-center text-[6px]">
+                          <span className={`font-semibold truncate ${showReportStatusColumn ? 'col-span-4' : 'col-span-5'}`}>Platelet Count</span>
+                          <span className="col-span-2 text-right font-bold text-slate-900">2.50</span>
+                          <span className="col-span-2 text-center text-slate-500">Lac/cumm</span>
+                          <span className={`text-slate-600 text-center ${showReportStatusColumn ? 'col-span-2' : 'col-span-3'}`}>1.5 - 4.5</span>
+                          {showReportStatusColumn && (
+                            <span className="col-span-2 text-center">
+                              <span className="px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[5.5px] font-bold">NORMAL</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Row 4: Blood Sugar */}
+                        <div className="grid grid-cols-12 px-1 py-0.5 border-t border-slate-100 bg-amber-50/40 items-center text-[6px]">
+                          <span className={`font-semibold truncate ${showReportStatusColumn ? 'col-span-4' : 'col-span-5'}`}>Fasting Blood Sugar</span>
+                          <span className="col-span-2 text-right font-bold text-amber-700">118 *</span>
+                          <span className="col-span-2 text-center text-slate-500">mg/dL</span>
+                          <span className={`text-slate-600 text-center ${showReportStatusColumn ? 'col-span-2' : 'col-span-3'}`}>70 - 100</span>
+                          {showReportStatusColumn && (
+                            <span className="col-span-2 text-center">
+                              <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[5.5px] font-bold">HIGH</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 4. Clinic Note Section */}
+                      {showReportClinicNote && (
+                        <div className="bg-slate-50 border-l-2 border-[#123B6D] p-1 rounded-xs mb-1 text-[5.5px] text-slate-600">
+                          <span className="font-bold text-[#123B6D]">CLINIC NOTE: </span>
+                          <span>
+                            {reportCustomClinicNote || 'Please correlate clinically with patient symptoms.'}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* 5. End of Report Divider */}
+                      {showReportEndOfReport && (
+                        <div className="text-center text-[5.5px] text-slate-400 font-bold border-b border-dashed border-slate-200 pb-0.5 mb-1">
+                          — END OF REPORT —
+                        </div>
+                      )}
+
+                      {/* 6. Signatures Block */}
+                      {(showReportTechnicianSign || showReportPathologistSign) && (
+                        <div className="flex justify-between items-end pt-1 border-t border-slate-100 mt-auto">
+                          {showReportTechnicianSign ? (
+                            <div className="text-left leading-none space-y-0.5">
+                              <div className="text-[5px] text-slate-400 uppercase font-bold">Prepared By</div>
+                              <div className="font-bold text-[6px] text-slate-800 truncate max-w-[100px]">
+                                {reportTechnicianName || 'S. Verma, DMLT'}
+                              </div>
+                              <div className="text-[5px] text-slate-500">QC Verified</div>
+                            </div>
+                          ) : <div />}
+
+                          {showReportPathologistSign && (
+                            <div className="text-right leading-none space-y-0.5">
+                              {showReportDigitalSignCurve && (
+                                <div className="text-[7px] text-[#123B6D] font-serif italic text-right">
+                                  ✍️ Verified
+                                </div>
+                              )}
+                              <div className="text-[5px] text-slate-400 uppercase font-bold">Authorized Signatory</div>
+                              <div className="font-bold text-[6px] text-[#123B6D] truncate max-w-[110px]">
+                                {reportPathologistName || 'Dr. Rajesh Sharma, MD'}
+                              </div>
+                              <div className="text-[5px] text-slate-500">Consultant Pathologist</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Hover prompt */}
+                  <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center p-2 rounded backdrop-blur-2xs">
+                    <span className="px-2.5 py-1 bg-white text-slate-900 text-[10px] font-bold rounded-lg shadow-lg flex items-center gap-1.5">
+                      <Eye className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Click for Full PDF Preview</span>
+                    </span>
                   </div>
                 </div>
 
                 {/* Footer Zone */}
                 <div
-                  style={{ height: `${(bodyBottom / 297) * 311}px` }}
-                  className="bg-amber-100/70 border-t border-amber-300 relative flex items-center justify-center p-1 text-center"
+                  style={{ height: `${(bodyBottom / 297) * 382}px` }}
+                  className={`border-t relative flex items-center justify-center p-1 text-center shrink-0 z-10 ${
+                    enabled && bgDataUrl
+                      ? 'bg-amber-100/50 border-amber-300 text-amber-900'
+                      : 'bg-[#123B6D] border-blue-900 text-white'
+                  }`}
                 >
-                  <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">
-                    Footer Zone ({bodyBottom} mm)
-                  </span>
+                  {enabled && bgDataUrl ? (
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-white/80 px-2 py-0.5 rounded shadow-2xs">
+                      Protected Footer ({bodyBottom} mm)
+                    </span>
+                  ) : (
+                    <div className="w-full px-2 flex items-center justify-between text-[6.5px]">
+                      <span>{vendorLabSettings.bookingTiming || 'Mon - Sun: 07:00 AM - 09:00 PM'}</span>
+                      <span className="font-bold">Electronically Verified Diagnostic Report</span>
+                      <span>Page 1 of 1</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="mt-3 text-[11px] text-slate-500 text-center max-w-xs space-y-1">
+              {/* 1-Click Full PDF Preview Button */}
+              <button
+                type="button"
+                onClick={() => setShowTestPreview(true)}
+                className="mt-3 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#123B6D] border border-slate-300 text-xs font-bold rounded-xl transition flex items-center gap-2 cursor-pointer shadow-2xs"
+              >
+                <Eye className="w-4 h-4 text-amber-500" />
+                <span>Open Full-Size Report Preview (लाइव रिपोर्ट देखें)</span>
+              </button>
+
+              <div className="mt-2 text-[11px] text-slate-500 text-center max-w-xs space-y-1">
                 <p>
-                  <strong>Yellow:</strong> Protected uploaded Header/Footer zones (never overwritten).
+                  <strong>Yellow/Navy:</strong> Header &amp; Footer bands (letterhead zone).
                 </p>
                 <p>
-                  <strong>Green:</strong> Dynamic report table, patient info &amp; signatures zone.
+                  <strong>Green Box:</strong> Dynamic Report Body containing real Patient, Test Results, Notes &amp; Signatures.
                 </p>
               </div>
             </div>
