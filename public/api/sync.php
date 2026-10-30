@@ -767,6 +767,18 @@ if ($method === 'POST') {
     $postAction = $payload['action'] ?? 'save';
     $collection = $payload['collection'] ?? '';
 
+    if ($postAction === 'save_db_config') {
+        $dbData = $payload['data'] ?? [];
+        $configFile = DATA_DIR . '/db_config.json';
+        @file_put_contents($configFile, json_encode($dbData, JSON_PRETTY_PRINT));
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Database configuration saved successfully',
+            'data' => $dbData
+        ]);
+        exit();
+    }
+
     if ($postAction === 'save') {
         if (!$collection || !isset($payload['id'])) {
             echo json_encode(['status' => 'error', 'message' => 'Missing collection or document ID']);

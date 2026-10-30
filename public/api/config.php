@@ -34,10 +34,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // -----------------------------------------------------------------------------
 // 1. Hostinger Database Credentials
 // -----------------------------------------------------------------------------
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_USER', getenv('DB_USER') ?: 'u878081993_newkonhai'); // Hostinger MySQL Username
-define('DB_PASS', getenv('DB_PASS') ?: 'Newkonhai12');   // Hostinger MySQL Password
-define('DB_NAME', getenv('DB_NAME') ?: 'u878081993_newkonhai'); // Hostinger MySQL Database Name
+$dbConfigFile = __DIR__ . '/data/db_config.json';
+$customConfig = [];
+if (file_exists($dbConfigFile)) {
+    $customConfig = @json_decode(@file_get_contents($dbConfigFile), true) ?: [];
+}
+
+define('DB_HOST', getenv('DB_HOST') ?: ($customConfig['dbHost'] ?? 'localhost'));
+define('DB_USER', getenv('DB_USER') ?: ($customConfig['dbUser'] ?? 'u878081993_newkonhai')); // Hostinger MySQL Username
+define('DB_PASS', getenv('DB_PASS') ?: ($customConfig['dbPassword'] ?? ($customConfig['dbPass'] ?? 'Newkonhai12')));   // Hostinger MySQL Password
+define('DB_NAME', getenv('DB_NAME') ?: ($customConfig['dbName'] ?? 'u878081993_newkonhai')); // Hostinger MySQL Database Name
 
 // Directories
 define('DATA_DIR', __DIR__ . '/data');

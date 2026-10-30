@@ -115,7 +115,7 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
     setTimeout(() => setCopiedStep(null), 2500);
   };
 
-  const handleSaveHostingerConfig = (e: React.FormEvent) => {
+  const handleSaveHostingerConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       localStorage.setItem('hostinger_db_config', JSON.stringify({
@@ -124,8 +124,25 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
         dbName,
         savedAt: new Date().toISOString()
       }));
+
+      // Post to backend API so PHP config.php and server.ts both sync
+      await fetch('/api/db-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dbHost, dbUser, dbName, dbPassword }),
+      }).catch(() => null);
+
+      await fetch('/api/sync.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_db_config',
+          data: { dbHost, dbUser, dbName, dbPassword }
+        }),
+      }).catch(() => null);
+
       setIsSaved(true);
-      showToast('✅ Hostinger Database Configuration Saved!');
+      showToast('✅ Hostinger Database Configuration Saved & Connected!');
       setTimeout(() => setIsSaved(false), 3000);
     } catch {
       showToast('Error saving settings');

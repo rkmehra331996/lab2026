@@ -41,7 +41,16 @@ def package_hostinger():
             s = os.path.join(uploads_src, item)
             d = os.path.join(uploads_dst, item)
             if os.path.isfile(s):
-                shutil.copy2(s, d)
+    # 4. Copy SQL schema and Setup Guide to dist for Hostinger import
+    sql_src = os.path.join(root_dir, 'hostinger_database_schema.sql')
+    sql_dst = os.path.join(dist_dir, 'hostinger_database_schema.sql')
+    if os.path.exists(sql_src):
+        shutil.copy2(sql_src, sql_dst)
+
+    guide_src = os.path.join(root_dir, 'HOSTINGER_DATABASE_SETUP_GUIDE.md')
+    guide_dst = os.path.join(dist_dir, 'HOSTINGER_DATABASE_SETUP_GUIDE.md')
+    if os.path.exists(guide_src):
+        shutil.copy2(guide_src, guide_dst)
 
     # Target zip outputs
     zip_root_path = os.path.join(root_dir, 'hostinger_public_html.zip')

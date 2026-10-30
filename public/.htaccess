@@ -67,6 +67,7 @@ DirectoryIndex index.html index.php
 # Disable LiteSpeed Server Cache for SPA entry point (Hostinger LSCache Bypass)
 <IfModule LiteSpeed>
   CacheLookup off
+  CacheEngine off
 </IfModule>
 
 # Strict Anti-Caching for index.html, API Endpoints, Service Worker, Manifest and Dynamic Scripts (Hostinger LiteSpeed / Apache / hcdn)
