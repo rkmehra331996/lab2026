@@ -49,6 +49,29 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
       ? report.dueAmount
       : 0;
 
+  const reportSerializeKey = JSON.stringify({
+    id: report.reportId,
+    repAt: report.reportedAt,
+    letterhead: report.enableStaticPdfLetterhead,
+    bg: report.letterheadBgDataUrl ? report.letterheadBgDataUrl.slice(0, 50) : '',
+    top: report.letterheadBodyTop,
+    bot: report.letterheadBodyBottom,
+    scale: report.letterheadFontScale,
+    qr: report.showReportQrCode,
+    bar: report.showReportBarcode,
+    mob: report.showReportMobile,
+    stat: report.showReportStatusColumn,
+    note: report.showReportClinicNote,
+    cnText: report.reportCustomClinicNote || report.clinicNote,
+    techSign: report.showReportTechnicianSign,
+    pathSign: report.showReportPathologistSign,
+    digSign: report.showReportDigitalSignCurve,
+    dept: report.showReportDepartmentHeader,
+    method: report.showReportMethod,
+    techName: report.reportTechnicianName,
+    pathName: report.pathologist || report.reportPathologistName,
+  });
+
   // Generate canonical PDF bytes and render pages
   useEffect(() => {
     let isMounted = true;
@@ -84,7 +107,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [report.reportId, report.reportedAt, isDuePaymentPending, report.paymentStatus, report.dueAmount, activeDueAmount]);
+  }, [reportSerializeKey, isDuePaymentPending, report.paymentStatus, report.dueAmount, activeDueAmount]);
 
   return (
     <div

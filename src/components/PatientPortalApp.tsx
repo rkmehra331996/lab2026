@@ -571,25 +571,21 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         (scopedReports || []).find((r) => {
           const rId = (r.reportId || '').toLowerCase().trim();
           const rUhid = (r.uhid || '').toLowerCase().trim();
-          const rToken = (r.tokenNumber || '').toLowerCase().trim();
           const rRecId = (r.receptionId || '').toLowerCase().trim();
 
           if (match.entry?.reportId && rId === match.entry.reportId.toLowerCase().trim()) return true;
-          if (match.entry?.uhid && rUhid === match.entry.uhid.toLowerCase().trim()) return true;
-          if (match.entry?.tokenNumber && rToken === match.entry.tokenNumber.toLowerCase().trim()) return true;
           if (rRecId && rRecId === match.entry?.id.toLowerCase().trim()) return true;
+          if (match.entry?.uhid && rUhid === match.entry.uhid.toLowerCase().trim() && !rUhid.startsWith('uhid-2026') && !rUhid.startsWith('lab-2026-904')) return true;
           return false;
         }) ||
         (allReports || []).find((r) => {
           const rId = (r.reportId || '').toLowerCase().trim();
           const rUhid = (r.uhid || '').toLowerCase().trim();
-          const rToken = (r.tokenNumber || '').toLowerCase().trim();
           const rRecId = (r.receptionId || '').toLowerCase().trim();
 
           if (match.entry?.reportId && rId === match.entry.reportId.toLowerCase().trim()) return true;
-          if (match.entry?.uhid && rUhid === match.entry.uhid.toLowerCase().trim()) return true;
-          if (match.entry?.tokenNumber && rToken === match.entry.tokenNumber.toLowerCase().trim()) return true;
           if (rRecId && rRecId === match.entry?.id.toLowerCase().trim()) return true;
+          if (match.entry?.uhid && rUhid === match.entry.uhid.toLowerCase().trim() && !rUhid.startsWith('uhid-2026') && !rUhid.startsWith('lab-2026-904')) return true;
           return false;
         });
 
@@ -1194,7 +1190,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                         m.entry?.tests?.slice(0, 3).join(', ') ||
                         'Diagnostic Profile';
                       const tokenOrId = m.report?.reportId || m.entry?.tokenNumber || `Record #${idx + 1}`;
-                      const isReady = Boolean(m.report) || m.entry?.status === 'Report Ready';
+                      const isReady =
+                        Boolean(m.report && !m.report.isDraft && m.report.verified) ||
+                        (Boolean(m.entry) && (m.entry?.status === 'Report Ready' || m.entry?.technicianStatus === 'Report Generated'));
 
                       return (
                         <div
@@ -1204,7 +1202,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                           <div className="flex items-center gap-2.5">
                             <div
                               className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                isReady ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                isReady ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-[#123B6D]'
                               }`}
                             >
                               {isReady ? <FileText className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
@@ -1225,10 +1223,10 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                           <div className="flex items-center justify-between sm:justify-end gap-2">
                             <span
                               className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                                isReady ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                isReady ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-[#123B6D]'
                               }`}
                             >
-                              {isReady ? 'Report Ready' : 'In Testing'}
+                              {isReady ? 'Report Ready' : 'In Process (In Lab)'}
                             </span>
                             <button
                               type="button"

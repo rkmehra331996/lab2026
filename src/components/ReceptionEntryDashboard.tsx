@@ -811,7 +811,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       upiTransactionRef: paymentMode === 'UPI' && upiTransactionRef.trim() ? upiTransactionRef.trim() : undefined,
       paymentVerificationStatus: paymentMode === 'UPI' && upiTransactionRef.trim() ? 'Pending Verification' : undefined,
       paymentStatus: calculatedPaymentStatus,
-      status: 'Sample Collected',
+      status: 'In Lab',
       sentToTechnician: true,
       technicianStatus: 'Sent to Lab',
       sentToLabAt: `Today, ${nowTime}`,
@@ -942,10 +942,15 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   };
 
   const handleSaveAndSendToLab = (updated: ReceptionPatientEntry) => {
-    updateReceptionEntry(updated.id, updated);
+    updateReceptionEntry(updated.id, {
+      ...updated,
+      status: 'In Lab',
+      sentToTechnician: true,
+      technicianStatus: 'Sent to Lab',
+    });
     sendEntryToTechnician(updated.id);
     setLastRegisteredEntry(updated);
-    showToast(`🚀 Updated & dispatched ${updated.tokenNumber} to Lab Technician!`);
+    showToast(`🚀 Updated & dispatched ${updated.tokenNumber} to Lab Technician (In Process)!`);
   };
 
   // Lab Technician Pipeline Actions
@@ -969,12 +974,10 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     const rptId = entry.reportId;
     let foundReport: LabReport | undefined;
     if (rptId) {
-      foundReport = getReportById(rptId) || reports.find((r) => r.reportId === rptId);
+      foundReport = getReportById(rptId) || reports.find((r) => r.reportId.toLowerCase() === rptId.toLowerCase());
     }
-    if (!foundReport) {
-      foundReport = reports.find(
-        (r) => r.uhid === entry.uhid || (entry.mobile && r.mobile && r.mobile.replace(/\D/g, '').slice(-10) === entry.mobile.replace(/\D/g, '').slice(-10))
-      );
+    if (!foundReport && entry.uhid && !entry.uhid.startsWith('UHID-2026') && !entry.uhid.startsWith('LAB-2026-904')) {
+      foundReport = reports.find((r) => r.uhid && r.uhid.toLowerCase() === entry.uhid.toLowerCase());
     }
 
     if (!foundReport) {
@@ -1029,6 +1032,15 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   const handleDownloadPatientReport = async (entry: ReceptionPatientEntry) => {
     try {
+      const isReady = Boolean(
+        entry.status === 'Report Ready' ||
+        entry.technicianStatus === 'Report Generated' ||
+        (Boolean(entry.reportId) && Boolean(reports.find((r) => r.reportId.toLowerCase() === entry.reportId?.toLowerCase() && !r.isDraft && r.verified)))
+      );
+      if (!isReady) {
+        showToast('⏳ Report abhi process mein hai (In Process). Technician dwara test complete karne ke baad report download hogi.');
+        return;
+      }
       const isPaidInFull =
         (entry.dueAmount === 0 || entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid') &&
         (entry.dueAmount ?? 0) <= 0;
@@ -1051,6 +1063,15 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   };
 
   const handleViewPatientReport = (entry: ReceptionPatientEntry) => {
+    const isReady = Boolean(
+      entry.status === 'Report Ready' ||
+      entry.technicianStatus === 'Report Generated' ||
+      (Boolean(entry.reportId) && Boolean(reports.find((r) => r.reportId.toLowerCase() === entry.reportId?.toLowerCase() && !r.isDraft && r.verified)))
+    );
+    if (!isReady) {
+      showToast('⏳ Report abhi process mein hai (In Process). Testing complete hone ke baad view hogi.');
+      return;
+    }
     const foundReport = getOrBuildReportForEntry(entry);
     setViewingReport(foundReport);
     setIsViewingReportModalOpen(true);
@@ -1167,15 +1188,18 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       if (paymentFilter === 'Due' && paymentStatusType !== 'Due') return false;
     }
 
-    // 4. Status Filter (Workflow tabs: Sent to Lab → in lab → Report Ready)
+    // 4. Status Filter (Workflow tabs: Sent to Lab → In Lab / In Process → Report Ready)
     const isReady = Boolean(
       item.status === 'Report Ready' ||
       item.technicianStatus === 'Report Generated' ||
-      Boolean(item.reportId)
+      (Boolean(item.reportId) && Boolean(reports.find((r) => r.reportId.toLowerCase() === item.reportId?.toLowerCase() && !r.isDraft && r.verified)))
     );
     const isInLab = !isReady && Boolean(
+      item.sentToTechnician ||
+      item.technicianStatus === 'Sent to Lab' ||
       item.technicianStatus === 'Accepted' ||
-      (item.status === 'In Lab' && item.technicianStatus !== 'Sent to Lab')
+      item.status === 'In Lab' ||
+      item.status === 'Sample Collected'
     );
 
     if (statusFilter !== 'All') {
@@ -1184,7 +1208,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       } else if (statusFilter === 'Report Ready') {
         if (!isReady) return false;
       } else if (statusFilter === 'In Lab') {
-        if (isReady || !isInLab) return false;
+        if (!isInLab) return false;
       } else {
         if (isReady || isInLab) return false;
         if (item.status !== statusFilter) return false;
@@ -1204,7 +1228,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const patientsWithDueCount = receptionEntries.filter((e) => e.dueAmount > 0).length;
   const waitingSamplesCount = receptionEntries.filter((e) => e.status === 'Waiting').length;
   const reportsReadyCount = receptionEntries.filter(
-    (e) => e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)
+    (e) => e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || (Boolean(e.reportId) && Boolean(reports.find((r) => r.reportId.toLowerCase() === e.reportId?.toLowerCase() && !r.isDraft && r.verified)))
   ).length;
 
   // Next status stepper
@@ -1663,7 +1687,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                             ...lastRegisteredEntry,
                             sentToTechnician: true,
                             technicianStatus: 'Sent to Lab',
-                            status: 'Sample Collected',
+                            status: 'In Lab',
                           });
                         }}
                         className="bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
@@ -1674,9 +1698,9 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                       </button>
                     </>
                   ) : (
-                    <span className="bg-teal-800 text-teal-100 text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1">
-                      <Lock className="w-3 h-3" />
-                      <span>Lab Sent (Locked)</span>
+                    <span className="bg-[#123B6D] text-white text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-300" />
+                      <span>Sent to Lab (In Process)</span>
                     </span>
                   )}
                   <button
@@ -2480,10 +2504,10 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                     : st === 'Website'
                     ? websiteBookingCount
                     : st === 'Report Ready'
-                    ? receptionEntries.filter((e) => e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)).length
+                    ? receptionEntries.filter((e) => e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || (Boolean(e.reportId) && Boolean(reports.find((r) => r.reportId.toLowerCase() === e.reportId?.toLowerCase() && !r.isDraft && r.verified)))).length
                     : st === 'In Lab'
-                    ? receptionEntries.filter((e) => !(e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)) && (e.technicianStatus === 'Accepted' || (e.status === 'In Lab' && e.technicianStatus !== 'Sent to Lab'))).length
-                    : receptionEntries.filter((e) => !(e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)) && e.status === st).length;
+                    ? receptionEntries.filter((e) => !(e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || (Boolean(e.reportId) && Boolean(reports.find((r) => r.reportId.toLowerCase() === e.reportId?.toLowerCase() && !r.isDraft && r.verified)))) && (e.sentToTechnician || e.technicianStatus === 'Sent to Lab' || e.technicianStatus === 'Accepted' || e.status === 'In Lab' || e.status === 'Sample Collected')).length
+                    : receptionEntries.filter((e) => !(e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || (Boolean(e.reportId) && Boolean(reports.find((r) => r.reportId.toLowerCase() === e.reportId?.toLowerCase() && !r.isDraft && r.verified)))) && !(e.sentToTechnician || e.technicianStatus === 'Sent to Lab' || e.technicianStatus === 'Accepted' || e.status === 'In Lab' || e.status === 'Sample Collected') && e.status === st).length;
                 return (
                   <button
                     key={st}
@@ -2496,7 +2520,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>{st === 'Website' ? '🌐 Website Bookings' : st}</span>
+                    <span>{st === 'Website' ? '🌐 Website Bookings' : st === 'In Lab' ? '🧪 In Lab (In Process)' : st}</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                         st === 'Website'
@@ -2526,20 +2550,18 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   const isReportReady = Boolean(
                     entry.status === 'Report Ready' ||
                     entry.technicianStatus === 'Report Generated' ||
-                    Boolean(entry.reportId)
+                    (Boolean(entry.reportId) && Boolean(reports.find((r) => r.reportId.toLowerCase() === entry.reportId?.toLowerCase() && !r.isDraft && r.verified)))
                   );
 
-                  const isInLab = !isReportReady && Boolean(
-                    entry.technicianStatus === 'Accepted' ||
-                    (entry.status === 'In Lab' && entry.technicianStatus !== 'Sent to Lab')
-                  );
-
-                  const isSentToLab = !isReportReady && !isInLab && Boolean(
+                  const isInProcess = !isReportReady && Boolean(
                     entry.sentToTechnician ||
-                    entry.technicianStatus === 'Sent to Lab'
+                    entry.technicianStatus === 'Sent to Lab' ||
+                    entry.technicianStatus === 'Accepted' ||
+                    entry.status === 'In Lab' ||
+                    entry.status === 'Sample Collected'
                   );
 
-                  const isAlreadySent = isReportReady || isInLab || isSentToLab;
+                  const isAlreadySent = isReportReady || isInProcess;
                   const isLockedForEdit = isAlreadySent;
 
                   const isPaidInFull =
@@ -2696,15 +2718,10 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                                 <span className="hidden sm:inline">View</span>
                               </button>
                             </div>
-                          ) : isInLab ? (
+                          ) : isInProcess ? (
                             <span className="bg-blue-50 text-[#123B6D] border border-blue-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs">
-                              <FlaskConical className="w-3.5 h-3.5 text-[#123B6D]" />
-                              <span>In Lab</span>
-                            </span>
-                          ) : isSentToLab ? (
-                            <span className="bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs">
-                              <Clock className="w-3.5 h-3.5 text-teal-600" />
-                              <span>Sent to Lab</span>
+                              <FlaskConical className="w-3.5 h-3.5 text-[#123B6D] animate-pulse" />
+                              <span>In Process (In Lab)</span>
                             </span>
                           ) : (
                             <button

@@ -6,12 +6,66 @@ import {
   generateQrDataUrl,
   generateLaboratoryLogoWatermark,
 } from './reportAssets';
+import {
+  DEFAULT_LETTERHEAD_BODY_TOP,
+  DEFAULT_LETTERHEAD_BODY_BOTTOM,
+  DEFAULT_LETTERHEAD_MARGIN_LEFT,
+  DEFAULT_LETTERHEAD_MARGIN_RIGHT,
+  DEFAULT_LETTERHEAD_FONT_SCALE,
+} from './letterheadUtils';
 
 // Helper to clean phone number digits
 function cleanPhoneNumber(raw: string): string {
   const digits = (raw || '').replace(/\D/g, '');
   if (digits.length >= 10) return digits.slice(-10);
   return raw || '1020304050';
+}
+
+/**
+ * Resolves or rasterizes the uploaded A4 letterhead background (PDF or Image)
+ * into a base64 PNG data URL suitable for jsPDF page insertion.
+ */
+async function ensureLetterheadBg(resolved: {
+  letterheadBgDataUrl?: string;
+  letterheadPdfUrl?: string;
+}): Promise<string | null> {
+  if (resolved.letterheadBgDataUrl && resolved.letterheadBgDataUrl.startsWith('data:image/')) {
+    return resolved.letterheadBgDataUrl;
+  }
+  if (!resolved.letterheadPdfUrl) return null;
+  if (resolved.letterheadPdfUrl.startsWith('data:image/')) {
+    return resolved.letterheadPdfUrl;
+  }
+
+  try {
+    const { pdfjsLib } = await import('./canonicalPdfRenderer');
+    let dataToLoad: any = resolved.letterheadPdfUrl;
+    if (resolved.letterheadPdfUrl.startsWith('data:application/pdf;base64,')) {
+      const base64 = resolved.letterheadPdfUrl.split(',')[1];
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      dataToLoad = bytes.buffer;
+    }
+    const docInit = typeof dataToLoad === 'string' ? { url: dataToLoad } : { data: dataToLoad };
+    const loadingTask = pdfjsLib.getDocument(docInit);
+    const pdfDoc = await loadingTask.promise;
+    const page = await pdfDoc.getPage(1);
+    const viewport = page.getViewport({ scale: 2.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    // @ts-expect-error PDF.js render options
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    return canvas.toDataURL('image/png', 0.95);
+  } catch (err) {
+    console.warn('Could not rasterize uploaded letterhead PDF for report background:', err);
+    return null;
+  }
 }
 
 // Dynamically resolve lab details from report and vendor dashboard settings
@@ -22,6 +76,39 @@ function resolveLabDetails(report: LabReport) {
   let phone = (report.labPhone || '').trim();
   let address = (report.labAddress || '').trim();
   let labName = (report.labName || '').trim();
+
+  let enableStaticPdfLetterhead = Boolean(report.enableStaticPdfLetterhead);
+  let letterheadPdfUrl = report.letterheadPdfUrl || '';
+  let letterheadPdfName = report.letterheadPdfName || '';
+  let letterheadBgDataUrl = report.letterheadBgDataUrl || '';
+  let letterheadBodyTop = report.letterheadBodyTop ?? DEFAULT_LETTERHEAD_BODY_TOP;
+  let letterheadBodyBottom = report.letterheadBodyBottom ?? DEFAULT_LETTERHEAD_BODY_BOTTOM;
+  let letterheadMarginLeft = report.letterheadMarginLeft ?? DEFAULT_LETTERHEAD_MARGIN_LEFT;
+  let letterheadMarginRight = report.letterheadMarginRight ?? DEFAULT_LETTERHEAD_MARGIN_RIGHT;
+  let letterheadFontScale = report.letterheadFontScale ?? DEFAULT_LETTERHEAD_FONT_SCALE;
+
+  // Report Field Customization & Show/Hide Controls
+  let showReportQrCode = report.showReportQrCode !== undefined ? Boolean(report.showReportQrCode) : true;
+  let showReportBarcode = report.showReportBarcode !== undefined ? Boolean(report.showReportBarcode) : true;
+  let showReportMobile = report.showReportMobile !== undefined ? Boolean(report.showReportMobile) : true;
+  let showReportRegDate = report.showReportRegDate !== undefined ? Boolean(report.showReportRegDate) : true;
+  let showReportCollectionDate = report.showReportCollectionDate !== undefined ? Boolean(report.showReportCollectionDate) : true;
+  let showReportReportingDate = report.showReportReportingDate !== undefined ? Boolean(report.showReportReportingDate) : true;
+  let showReportStatusColumn = report.showReportStatusColumn !== undefined ? Boolean(report.showReportStatusColumn) : true;
+  let showReportClinicNote = report.showReportClinicNote !== undefined ? Boolean(report.showReportClinicNote) : true;
+  let showReportEndOfReport = report.showReportEndOfReport !== undefined ? Boolean(report.showReportEndOfReport) : true;
+  let showReportTechnicianSign = report.showReportTechnicianSign !== undefined ? Boolean(report.showReportTechnicianSign) : true;
+  let showReportPathologistSign = report.showReportPathologistSign !== undefined ? Boolean(report.showReportPathologistSign) : true;
+  let showReportDigitalSignCurve = report.showReportDigitalSignCurve !== undefined ? Boolean(report.showReportDigitalSignCurve) : true;
+  let showReportDepartmentHeader = report.showReportDepartmentHeader !== undefined ? Boolean(report.showReportDepartmentHeader) : true;
+  let showReportMethod = report.showReportMethod !== undefined ? Boolean(report.showReportMethod) : true;
+  let showReportPageNumber = report.showReportPageNumber !== undefined ? Boolean(report.showReportPageNumber) : true;
+
+  let reportTechnicianName = report.reportTechnicianName || '';
+  let reportTechnicianDesignation = report.reportTechnicianDesignation || '';
+  let reportPathologistName = report.pathologist || '';
+  let reportPathologistDegrees = report.pathologistDegrees || '';
+  let reportCustomClinicNote = report.reportCustomClinicNote || report.clinicNote || report.clinicalImpression || '';
 
   if (typeof window !== 'undefined') {
     try {
@@ -42,6 +129,81 @@ function resolveLabDetails(report: LabReport) {
         if (!phone && activeSettings.phone) phone = activeSettings.phone;
         if (!address && activeSettings.address) address = activeSettings.address;
         if (!labName && (activeSettings.labName || activeSettings.name)) labName = activeSettings.labName || activeSettings.name;
+
+        if (report.enableStaticPdfLetterhead === undefined && activeSettings.enableStaticPdfLetterhead !== undefined) {
+          enableStaticPdfLetterhead = Boolean(activeSettings.enableStaticPdfLetterhead);
+        }
+        if (!letterheadPdfUrl && activeSettings.letterheadPdfUrl) letterheadPdfUrl = activeSettings.letterheadPdfUrl;
+        if (!letterheadPdfName && activeSettings.letterheadPdfName) letterheadPdfName = activeSettings.letterheadPdfName;
+        if (!letterheadBgDataUrl && activeSettings.letterheadBgDataUrl) letterheadBgDataUrl = activeSettings.letterheadBgDataUrl;
+        if (report.letterheadBodyTop === undefined && activeSettings.letterheadBodyTop !== undefined) letterheadBodyTop = Number(activeSettings.letterheadBodyTop);
+        if (report.letterheadBodyBottom === undefined && activeSettings.letterheadBodyBottom !== undefined) letterheadBodyBottom = Number(activeSettings.letterheadBodyBottom);
+        if (report.letterheadMarginLeft === undefined && activeSettings.letterheadMarginLeft !== undefined) letterheadMarginLeft = Number(activeSettings.letterheadMarginLeft);
+        if (report.letterheadMarginRight === undefined && activeSettings.letterheadMarginRight !== undefined) letterheadMarginRight = Number(activeSettings.letterheadMarginRight);
+        if (report.letterheadFontScale === undefined && activeSettings.letterheadFontScale !== undefined) letterheadFontScale = Number(activeSettings.letterheadFontScale);
+
+        // Inherit report customization settings if not explicitly passed on report
+        if (report.showReportQrCode === undefined && activeSettings.showReportQrCode !== undefined) {
+          showReportQrCode = Boolean(activeSettings.showReportQrCode);
+        }
+        if (report.showReportBarcode === undefined && activeSettings.showReportBarcode !== undefined) {
+          showReportBarcode = Boolean(activeSettings.showReportBarcode);
+        }
+        if (report.showReportMobile === undefined && activeSettings.showReportMobile !== undefined) {
+          showReportMobile = Boolean(activeSettings.showReportMobile);
+        }
+        if (report.showReportRegDate === undefined && activeSettings.showReportRegDate !== undefined) {
+          showReportRegDate = Boolean(activeSettings.showReportRegDate);
+        }
+        if (report.showReportCollectionDate === undefined && activeSettings.showReportCollectionDate !== undefined) {
+          showReportCollectionDate = Boolean(activeSettings.showReportCollectionDate);
+        }
+        if (report.showReportReportingDate === undefined && activeSettings.showReportReportingDate !== undefined) {
+          showReportReportingDate = Boolean(activeSettings.showReportReportingDate);
+        }
+        if (report.showReportStatusColumn === undefined && activeSettings.showReportStatusColumn !== undefined) {
+          showReportStatusColumn = Boolean(activeSettings.showReportStatusColumn);
+        }
+        if (report.showReportClinicNote === undefined && activeSettings.showReportClinicNote !== undefined) {
+          showReportClinicNote = Boolean(activeSettings.showReportClinicNote);
+        }
+        if (report.showReportEndOfReport === undefined && activeSettings.showReportEndOfReport !== undefined) {
+          showReportEndOfReport = Boolean(activeSettings.showReportEndOfReport);
+        }
+        if (report.showReportTechnicianSign === undefined && activeSettings.showReportTechnicianSign !== undefined) {
+          showReportTechnicianSign = Boolean(activeSettings.showReportTechnicianSign);
+        }
+        if (report.showReportPathologistSign === undefined && activeSettings.showReportPathologistSign !== undefined) {
+          showReportPathologistSign = Boolean(activeSettings.showReportPathologistSign);
+        }
+        if (report.showReportDigitalSignCurve === undefined && activeSettings.showReportDigitalSignCurve !== undefined) {
+          showReportDigitalSignCurve = Boolean(activeSettings.showReportDigitalSignCurve);
+        }
+        if (report.showReportDepartmentHeader === undefined && activeSettings.showReportDepartmentHeader !== undefined) {
+          showReportDepartmentHeader = Boolean(activeSettings.showReportDepartmentHeader);
+        }
+        if (report.showReportMethod === undefined && activeSettings.showReportMethod !== undefined) {
+          showReportMethod = Boolean(activeSettings.showReportMethod);
+        }
+        if (report.showReportPageNumber === undefined && activeSettings.showReportPageNumber !== undefined) {
+          showReportPageNumber = Boolean(activeSettings.showReportPageNumber);
+        }
+
+        if (!reportTechnicianName && activeSettings.reportTechnicianName) {
+          reportTechnicianName = activeSettings.reportTechnicianName;
+        }
+        if (!reportTechnicianDesignation && activeSettings.reportTechnicianDesignation) {
+          reportTechnicianDesignation = activeSettings.reportTechnicianDesignation;
+        }
+        if (!reportPathologistName && (activeSettings.reportPathologistName || activeSettings.founderName)) {
+          reportPathologistName = activeSettings.reportPathologistName || activeSettings.founderName;
+        }
+        if (!reportPathologistDegrees && (activeSettings.reportPathologistDegrees || activeSettings.founderDegrees)) {
+          reportPathologistDegrees = activeSettings.reportPathologistDegrees || activeSettings.founderDegrees;
+        }
+        if (!reportCustomClinicNote && activeSettings.reportCustomClinicNote) {
+          reportCustomClinicNote = activeSettings.reportCustomClinicNote;
+        }
       }
 
       // Check vendor labs list
@@ -85,8 +247,56 @@ function resolveLabDetails(report: LabReport) {
   if (!address) {
     address = 'SCO 101, Medical Enclave, Civil Road, Ludhiana - 141001';
   }
+  if (!reportTechnicianName) {
+    reportTechnicianName = 'S. Verma, M.Sc., DMLT';
+  }
+  if (!reportTechnicianDesignation) {
+    reportTechnicianDesignation = 'Senior Medical Laboratory Technologist';
+  }
+  if (!reportPathologistName) {
+    reportPathologistName = report.pathologist || 'Dr. Rajesh Sharma, MD';
+  }
+  if (!reportPathologistDegrees) {
+    reportPathologistDegrees = report.pathologistDegrees || 'Consultant Pathologist & Lab Director (Reg No: MCI-PB-48192)';
+  }
 
-  return { email, domain, timings, phone, address, labName };
+  return {
+    email,
+    domain,
+    timings,
+    phone,
+    address,
+    labName,
+    enableStaticPdfLetterhead,
+    letterheadPdfUrl,
+    letterheadPdfName,
+    letterheadBgDataUrl,
+    letterheadBodyTop,
+    letterheadBodyBottom,
+    letterheadMarginLeft,
+    letterheadMarginRight,
+    letterheadFontScale,
+    showReportQrCode,
+    showReportBarcode,
+    showReportMobile,
+    showReportRegDate,
+    showReportCollectionDate,
+    showReportReportingDate,
+    showReportStatusColumn,
+    showReportClinicNote,
+    showReportEndOfReport,
+    showReportTechnicianSign,
+    showReportPathologistSign,
+    showReportDigitalSignCurve,
+    showReportDepartmentHeader,
+    showReportMethod,
+    showReportPageNumber,
+    reportTechnicianName,
+    reportTechnicianDesignation,
+    reportPathologistName,
+    reportPathologistDegrees,
+    reportCustomClinicNote,
+  };
 }
 
 /**
@@ -110,6 +320,21 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   // Dynamically resolve vendor details
   const resolved = resolveLabDetails(report);
 
+  // Check if Static PDF Letterhead is active
+  let letterheadBg = '';
+  if (resolved.enableStaticPdfLetterhead) {
+    letterheadBg = (await ensureLetterheadBg(resolved)) || '';
+  }
+  const isStaticLetterhead = Boolean(resolved.enableStaticPdfLetterhead && letterheadBg);
+
+  const bodyTop = isStaticLetterhead ? Math.max(15, resolved.letterheadBodyTop || DEFAULT_LETTERHEAD_BODY_TOP) : 0;
+  const bodyBottom = isStaticLetterhead ? Math.max(15, resolved.letterheadBodyBottom || DEFAULT_LETTERHEAD_BODY_BOTTOM) : 22;
+  const marginXLeft = isStaticLetterhead ? Math.max(5, resolved.letterheadMarginLeft || DEFAULT_LETTERHEAD_MARGIN_LEFT) : marginX;
+  const marginXRight = isStaticLetterhead ? Math.max(5, resolved.letterheadMarginRight || DEFAULT_LETTERHEAD_MARGIN_RIGHT) : marginX;
+  const activeContentWidth = pageWidth - marginXLeft - marginXRight;
+  const fontScale = isStaticLetterhead ? Math.max(0.75, Math.min(1.3, (resolved.letterheadFontScale || 100) / 100)) : 1.0;
+  const maxBodyY = isStaticLetterhead ? pageHeight - bodyBottom : pageHeight - 22;
+
   // 1. Prepare Verification & Online Patient Report URL (Canonical QR Code destination)
   // When scanned with any smartphone camera or QR reader, this opens the patient's verified report directly.
   const currentOrigin =
@@ -125,11 +350,11 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     : `${currentOrigin}/report/${encodeURIComponent(reportIdentifier)}`;
 
   // 2. Generate Assets in Parallel:
-  // - ONE QR Code ONLY (top header)
-  // - Dynamic Diagonal Laboratory Watermark (center of page, 45° rotation, light/faded opacity)
+  // - ONE QR Code ONLY (top header or embedded inside patient box on letterhead)
+  // - Dynamic Diagonal Laboratory Watermark (center of page, 45° rotation, light/faded opacity - only in standard mode)
   const [headerQrDataUrl, watermarkDataUrl] = await Promise.all([
     generateQrDataUrl(verifyUrl, { size: 320, darkColor: '#0F2744' }),
-    generateLaboratoryLogoWatermark(resolved.labName, resolved.phone),
+    !isStaticLetterhead ? generateLaboratoryLogoWatermark(resolved.labName, resolved.phone) : Promise.resolve(null),
   ]);
 
   // 3. Automatically Evaluate Parameters & Determine Exact Statuses
@@ -195,23 +420,21 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   }
 
   // ==========================================
-  // CANONICAL HEADER RENDERING FUNCTION
+  // CANONICAL HEADER RENDERING FUNCTION (STANDARD MODE)
   // (Repeated on Every Page for Multi-page Reports)
   // ==========================================
   const drawCanonicalReportHeader = (targetDoc: jsPDF): number => {
-    // Top Header Bar: Solid Navy Blue / Dark Blue with Clean White Text
     const headerBarHeight = 35; // mm
     const leftAreaWidth = contentWidth * 0.68; // ~126 mm
     const rightRightEdge = pageWidth - marginX; // 198 mm
 
     // Solid Navy Blue Top Bar (Full edge-to-edge background)
-    targetDoc.setFillColor(18, 59, 109); // Solid Navy Blue
+    targetDoc.setFillColor(18, 59, 109);
     targetDoc.rect(0, 0, pageWidth, headerBarHeight, 'F');
 
-    // Left Side: Lab Name, Address, Contact Details, Email (All Clean White Text)
+    // Left Side: Lab Name, Address, Contact Details, Email
     let curLeftY = 7.5;
 
-    // Lab Name: Bold White
     targetDoc.setTextColor(255, 255, 255);
     targetDoc.setFont('helvetica', 'bold');
     targetDoc.setFontSize(12.5);
@@ -220,7 +443,6 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     targetDoc.text(labTitleLines, marginX, curLeftY);
     curLeftY += labTitleLines.length * 4.8 + 1.2;
 
-    // Address: Clean White
     targetDoc.setFont('helvetica', 'normal');
     targetDoc.setFontSize(7.3);
     targetDoc.setTextColor(241, 245, 249);
@@ -229,42 +451,37 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     targetDoc.text(addressLines, marginX, curLeftY);
     curLeftY += addressLines.length * 3.4 + 0.8;
 
-    // Contact Details: Clean White
     targetDoc.setFont('helvetica', 'normal');
     targetDoc.setFontSize(7.2);
     targetDoc.setTextColor(255, 255, 255);
     targetDoc.text(`Contact: +91 ${cleanPhoneNumber(resolved.phone || report.labPhone)}`, marginX, curLeftY);
     curLeftY += 3.6;
 
-    // Email: Clean White
     targetDoc.text(`Email: ${resolved.email || report.labEmail || 'care@indianlalaji.com'}`, marginX, curLeftY);
     curLeftY += 3.6;
 
     // Right Side: Report ID, UHID, and QR Code only
     let curRightY = 8.5;
 
-    // Report ID: Bold Clean White Text
     targetDoc.setFont('helvetica', 'bold');
     targetDoc.setFontSize(8.0);
     targetDoc.setTextColor(255, 255, 255);
     targetDoc.text(`Report ID: ${report.reportId}`, rightRightEdge, curRightY, { align: 'right' });
     curRightY += 4.0;
 
-    // UHID: Clean White Text
     targetDoc.setFont('helvetica', 'bold');
     targetDoc.setFontSize(7.5);
     targetDoc.setTextColor(241, 245, 249);
     targetDoc.text(`UHID: ${report.uhid || 'UHID-824476'}`, rightRightEdge, curRightY, { align: 'right' });
     curRightY += 3.8;
 
-    // QR Code Container: Clean White Square with QR Code inside
     const qrSize = 15;
     const qrBoxW = 17;
     const qrBoxH = 17;
     const qrBoxX = rightRightEdge - qrBoxW;
     const qrBoxY = curRightY + 0.5;
 
-    if (headerQrDataUrl) {
+    if (resolved.showReportQrCode && headerQrDataUrl) {
       try {
         targetDoc.setFillColor(255, 255, 255);
         targetDoc.roundedRect(qrBoxX, qrBoxY, qrBoxW, qrBoxH, 1.2, 1.2, 'F');
@@ -274,24 +491,20 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
       }
     }
 
-    // --- 2. PATIENT INFORMATION SECTION (Keep unchanged) ---
-    // Clean bordered box with two columns (Patient Details | Report Details)
+    // Standard Patient Demographics Box
     const pBoxY = headerBarHeight + 3.5;
     const pBoxH = 26;
     const pBoxW = contentWidth;
 
-    // Outer Box Frame
-    targetDoc.setFillColor(248, 250, 252); // Soft clinical slate-50
+    targetDoc.setFillColor(248, 250, 252);
     targetDoc.setDrawColor(203, 213, 225);
     targetDoc.setLineWidth(0.3);
     targetDoc.roundedRect(marginX, pBoxY, pBoxW, pBoxH, 1.5, 1.5, 'FD');
 
-    // Vertical Center Column Divider
     const colDividerX = marginX + pBoxW / 2;
     targetDoc.setDrawColor(226, 232, 240);
     targetDoc.line(colDividerX, pBoxY, colDividerX, pBoxY + pBoxH);
 
-    // Column 1: Patient Details
     const c1LabelX = marginX + 4;
     const c1ValX = marginX + 34;
 
@@ -300,17 +513,26 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     targetDoc.setTextColor(100, 116, 139);
     targetDoc.text('PATIENT NAME:', c1LabelX, pBoxY + 6);
     targetDoc.text('AGE / GENDER:', c1LabelX, pBoxY + 12);
-    targetDoc.text('CONTACT NO:', c1LabelX, pBoxY + 18);
-    targetDoc.text('BARCODE / UHID:', c1LabelX, pBoxY + 23.5);
+    targetDoc.text(resolved.showReportMobile ? 'CONTACT NO:' : 'REG. / UHID:', c1LabelX, pBoxY + 18);
+    targetDoc.text(resolved.showReportBarcode ? 'BARCODE / LAB NO:' : 'REG. DATE:', c1LabelX, pBoxY + 23.5);
 
     targetDoc.setFont('helvetica', 'bold');
-    targetDoc.setTextColor(15, 23, 42); // Slate-900
+    targetDoc.setTextColor(15, 23, 42);
     targetDoc.text(report.patientName.toUpperCase(), c1ValX, pBoxY + 6);
     targetDoc.text(report.ageGender || '45 Y / Male', c1ValX, pBoxY + 12);
-    targetDoc.text(`+91 ${report.mobile}`, c1ValX, pBoxY + 18);
-    targetDoc.text(report.barcode || report.uhid || 'BC-789218', c1ValX, pBoxY + 23.5);
+    targetDoc.text(
+      resolved.showReportMobile ? `+91 ${report.mobile}` : (report.uhid || 'UHID-824476'),
+      c1ValX,
+      pBoxY + 18
+    );
+    targetDoc.text(
+      resolved.showReportBarcode
+        ? (report.barcode || report.uhid || report.tokenNumber || 'BC-789218')
+        : (report.registeredAt || 'Today, 08:30 AM'),
+      c1ValX,
+      pBoxY + 23.5
+    );
 
-    // Column 2: Report Details
     const c2LabelX = colDividerX + 4;
     const c2ValX = colDividerX + 32;
 
@@ -318,120 +540,291 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     targetDoc.setTextColor(100, 116, 139);
     targetDoc.text('REFERRED BY:', c2LabelX, pBoxY + 6);
     targetDoc.text('SPECIMEN:', c2LabelX, pBoxY + 12);
-    targetDoc.text('COLLECTED ON:', c2LabelX, pBoxY + 18);
-    targetDoc.text('REPORTED ON:', c2LabelX, pBoxY + 23.5);
+    targetDoc.text(resolved.showReportCollectionDate ? 'COLLECTED ON:' : 'REG. TIME:', c2LabelX, pBoxY + 18);
+    targetDoc.text(resolved.showReportReportingDate ? 'REPORTED ON:' : 'STATUS:', c2LabelX, pBoxY + 23.5);
 
     targetDoc.setFont('helvetica', 'bold');
     targetDoc.setTextColor(15, 23, 42);
-    targetDoc.text(report.doctor || 'Self / Dr. O. P. Sharma (MD)', c2ValX, pBoxY + 6);
+    targetDoc.text(report.doctor || 'Self / Direct', c2ValX, pBoxY + 6);
     targetDoc.text(report.sampleType || 'EDTA Whole Blood / Serum', c2ValX, pBoxY + 12);
-    targetDoc.text(report.sampleCollectedAt || report.reportedAt, c2ValX, pBoxY + 18);
-    targetDoc.text(report.reportedAt, c2ValX, pBoxY + 23.5);
+    targetDoc.text(
+      resolved.showReportCollectionDate
+        ? (report.sampleCollectedAt || report.reportedAt || 'Today, 08:30 AM')
+        : (report.registeredAt || 'Today, 08:00 AM'),
+      c2ValX,
+      pBoxY + 18
+    );
+    targetDoc.text(
+      resolved.showReportReportingDate
+        ? (report.reportedAt || 'Today, 11:45 AM')
+        : 'Final / Verified',
+      c2ValX,
+      pBoxY + 23.5
+    );
 
     return pBoxY + pBoxH + 4;
   };
 
-  // Measure exact Header Height & draw onto Page 1
-  const headerTotalHeight = drawCanonicalReportHeader(doc);
-  let cursorY = headerTotalHeight;
+  // ==========================================
+  // DYNAMIC PATIENT INFORMATION (STATIC LETTERHEAD MODE)
+  // (Prints ONLY inside designated body zone without touching header)
+  // ==========================================
+  const drawLetterheadPatientInfo = (targetDoc: jsPDF, pBoxY: number): number => {
+    const pBoxH = 23;
+    const pBoxW = activeContentWidth;
 
-  // --- 3 & 4. DEPARTMENT SECTIONS & MAIN TEST TABLES (REPORT BODY - Keep unchanged) ---
-  departmentGroups.forEach((group, gIdx) => {
-    // If remaining space on current page is not enough for section header + 2 rows, break to new page
-    if (cursorY > pageHeight - 50) {
-      doc.addPage();
-      cursorY = headerTotalHeight + 2;
+    // Outer Box Frame
+    targetDoc.setFillColor(248, 250, 252);
+    targetDoc.setDrawColor(203, 213, 225);
+    targetDoc.setLineWidth(0.3);
+    targetDoc.roundedRect(marginXLeft, pBoxY, pBoxW, pBoxH, 1.2, 1.2, 'FD');
+
+    // Subtle clinical top border
+    targetDoc.setFillColor(18, 59, 109);
+    targetDoc.rect(marginXLeft, pBoxY, pBoxW, 1.4, 'F');
+
+    // Column Divider (shifts wider if QR code is turned off)
+    const colSplit = resolved.showReportQrCode ? 0.48 : 0.50;
+    const colDividerX = marginXLeft + pBoxW * colSplit;
+    targetDoc.setDrawColor(226, 232, 240);
+    targetDoc.line(colDividerX, pBoxY + 1.4, colDividerX, pBoxY + pBoxH);
+
+    // Column 1: Patient Details
+    const c1LabelX = marginXLeft + 3.5;
+    const c1ValX = marginXLeft + 28;
+
+    targetDoc.setFontSize(6.8 * fontScale);
+    targetDoc.setFont('helvetica', 'normal');
+    targetDoc.setTextColor(100, 116, 139);
+    targetDoc.text('PATIENT NAME:', c1LabelX, pBoxY + 5.2);
+    targetDoc.text('AGE / GENDER:', c1LabelX, pBoxY + 10.5);
+    targetDoc.text(resolved.showReportMobile ? 'CONTACT NO:' : 'REG. / UHID:', c1LabelX, pBoxY + 15.8);
+    targetDoc.text(resolved.showReportBarcode ? 'BARCODE / LAB NO:' : 'REG. TIME:', c1LabelX, pBoxY + 20.8);
+
+    targetDoc.setFont('helvetica', 'bold');
+    targetDoc.setTextColor(15, 23, 42);
+    targetDoc.text((report.patientName || 'PATIENT').toUpperCase(), c1ValX, pBoxY + 5.2);
+    targetDoc.text(report.ageGender || '45 Y / Male', c1ValX, pBoxY + 10.5);
+    targetDoc.text(
+      resolved.showReportMobile ? `+91 ${report.mobile || '1020304050'}` : (report.uhid || 'UHID-824476'),
+      c1ValX,
+      pBoxY + 15.8
+    );
+    targetDoc.text(
+      resolved.showReportBarcode
+        ? (report.barcode || report.uhid || report.tokenNumber || 'BC-789218')
+        : (report.registeredAt || 'Today, 08:30 AM'),
+      c1ValX,
+      pBoxY + 20.8
+    );
+
+    // Column 2: Report Details
+    const c2LabelX = colDividerX + 3.5;
+    const c2ValX = colDividerX + 26;
+
+    targetDoc.setFont('helvetica', 'normal');
+    targetDoc.setTextColor(100, 116, 139);
+    targetDoc.text('REFERRED BY:', c2LabelX, pBoxY + 5.2);
+    targetDoc.text('SPECIMEN:', c2LabelX, pBoxY + 10.5);
+    targetDoc.text(resolved.showReportCollectionDate ? 'COLLECTED ON:' : 'REG. DATE:', c2LabelX, pBoxY + 15.8);
+    targetDoc.text(resolved.showReportReportingDate ? 'REPORTED ON:' : 'STATUS:', c2LabelX, pBoxY + 20.8);
+
+    targetDoc.setFont('helvetica', 'bold');
+    targetDoc.setTextColor(15, 23, 42);
+    targetDoc.text(report.doctor || 'Self / Direct', c2ValX, pBoxY + 5.2);
+    targetDoc.text(report.sampleType || 'EDTA Whole Blood / Serum', c2ValX, pBoxY + 10.5);
+    targetDoc.text(
+      resolved.showReportCollectionDate
+        ? (report.sampleCollectedAt || report.reportedAt || '')
+        : (report.registeredAt || 'Today, 08:00 AM'),
+      c2ValX,
+      pBoxY + 15.8
+    );
+    targetDoc.text(
+      resolved.showReportReportingDate
+        ? (report.reportedAt || '')
+        : 'Final / Verified',
+      c2ValX,
+      pBoxY + 20.8
+    );
+
+    // Embedded QR Code Verification in Patient Box on far right (ONLY if showReportQrCode is ON)
+    if (resolved.showReportQrCode && headerQrDataUrl) {
+      try {
+        const qrSize = 14.5;
+        const qrX = marginXLeft + pBoxW - qrSize - 3;
+        const qrY = pBoxY + 4.2;
+        targetDoc.setFillColor(255, 255, 255);
+        targetDoc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 1, 1, 'F');
+        targetDoc.addImage(headerQrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize, undefined, 'FAST');
+      } catch {}
     }
 
-    // Department Section Header Bar
-    doc.setFillColor(241, 245, 249); // Slate-100
-    doc.rect(marginX, cursorY, contentWidth, 6.5, 'F');
+    return pBoxY + pBoxH + 3.5;
+  };
 
-    // Navy Accent Indicator on Left
-    doc.setFillColor(18, 59, 109);
-    doc.rect(marginX, cursorY, 2.5, 6.5, 'F');
+  // Determine starting position on Page 1
+  let headerTotalHeight = 0;
+  let cursorY = 0;
 
-    doc.setTextColor(18, 59, 109);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.text(`${group.departmentName.toUpperCase()} • ${group.testTitle.toUpperCase()}`, marginX + 5, cursorY + 4.5);
+  if (isStaticLetterhead && letterheadBg) {
+    // 1. Draw uploaded letterhead background on Page 1
+    doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+    // 2. Draw dynamic patient info starting strictly at configured bodyTop
+    cursorY = drawLetterheadPatientInfo(doc, bodyTop);
+  } else {
+    // Standard mode: Draw default solid Navy Blue header
+    headerTotalHeight = drawCanonicalReportHeader(doc);
+    cursorY = headerTotalHeight;
+  }
 
-    cursorY += 7.5;
+  // --- 3 & 4. DEPARTMENT SECTIONS & MAIN TEST TABLES (REPORT BODY) ---
+  departmentGroups.forEach((group) => {
+    // If remaining space on current page is not enough for section header + 2 rows, break to new page
+    if (cursorY > maxBodyY - 30) {
+      doc.addPage();
+      if (isStaticLetterhead && letterheadBg) {
+        doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        cursorY = bodyTop;
+      } else {
+        cursorY = headerTotalHeight + 2;
+      }
+    }
 
-    // Table rows
+    const curLeftX = isStaticLetterhead ? marginXLeft : marginX;
+    const curWidth = isStaticLetterhead ? activeContentWidth : contentWidth;
+
+    // Department Section Header Bar (or subtle line if department header is off)
+    if (resolved.showReportDepartmentHeader !== false) {
+      doc.setFillColor(241, 245, 249); // Slate-100
+      doc.rect(curLeftX, cursorY, curWidth, 6.5, 'F');
+
+      // Navy Accent Indicator on Left
+      doc.setFillColor(18, 59, 109);
+      doc.rect(curLeftX, cursorY, 2.5, 6.5, 'F');
+
+      doc.setTextColor(18, 59, 109);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8 * fontScale);
+      doc.text(`${group.departmentName.toUpperCase()} • ${group.testTitle.toUpperCase()}`, curLeftX + 5, cursorY + 4.5);
+      cursorY += 7.5;
+    } else {
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.3);
+      doc.line(curLeftX, cursorY, curLeftX + curWidth, cursorY);
+      doc.setTextColor(18, 59, 109);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.6 * fontScale);
+      doc.text(group.testTitle.toUpperCase(), curLeftX, cursorY + 3.8);
+      cursorY += 5.5;
+    }
+
+    // Table rows (4 columns vs 5 columns depending on showReportStatusColumn)
+    const isFiveColumn = resolved.showReportStatusColumn !== false;
     const tableData = group.items.map((item) => {
-      const statusBadge = item.evaluation.style.badgeLabel;
-      return [
-        item.parameter,
-        item.result,
-        item.unit || '-',
-        item.referenceRange || '-',
-        statusBadge,
-      ];
+      let paramLabel = item.parameter;
+      if (resolved.showReportMethod && item.notes && (item.notes.toLowerCase().includes('method') || item.notes.toLowerCase().includes('analyzer'))) {
+        paramLabel += `\n(${item.notes})`;
+      }
+      if (isFiveColumn) {
+        const statusBadge = item.evaluation.style.badgeLabel;
+        return [
+          paramLabel,
+          item.result,
+          item.unit || '-',
+          item.referenceRange || '-',
+          statusBadge,
+        ];
+      } else {
+        return [
+          paramLabel,
+          item.result,
+          item.unit || '-',
+          item.referenceRange || '-',
+        ];
+      }
     });
+
+    const tableHeaders = isFiveColumn
+      ? [['Investigation / Parameter', 'Observed Value', 'Unit', 'Bio Reference Interval', 'Status']]
+      : [['Investigation / Parameter', 'Observed Value', 'Unit', 'Bio Reference Interval']];
+
+    const columnStylesConfig: any = isFiveColumn
+      ? {
+          0: { cellWidth: curWidth * 0.29, fontStyle: 'bold' },
+          1: { cellWidth: curWidth * 0.17, fontStyle: 'bold' },
+          2: { cellWidth: curWidth * 0.14 },
+          3: { cellWidth: curWidth * 0.25 },
+          4: { cellWidth: curWidth * 0.15, halign: 'center' },
+        }
+      : {
+          0: { cellWidth: curWidth * 0.38, fontStyle: 'bold' },
+          1: { cellWidth: curWidth * 0.19, fontStyle: 'bold' },
+          2: { cellWidth: curWidth * 0.15 },
+          3: { cellWidth: curWidth * 0.28 },
+        };
 
     autoTable(doc, {
       startY: cursorY,
       margin: {
-        top: headerTotalHeight, // Ensures subsequent pages start below the repeated header
-        bottom: 22,            // Ensures table stops before the solid footer
-        left: marginX,
-        right: marginX,
+        top: isStaticLetterhead ? bodyTop : headerTotalHeight,
+        bottom: isStaticLetterhead ? bodyBottom : 22,
+        left: isStaticLetterhead ? marginXLeft : marginX,
+        right: isStaticLetterhead ? marginXRight : marginX,
       },
-      head: [['Investigation / Parameter', 'Observed Value', 'Unit', 'Bio Reference Interval', 'Status']],
+      tableWidth: curWidth,
+      willDrawPage: () => {
+        if (isStaticLetterhead && letterheadBg) {
+          doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        }
+      },
+      head: tableHeaders,
       body: tableData,
       theme: 'grid',
       styles: {
-        fontSize: 7.8,
+        fontSize: 7.8 * fontScale,
         textColor: [30, 41, 59],
-        cellPadding: 2.2,
+        cellPadding: 2.2 * fontScale,
         lineColor: [226, 232, 240],
         lineWidth: 0.2,
       },
       headStyles: {
         fillColor: [18, 59, 109],
         textColor: [255, 255, 255],
-        fontSize: 7.8,
+        fontSize: 7.8 * fontScale,
         fontStyle: 'bold',
         halign: 'left',
       },
-      columnStyles: {
-        0: { cellWidth: 54, fontStyle: 'bold' },
-        1: { cellWidth: 32, fontStyle: 'bold' },
-        2: { cellWidth: 26 },
-        3: { cellWidth: 46 },
-        4: { cellWidth: 28, halign: 'center' },
-      },
+      columnStyles: columnStylesConfig,
       didParseCell: (data) => {
         if (data.section === 'body' && data.row.index >= 0) {
           const item = group.items[data.row.index];
           if (item?.evaluation) {
             const ev = item.evaluation;
 
-            // Highlight Observed Value & Status column based on determined status
             if (ev.status === 'CRITICAL') {
-              if (data.column.index === 1 || data.column.index === 4) {
+              if (data.column.index === 1 || (isFiveColumn && data.column.index === 4)) {
                 data.cell.styles.fillColor = [254, 226, 226]; // Rose-100
                 data.cell.styles.textColor = [190, 18, 60]; // Rose-700
                 data.cell.styles.fontStyle = 'bold';
               }
             } else if (ev.status === 'HIGH') {
-              if (data.column.index === 1 || data.column.index === 4) {
+              if (data.column.index === 1 || (isFiveColumn && data.column.index === 4)) {
                 data.cell.styles.textColor = [180, 83, 9]; // Amber-700
                 data.cell.styles.fontStyle = 'bold';
               }
             } else if (ev.status === 'LOW') {
-              if (data.column.index === 1 || data.column.index === 4) {
+              if (data.column.index === 1 || (isFiveColumn && data.column.index === 4)) {
                 data.cell.styles.textColor = [29, 78, 216]; // Blue-700
                 data.cell.styles.fontStyle = 'bold';
               }
             } else if (ev.status === 'ABNORMAL') {
-              if (data.column.index === 1 || data.column.index === 4) {
+              if (data.column.index === 1 || (isFiveColumn && data.column.index === 4)) {
                 data.cell.styles.textColor = [185, 28, 28]; // Red-700
                 data.cell.styles.fontStyle = 'bold';
               }
             } else if (ev.status === 'PENDING') {
-              if (data.column.index === 1 || data.column.index === 4) {
+              if (data.column.index === 1 || (isFiveColumn && data.column.index === 4)) {
                 data.cell.styles.textColor = [100, 116, 139];
                 data.cell.styles.fontStyle = 'normal';
               }
@@ -445,177 +838,221 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     cursorY = (doc.lastAutoTable?.finalY || cursorY + 20) + 4;
   });
 
-  // --- 5. CLINIC NOTE SECTION (Replaces Critical / Panic lab area) ---
-  const rawClinicNote = (report.clinicNote || report.clinicalImpression || '').trim();
-  const clinicNoteText = rawClinicNote || 'Please correlate clinically with patient symptoms. In case of unexpected discordance, repeat testing is advised.';
+  // --- 5. CLINIC NOTE SECTION (ONLY if showReportClinicNote !== false) ---
+  if (resolved.showReportClinicNote !== false) {
+    const rawClinicNote = (resolved.reportCustomClinicNote || report.clinicNote || report.clinicalImpression || '').trim();
+    const clinicNoteText = rawClinicNote || 'Please correlate clinically with patient symptoms. In case of unexpected discordance, repeat testing is advised.';
 
-  if (cursorY > pageHeight - 65) {
-    doc.addPage();
-    cursorY = headerTotalHeight + 2;
+    const curLeftX = isStaticLetterhead ? marginXLeft : marginX;
+    const curWidth = isStaticLetterhead ? activeContentWidth : contentWidth;
+
+    const noteLines = doc.splitTextToSize(clinicNoteText, curWidth - 10);
+    const noteBoxHeight = Math.max(13, 8 + noteLines.length * 3.4 + 2);
+
+    if (cursorY + noteBoxHeight > maxBodyY - 20) {
+      doc.addPage();
+      if (isStaticLetterhead && letterheadBg) {
+        doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        cursorY = bodyTop;
+      } else {
+        cursorY = headerTotalHeight + 2;
+      }
+    }
+
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(18, 59, 109);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(curLeftX, cursorY, curWidth, noteBoxHeight, 1.2, 1.2, 'FD');
+
+    doc.setFillColor(18, 59, 109);
+    doc.rect(curLeftX, cursorY, 2.5, noteBoxHeight, 'F');
+
+    doc.setTextColor(18, 59, 109);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5 * fontScale);
+    doc.text('CLINIC NOTE:', curLeftX + 5, cursorY + 4.8);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8 * fontScale);
+    doc.setTextColor(30, 41, 59);
+    doc.text(noteLines, curLeftX + 5, cursorY + 8.8);
+
+    cursorY += noteBoxHeight + 3.5;
   }
 
-  const noteLines = doc.splitTextToSize(clinicNoteText, contentWidth - 10);
-  const noteBoxHeight = Math.max(13, 8 + noteLines.length * 3.4 + 2);
+  // --- 6. REPORT END SEPARATOR (ONLY if showReportEndOfReport !== false) ---
+  if (resolved.showReportEndOfReport !== false) {
+    const curLeftX = isStaticLetterhead ? marginXLeft : marginX;
+    const curWidth = isStaticLetterhead ? activeContentWidth : contentWidth;
 
-  doc.setFillColor(248, 250, 252); // Soft clinical slate-50
-  doc.setDrawColor(18, 59, 109); // Solid Navy Blue border
-  doc.setLineWidth(0.35);
-  doc.roundedRect(marginX, cursorY, contentWidth, noteBoxHeight, 1.2, 1.2, 'FD');
+    if (cursorY > maxBodyY - 18) {
+      doc.addPage();
+      if (isStaticLetterhead && letterheadBg) {
+        doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        cursorY = bodyTop;
+      } else {
+        cursorY = headerTotalHeight + 2;
+      }
+    }
 
-  // Left Navy Blue accent indicator bar
-  doc.setFillColor(18, 59, 109);
-  doc.rect(marginX, cursorY, 2.5, noteBoxHeight, 'F');
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineDashPattern([2, 2], 0);
+    doc.line(curLeftX + 20, cursorY + 2, curLeftX + curWidth - 20, cursorY + 2);
+    doc.setLineDashPattern([], 0);
 
-  // Header: CLINIC NOTE:
-  doc.setTextColor(18, 59, 109);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.text('CLINIC NOTE:', marginX + 5, cursorY + 4.8);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.2 * fontScale);
+    doc.text('— END OF REPORT —', pageWidth / 2, cursorY + 2.5, { align: 'center' });
 
-  // Clinic Note Content
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.8);
-  doc.setTextColor(30, 41, 59);
-  doc.text(noteLines, marginX + 5, cursorY + 8.8);
-
-  cursorY += noteBoxHeight + 3.5;
-
-  // --- 6. REPORT END SEPARATOR (Keep unchanged) ---
-  if (cursorY > pageHeight - 50) {
-    doc.addPage();
-    cursorY = headerTotalHeight + 2;
+    cursorY += 8;
   }
 
-  doc.setDrawColor(203, 213, 225);
-  doc.setLineDashPattern([2, 2], 0);
-  doc.line(marginX + 20, cursorY + 2, pageWidth - marginX - 20, cursorY + 2);
-  doc.setLineDashPattern([], 0);
+  // --- 7. SIGNATURE SECTION (REPORT BODY) ---
+  const hasLeftSign = resolved.showReportTechnicianSign !== false;
+  const hasRightSign = resolved.showReportPathologistSign !== false;
 
-  doc.setTextColor(100, 116, 139);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.2);
-  doc.text('— END OF REPORT —', pageWidth / 2, cursorY + 2.5, { align: 'center' });
+  if (hasLeftSign || hasRightSign) {
+    const curLeftX = isStaticLetterhead ? marginXLeft : marginX;
+    const requiredSignHeight = 26;
+    if (cursorY > maxBodyY - requiredSignHeight) {
+      doc.addPage();
+      if (isStaticLetterhead && letterheadBg) {
+        doc.addImage(letterheadBg, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        cursorY = bodyTop;
+      } else {
+        cursorY = headerTotalHeight + 2;
+      }
+    }
+    const signatureY = isStaticLetterhead
+      ? Math.min(maxBodyY - 18, Math.max(cursorY, maxBodyY - 24))
+      : Math.max(cursorY, pageHeight - 44);
 
-  cursorY += 8;
+    if (hasLeftSign) {
+      // Left Signature: Prepared / Verified By
+      const leftSignX = curLeftX + 6;
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7 * fontScale);
+      doc.text('PREPARED / VERIFIED BY', leftSignX, signatureY);
 
-  // --- 7. SIGNATURE SECTION (REPORT BODY - Lower Portion of Final Page - Keep unchanged) ---
-  const requiredSignHeight = 35;
-  if (cursorY > pageHeight - requiredSignHeight - 14) {
-    doc.addPage();
-    cursorY = headerTotalHeight + 2;
+      doc.setDrawColor(18, 59, 109);
+      doc.setLineWidth(0.3);
+      doc.line(leftSignX, signatureY + 1.5, leftSignX + 48, signatureY + 1.5);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.8 * fontScale);
+      doc.setTextColor(15, 23, 42);
+      doc.text(resolved.reportTechnicianName || 'S. Verma, M.Sc., DMLT', leftSignX, signatureY + 6);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.8 * fontScale);
+      doc.setTextColor(100, 116, 139);
+      doc.text(resolved.reportTechnicianDesignation || 'Senior Medical Laboratory Technologist', leftSignX, signatureY + 10);
+      doc.text('Batch Quality Control Verified', leftSignX, signatureY + 13.5);
+    }
+
+    if (hasRightSign) {
+      // Right Signature: Laboratory Authorized Signatory
+      const rightSignX = pageWidth - (isStaticLetterhead ? marginXRight : marginX) - 6;
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7 * fontScale);
+      doc.text('LABORATORY AUTHORIZED SIGNATORY', rightSignX, signatureY, { align: 'right' });
+
+      // Digital Signature Curve (only if showReportDigitalSignCurve !== false)
+      if (resolved.showReportDigitalSignCurve !== false) {
+        doc.setDrawColor(18, 59, 109);
+        doc.setLineWidth(0.5);
+        doc.lines(
+          [
+            [3, -5],
+            [5, 4],
+            [6, -6],
+            [7, 5],
+            [5, -3],
+            [8, 4],
+          ],
+          rightSignX - 40,
+          signatureY - 2
+        );
+      } else {
+        // Flat signature line for manual pen signing
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.3);
+        doc.line(rightSignX - 48, signatureY + 1.5, rightSignX, signatureY + 1.5);
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.2 * fontScale);
+      doc.setTextColor(18, 59, 109);
+      doc.text(resolved.reportPathologistName || report.pathologist || 'Dr. Rajesh Sharma, MD', rightSignX, signatureY + 6, { align: 'right' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.8 * fontScale);
+      doc.setTextColor(71, 85, 105);
+      doc.text(resolved.reportPathologistDegrees || report.pathologistDegrees || 'Consultant Pathologist & Lab Director (Reg No: MCI-PB-48192)', rightSignX, signatureY + 10, { align: 'right' });
+    }
   }
-  const signatureY = Math.max(cursorY, pageHeight - 44);
 
-  // Left Signature: Prepared / Verified By
-  const leftSignX = marginX + 6;
-  doc.setTextColor(100, 116, 139);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.text('PREPARED / VERIFIED BY', leftSignX, signatureY);
-
-  // Vector Verification Stamp Line
-  doc.setDrawColor(18, 59, 109);
-  doc.setLineWidth(0.3);
-  doc.line(leftSignX, signatureY + 1.5, leftSignX + 48, signatureY + 1.5);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.8);
-  doc.setTextColor(15, 23, 42);
-  doc.text('S. Verma, M.Sc., DMLT', leftSignX, signatureY + 6);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('Senior Medical Laboratory Technologist', leftSignX, signatureY + 10);
-  doc.text('Batch Quality Control Verified', leftSignX, signatureY + 13.5);
-
-  // Right Signature: Laboratory Authorized Signatory
-  const rightSignX = pageWidth - marginX - 6;
-
-  doc.setTextColor(100, 116, 139);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.text('LABORATORY AUTHORIZED SIGNATORY', rightSignX, signatureY, { align: 'right' });
-
-  // Vector Signature Curve
-  doc.setDrawColor(18, 59, 109);
-  doc.setLineWidth(0.5);
-  doc.lines(
-    [
-      [3, -5],
-      [5, 4],
-      [6, -6],
-      [7, 5],
-      [5, -3],
-      [8, 4],
-    ],
-    rightSignX - 40,
-    signatureY - 2
-  );
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.2);
-  doc.setTextColor(18, 59, 109);
-  doc.text(report.pathologist || 'Dr. Rajesh Sharma, MD', rightSignX, signatureY + 6, { align: 'right' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.8);
-  doc.setTextColor(71, 85, 105);
-  doc.text(report.pathologistDegrees || 'Consultant Pathologist & Lab Director (Reg No: MCI-PB-48192)', rightSignX, signatureY + 10, { align: 'right' });
-
-  // --- 8 & 9. MULTI-PAGE SYNCHRONIZATION: REPEAT HEADER, WATERMARK & FOOTER ON EVERY PAGE ---
+  // --- 8 & 9. MULTI-PAGE SYNCHRONIZATION ---
   const totalPages = doc.getNumberOfPages();
 
   for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
     doc.setPage(pageNum);
 
-    // Apply Diagonal Watermark on every page
-    if (watermarkDataUrl) {
-      try {
-        const wmSize = 160;
-        const wmX = (pageWidth - wmSize) / 2;
-        const wmY = (pageHeight - wmSize) / 2;
-        doc.addImage(watermarkDataUrl, 'PNG', wmX, wmY, wmSize, wmSize, undefined, 'FAST');
-      } catch {}
+    if (isStaticLetterhead && letterheadBg) {
+      // In static PDF letterhead mode:
+      // The original uploaded PDF (Header + Footer) is preserved on every page.
+      // Do NOT generate, duplicate, or overlay default navy header or footer!
+      if (totalPages > 1) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(148, 163, 184); // Slate-400
+        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - marginXRight, maxBodyY + 3.5, { align: 'right' });
+      }
+    } else {
+      // Standard mode: Apply watermark and default navy header/footer
+      if (watermarkDataUrl) {
+        try {
+          const wmSize = 160;
+          const wmX = (pageWidth - wmSize) / 2;
+          const wmY = (pageHeight - wmSize) / 2;
+          doc.addImage(watermarkDataUrl, 'PNG', wmX, wmY, wmSize, wmSize, undefined, 'FAST');
+        } catch {}
+      }
+
+      if (pageNum > 1) {
+        drawCanonicalReportHeader(doc);
+      }
+
+      const footerH = 11;
+      const footerY = pageHeight - footerH;
+
+      doc.setFillColor(18, 59, 109);
+      doc.rect(0, footerY, pageWidth, footerH, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.8);
+      const timingsText = `Timings: ${resolved.timings || 'Mon - Sun: 07:00 AM - 09:00 PM'}`;
+      doc.text(timingsText, marginX, footerY + 6.8);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(241, 245, 249);
+      const pageCenterText = totalPages > 1
+        ? `Page ${pageNum} of ${totalPages}`
+        : `Electronically Verified`;
+      doc.text(pageCenterText, pageWidth / 2, footerY + 6.8, { align: 'center' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.8);
+      doc.setTextColor(255, 255, 255);
+      const websiteUrl = resolved.domain || 'www.indianlalaji.com';
+      doc.text(`Website: ${websiteUrl}`, pageWidth - marginX, footerY + 6.8, { align: 'right' });
     }
-
-    // Repeat Exact Header on pages 2+ (On page 1 it was drawn at start)
-    if (pageNum > 1) {
-      drawCanonicalReportHeader(doc);
-    }
-
-    // Solid Navy Blue Footer Bar on EVERY Page
-    const footerH = 11;
-    const footerY = pageHeight - footerH;
-
-    // Background: Solid Navy Blue / Dark Blue
-    doc.setFillColor(18, 59, 109);
-    doc.rect(0, footerY, pageWidth, footerH, 'F');
-
-    // Font Color: Clean White text
-    doc.setTextColor(255, 255, 255);
-
-    // Left: Lab Operating Timings (Dynamic)
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.8);
-    const timingsText = `Timings: ${resolved.timings || 'Mon - Sun: 07:00 AM - 09:00 PM'}`;
-    doc.text(timingsText, marginX, footerY + 6.8);
-
-    // Center: Page count
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.5);
-    doc.setTextColor(241, 245, 249);
-    const pageCenterText = totalPages > 1
-      ? `Page ${pageNum} of ${totalPages}`
-      : `Electronically Verified`;
-    doc.text(pageCenterText, pageWidth / 2, footerY + 6.8, { align: 'center' });
-
-    // Right: Lab Domain Name / Website URL (Dynamic)
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.8);
-    doc.setTextColor(255, 255, 255);
-    const websiteUrl = resolved.domain || 'www.indianlalaji.com';
-    doc.text(`Website: ${websiteUrl}`, pageWidth - marginX, footerY + 6.8, { align: 'right' });
   }
 
   return doc;

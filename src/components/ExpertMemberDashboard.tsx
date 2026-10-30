@@ -45,7 +45,6 @@ import { LabSoftwareApp } from './LabSoftwareApp';
 import { DashboardFooter } from './DashboardFooter';
 import { ReportDetailModal } from './ReportDetailModal';
 import { CollectRemainingPaymentModal } from './CollectRemainingPaymentModal';
-import { DayEndCashClosingModal } from './reception/DayEndCashClosingModal';
 import { SyncNowButton } from './SyncNowButton';
 import { buildReceiptInvoicePdf } from '../utils/pdfGenerator';
 
@@ -88,7 +87,6 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
   const [selectedReportForView, setSelectedReportForView] = useState<LabReport | null>(null);
   const [collectingPaymentEntry, setCollectingPaymentEntry] = useState<ReceptionPatientEntry | null>(null);
   const [isCollectPaymentOpen, setIsCollectPaymentOpen] = useState(false);
-  const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
 
   const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
   const labNabl = vendorLabSettings?.nablAccreditationNo || 'MC-4821';
@@ -120,10 +118,10 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
   const patientsWithDueCount = receptionEntries.filter((e) => e.dueAmount > 0).length;
   const waitingSamplesCount = receptionEntries.filter((e) => e.status === 'Waiting').length;
   const inLabCount = receptionEntries.filter(
-    (e) => e.status === 'In Lab' || e.status === 'Sample Collected' || e.technicianStatus === 'Accepted'
+    (e) => !(e.status === 'Report Ready' || e.technicianStatus === 'Report Generated') && (e.sentToTechnician || e.status === 'In Lab' || e.status === 'Sample Collected' || e.technicianStatus === 'Sent to Lab' || e.technicianStatus === 'Accepted')
   ).length;
   const reportsReadyCount = receptionEntries.filter(
-    (e) => e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)
+    (e) => e.status === 'Report Ready' || e.technicianStatus === 'Report Generated'
   ).length;
 
   // -------------------------------------------------------------
@@ -144,12 +142,12 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
       if (pipelineFilter === 'Waiting' && entry.status !== 'Waiting') return false;
       if (
         pipelineFilter === 'In Lab' &&
-        !(entry.status === 'In Lab' || entry.status === 'Sample Collected' || entry.technicianStatus === 'Accepted')
+        !(entry.sentToTechnician || entry.status === 'In Lab' || entry.status === 'Sample Collected' || entry.technicianStatus === 'Sent to Lab' || entry.technicianStatus === 'Accepted')
       )
         return false;
       if (
         pipelineFilter === 'Report Ready' &&
-        !(entry.status === 'Report Ready' || entry.technicianStatus === 'Report Generated' || Boolean(entry.reportId))
+        !(entry.status === 'Report Ready' || entry.technicianStatus === 'Report Generated')
       )
         return false;
       if (pipelineFilter === 'Due' && entry.dueAmount <= 0) return false;
@@ -296,17 +294,6 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
           <div className="flex items-center gap-2 flex-wrap">
             <SyncNowButton />
 
-            {/* Fast Cash Closing Tally */}
-            <button
-              type="button"
-              onClick={() => setIsCashClosingOpen(true)}
-              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center gap-1.5 border border-white/15 cursor-pointer shadow-2xs"
-              title="Open Daily Cash Closing & Drawer Reconciliation Tally"
-            >
-              <Receipt className="w-3.5 h-3.5 text-teal-300" />
-              <span className="hidden sm:inline">Cash Drawer</span>
-            </button>
-
             {/* Visit Website */}
             <button
               type="button"
@@ -442,15 +429,6 @@ export const ExpertMemberDashboard: React.FC<ExpertMemberDashboardProps> = ({
             setCollectingPaymentEntry(null);
           }}
           onCollectPayment={handleCollectPaymentSubmit}
-        />
-      )}
-
-      {/* Day-End Cash Closing Modal */}
-      {isCashClosingOpen && (
-        <DayEndCashClosingModal
-          isOpen={isCashClosingOpen}
-          onClose={() => setIsCashClosingOpen(false)}
-          receptionEntries={receptionEntries}
         />
       )}
 

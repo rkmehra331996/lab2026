@@ -753,6 +753,32 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
         : (selectedVendorLabId && selectedVendorLabId !== 'all'
           ? selectedVendorLabId
           : (preSelectedPatient?.labId || preselectedPatient?.labId || existingReport?.labId || vendorLabsList[0]?.id || 'lab')),
+      enableStaticPdfLetterhead: vendorLabSettings?.enableStaticPdfLetterhead,
+      letterheadBgDataUrl: vendorLabSettings?.letterheadBgDataUrl,
+      letterheadPdfUrl: vendorLabSettings?.letterheadPdfUrl,
+      letterheadPdfName: vendorLabSettings?.letterheadPdfName,
+      letterheadBodyTop: vendorLabSettings?.letterheadBodyTop,
+      letterheadBodyBottom: vendorLabSettings?.letterheadBodyBottom,
+      letterheadMarginLeft: vendorLabSettings?.letterheadMarginLeft,
+      letterheadMarginRight: vendorLabSettings?.letterheadMarginRight,
+      letterheadFontScale: vendorLabSettings?.letterheadFontScale,
+      showReportQrCode: vendorLabSettings?.showReportQrCode,
+      showReportBarcode: vendorLabSettings?.showReportBarcode,
+      showReportMobile: vendorLabSettings?.showReportMobile,
+      showReportRegDate: vendorLabSettings?.showReportRegDate,
+      showReportCollectionDate: vendorLabSettings?.showReportCollectionDate,
+      showReportReportingDate: vendorLabSettings?.showReportReportingDate,
+      showReportStatusColumn: vendorLabSettings?.showReportStatusColumn,
+      showReportClinicNote: vendorLabSettings?.showReportClinicNote,
+      showReportEndOfReport: vendorLabSettings?.showReportEndOfReport,
+      showReportTechnicianSign: vendorLabSettings?.showReportTechnicianSign,
+      showReportPathologistSign: vendorLabSettings?.showReportPathologistSign,
+      showReportDigitalSignCurve: vendorLabSettings?.showReportDigitalSignCurve,
+      showReportDepartmentHeader: vendorLabSettings?.showReportDepartmentHeader,
+      showReportMethod: vendorLabSettings?.showReportMethod,
+      showReportPageNumber: vendorLabSettings?.showReportPageNumber,
+      reportTechnicianName: vendorLabSettings?.reportTechnicianName,
+      reportTechnicianDesignation: vendorLabSettings?.reportTechnicianDesignation,
     };
 
     return finalReport;

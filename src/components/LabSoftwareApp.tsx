@@ -173,9 +173,8 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
 
       const existingReport = reports.find((rp) => {
         if (cleanRptId && rp.reportId && String(rp.reportId).trim().toLowerCase() === cleanRptId) return true;
-        if (cleanUhid && rp.uhid && String(rp.uhid).trim().toLowerCase() === cleanUhid) return true;
-        if (cleanMobile && cleanMobile.length >= 7 && rp.mobile && String(rp.mobile).replace(/\D/g, '').slice(-10) === cleanMobile) return true;
-        if (cleanName && rp.patientName && String(rp.patientName).trim().toLowerCase() === cleanName) return true;
+        if (rp.receptionId && rp.receptionId === r.id) return true;
+        if (cleanUhid && rp.uhid && String(rp.uhid).trim().toLowerCase() === cleanUhid && !cleanUhid.startsWith('uhid-2026') && !cleanUhid.startsWith('lab-2026-904')) return true;
         return false;
       }) || null;
 
@@ -184,10 +183,15 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
         !isDraft &&
         (r.status === 'Report Ready' ||
           r.technicianStatus === 'Report Generated' ||
-          Boolean(r.reportId) ||
-          Boolean(existingReport && !existingReport.isDraft) ||
-          (Boolean(r.reportId) && Boolean(existingReport?.verified)));
-      const isInTesting = !isReportDone && !isReturned && (r.technicianStatus === 'Accepted' || r.status === 'In Lab' || isDraft);
+          (Boolean(r.reportId) && Boolean(existingReport && !existingReport.isDraft && existingReport.verified)));
+      const isInTesting = !isReportDone && !isReturned && Boolean(
+        r.sentToTechnician ||
+        r.technicianStatus === 'Sent to Lab' ||
+        r.technicianStatus === 'Accepted' ||
+        r.status === 'In Lab' ||
+        r.status === 'Sample Collected' ||
+        isDraft
+      );
       const isWaiting = !isReportDone && !isInTesting && !isReturned;
       const workflowStatus = isReturned ? 'Returned' : isReportDone ? 'Report Ready' : isInTesting ? 'In Testing' : 'Waiting';
 

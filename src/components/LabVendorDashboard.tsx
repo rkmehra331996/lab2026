@@ -1600,6 +1600,35 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                       </span>
                     </button>
 
+                    {/* PDF Letterhead (A4 Header + Footer) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setSettingsSubTab('letterhead');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'settings' && settingsSubTab === 'letterhead'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Printer className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'letterhead' ? 'text-amber-400' : 'text-sky-600'}`} />
+                        <span className="truncate">PDF Letterhead</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'settings' && settingsSubTab === 'letterhead'
+                          ? 'bg-white/20 text-white'
+                          : vendorLabSettings.enableStaticPdfLetterhead
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold'
+                          : 'bg-sky-50 text-sky-700 border border-sky-200'
+                      }`}>
+                        {vendorLabSettings.enableStaticPdfLetterhead ? 'Active' : 'A4 PDF'}
+                      </span>
+                    </button>
+
                     {/* 2. Site Name */}
                     <button
                       type="button"

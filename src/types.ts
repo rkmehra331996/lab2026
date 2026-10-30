@@ -424,6 +424,37 @@ export interface VendorLabSettings {
   phonepeAutoVerify?: boolean;
   // Website Price Visibility: Show or Hide prices on public website (test cards, details, search results, booking pages)
   showPricesOnWebsite?: boolean;
+  // Static PDF Letterhead Settings (Pre-designed Header + Footer)
+  enableStaticPdfLetterhead?: boolean;
+  letterheadPdfUrl?: string;
+  letterheadPdfName?: string;
+  letterheadBgDataUrl?: string;
+  letterheadBodyTop?: number;
+  letterheadBodyBottom?: number;
+  letterheadMarginLeft?: number;
+  letterheadMarginRight?: number;
+  letterheadFontScale?: number;
+  // Report Customization & Visibility Controls (Show/Hide items)
+  showReportQrCode?: boolean;
+  showReportBarcode?: boolean;
+  showReportMobile?: boolean;
+  showReportRegDate?: boolean;
+  showReportCollectionDate?: boolean;
+  showReportReportingDate?: boolean;
+  showReportStatusColumn?: boolean;
+  showReportClinicNote?: boolean;
+  showReportEndOfReport?: boolean;
+  showReportTechnicianSign?: boolean;
+  showReportPathologistSign?: boolean;
+  showReportDigitalSignCurve?: boolean;
+  showReportDepartmentHeader?: boolean;
+  showReportMethod?: boolean;
+  showReportPageNumber?: boolean;
+  reportTechnicianName?: string;
+  reportTechnicianDesignation?: string;
+  reportPathologistName?: string;
+  reportPathologistDegrees?: string;
+  reportCustomClinicNote?: string;
 }
 
 export interface VendorPackage {
@@ -665,6 +696,36 @@ export interface LabReport {
   dueAmount?: number;
   sentToReceptionDesk?: boolean;
   sentToReceptionAt?: string;
+  enableStaticPdfLetterhead?: boolean;
+  letterheadPdfUrl?: string;
+  letterheadPdfName?: string;
+  letterheadBgDataUrl?: string;
+  letterheadBodyTop?: number;
+  letterheadBodyBottom?: number;
+  letterheadMarginLeft?: number;
+  letterheadMarginRight?: number;
+  letterheadFontScale?: number;
+  showReportQrCode?: boolean;
+  showReportBarcode?: boolean;
+  showReportMobile?: boolean;
+  showReportRegDate?: boolean;
+  showReportCollectionDate?: boolean;
+  showReportReportingDate?: boolean;
+  showReportStatusColumn?: boolean;
+  showReportClinicNote?: boolean;
+  showReportEndOfReport?: boolean;
+  showReportTechnicianSign?: boolean;
+  showReportPathologistSign?: boolean;
+  showReportDigitalSignCurve?: boolean;
+  showReportDepartmentHeader?: boolean;
+  showReportMethod?: boolean;
+  showReportPageNumber?: boolean;
+  registeredAt?: string;
+  reportTechnicianName?: string;
+  reportTechnicianDesignation?: string;
+  reportPathologistName?: string;
+  reportPathologistDegrees?: string;
+  reportCustomClinicNote?: string;
 }
 
 export interface BranchStat {

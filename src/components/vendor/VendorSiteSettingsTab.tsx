@@ -33,13 +33,16 @@ import {
   Send,
   Lock,
   Building2,
+  Printer,
 } from 'lucide-react';
 import { useCms } from '../../context/CmsContext';
 import { VendorLabSettings } from '../../types';
 import { optimizeImageFile } from '../../utils/imageOptimizer';
+import { VendorLetterheadConfigCard } from './VendorLetterheadConfigCard';
 
 export type SiteSettingsSubSection =
   | 'logo'
+  | 'letterhead'
   | 'name'
   | 'description'
   | 'feature'
@@ -608,6 +611,27 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
             <span>1. Logo</span>
           </button>
 
+          {/* Static PDF Letterhead (Header + Footer) */}
+          <button
+            type="button"
+            onClick={() => handleSelectSection('letterhead')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer ${
+              activeSection === 'letterhead'
+                ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Printer className={`w-3.5 h-3.5 ${activeSection === 'letterhead' ? 'text-amber-400' : 'text-sky-600'}`} />
+            <span>PDF Letterhead</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+              vendorLabSettings.enableStaticPdfLetterhead
+                ? 'bg-emerald-100 text-emerald-800 font-extrabold'
+                : 'bg-slate-100 text-slate-600'
+            }`}>
+              {vendorLabSettings.enableStaticPdfLetterhead ? 'Active' : 'Off'}
+            </span>
+          </button>
+
           {/* 2. Site Name */}
           <button
             type="button"
@@ -901,6 +925,15 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
               <span>Save Logo</span>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* STATIC PDF LETTERHEAD SECTION (HEADER + FOOTER A4 PRE-PRINTED) */}
+      {/* ======================================================== */}
+      {activeSection === 'letterhead' && (
+        <div id="section-letterhead" className="space-y-4">
+          <VendorLetterheadConfigCard />
         </div>
       )}
 

@@ -432,6 +432,35 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
 3. FAILED OR INCONCLUSIVE SAMPLES: In the rare event of hemolysis, lipemia, or insufficient sample volume necessitating a repeat test, a free recollected sample will be processed at no additional charge to the patient.
 4. REFUND DISPATCH TIMELINE: Approved digital payment refunds are credited back to the original source UPI / Bank Account within 2 to 5 business days.`,
   showPricesOnWebsite: true,
+  enableStaticPdfLetterhead: false,
+  letterheadPdfUrl: '',
+  letterheadPdfName: '',
+  letterheadBgDataUrl: '',
+  letterheadBodyTop: 48,
+  letterheadBodyBottom: 32,
+  letterheadMarginLeft: 12,
+  letterheadMarginRight: 12,
+  letterheadFontScale: 100,
+  showReportQrCode: true,
+  showReportBarcode: true,
+  showReportMobile: true,
+  showReportRegDate: true,
+  showReportCollectionDate: true,
+  showReportReportingDate: true,
+  showReportStatusColumn: true,
+  showReportClinicNote: true,
+  showReportEndOfReport: true,
+  showReportTechnicianSign: true,
+  showReportPathologistSign: true,
+  showReportDigitalSignCurve: true,
+  showReportDepartmentHeader: true,
+  showReportMethod: true,
+  showReportPageNumber: true,
+  reportTechnicianName: 'S. Verma, M.Sc., DMLT',
+  reportTechnicianDesignation: 'Senior Medical Laboratory Technologist',
+  reportPathologistName: 'Dr. Rajesh Sharma, MD',
+  reportPathologistDegrees: 'Consultant Pathologist & Lab Director (Reg No: MCI-PB-48192)',
+  reportCustomClinicNote: '',
 };
 
 export const DEFAULT_ALL_VENDOR_PACKAGES: VendorPackage[] = [
@@ -1295,6 +1324,15 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
     ownerPassword: dirItem.password || undefined,
     ownerPin: dirItem.pin || undefined,
     showPricesOnWebsite: true,
+    enableStaticPdfLetterhead: false,
+    letterheadPdfUrl: '',
+    letterheadPdfName: '',
+    letterheadBgDataUrl: '',
+    letterheadBodyTop: 48,
+    letterheadBodyBottom: 32,
+    letterheadMarginLeft: 12,
+    letterheadMarginRight: 12,
+    letterheadFontScale: 100,
   };
 }
 
@@ -4234,19 +4272,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (!isTenantMatch(e, stamped.labId, false)) {
             return e;
           }
-          const isIdMatch = e.reportId && e.reportId.toLowerCase() === stamped.reportId.toLowerCase();
-          const isUhidMatch = e.uhid && stamped.uhid && e.uhid.toLowerCase() === stamped.uhid.toLowerCase();
-          const cleanStampedToken = String(stamped.tokenNumber || '').replace(/\D/g, '');
-          const cleanEntryToken = String(e.tokenNumber || e.tokenNo || '').replace(/\D/g, '');
-          const isTokenMatch = cleanStampedToken && cleanEntryToken && cleanStampedToken === cleanEntryToken;
-          const cleanStampedMobile = String(stamped.mobile || '').replace(/\D/g, '').slice(-10);
-          const cleanEntryMobile = String(e.mobile || '').replace(/\D/g, '').slice(-10);
-          const isMobileMatch = cleanStampedMobile && cleanEntryMobile && cleanStampedMobile === cleanEntryMobile && cleanStampedMobile.length >= 7;
-          const cleanStampedName = String(stamped.patientName || '').trim().toLowerCase();
-          const cleanEntryName = String(e.patientName || '').trim().toLowerCase();
-          const isNameMatch = cleanStampedName && cleanEntryName && cleanStampedName === cleanEntryName;
+          const isIdMatch = Boolean(e.reportId && stamped.reportId && e.reportId.toLowerCase() === stamped.reportId.toLowerCase());
+          const isReceptionIdMatch = Boolean(stamped.receptionId && e.id === stamped.receptionId);
+          const isUhidMatch = Boolean(
+            e.uhid &&
+            stamped.uhid &&
+            e.uhid.toLowerCase() === stamped.uhid.toLowerCase() &&
+            !e.uhid.toLowerCase().startsWith('uhid-2026') &&
+            !e.uhid.toLowerCase().startsWith('lab-2026-904')
+          );
 
-          if (isIdMatch || isUhidMatch || isTokenMatch || isMobileMatch || isNameMatch) {
+          if (isIdMatch || isReceptionIdMatch || isUhidMatch) {
             const nextEntry: ReceptionPatientEntry = {
               ...e,
               reportId: stamped.reportId,
@@ -4297,19 +4333,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (!isTenantMatch(e, completedRpt.labId, false)) {
               return e;
             }
-            const isIdMatch = e.reportId && e.reportId.toLowerCase() === completedRpt.reportId.toLowerCase();
-            const isUhidMatch = e.uhid && completedRpt.uhid && e.uhid.toLowerCase() === completedRpt.uhid.toLowerCase();
-            const cleanRptToken = String(completedRpt.tokenNumber || '').replace(/\D/g, '');
-            const cleanEToken = String(e.tokenNumber || e.tokenNo || '').replace(/\D/g, '');
-            const isTokenMatch = cleanRptToken && cleanEToken && cleanRptToken === cleanEToken;
-            const cleanRptMobile = String(completedRpt.mobile || '').replace(/\D/g, '').slice(-10);
-            const cleanEMobile = String(e.mobile || '').replace(/\D/g, '').slice(-10);
-            const isMobileMatch = cleanRptMobile && cleanEMobile && cleanRptMobile === cleanEMobile && cleanRptMobile.length >= 7;
-            const cleanRptName = String(completedRpt.patientName || '').trim().toLowerCase();
-            const cleanEName = String(e.patientName || '').trim().toLowerCase();
-            const isNameMatch = cleanRptName && cleanEName && cleanRptName === cleanEName;
+            const isIdMatch = Boolean(e.reportId && completedRpt.reportId && e.reportId.toLowerCase() === completedRpt.reportId.toLowerCase());
+            const isReceptionIdMatch = Boolean(completedRpt.receptionId && e.id === completedRpt.receptionId);
+            const isUhidMatch = Boolean(
+              e.uhid &&
+              completedRpt.uhid &&
+              e.uhid.toLowerCase() === completedRpt.uhid.toLowerCase() &&
+              !e.uhid.toLowerCase().startsWith('uhid-2026') &&
+              !e.uhid.toLowerCase().startsWith('lab-2026-904')
+            );
 
-            if (isIdMatch || isUhidMatch || isTokenMatch || isMobileMatch || isNameMatch) {
+            if (isIdMatch || isReceptionIdMatch || isUhidMatch) {
               let updatedAge = e.age;
               let updatedGender = e.gender;
               if (completedRpt.ageGender) {
@@ -4676,7 +4710,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...e,
             sentToTechnician: true,
             technicianStatus: 'Sent to Lab',
-            status: e.status === 'Waiting' ? 'Sample Collected' : e.status,
+            status: 'In Lab',
             sentToLabAt: `Today, ${timeStr}`,
           };
           syncedEntry = updated;
