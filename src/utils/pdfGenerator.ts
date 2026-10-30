@@ -1545,3 +1545,262 @@ export async function generateThermalReceiptPdf(entry: any, labNameRaw?: string)
   doc.save(filename);
 }
 
+/**
+ * Generates and downloads an official Health Package PDF brochure with complete test list,
+ * pricing, fasting guidelines, and laboratory contact information.
+ */
+export async function generatePackagePdf(pkg: any, labDetails?: {
+  labName?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  nablCode?: string;
+  city?: string;
+}): Promise<void> {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 14;
+  const contentWidth = pageWidth - margin * 2;
+
+  const resolvedLabName = (labDetails?.labName || 'APEX CLINICAL & PATHOLOGY DIAGNOSTICS').toUpperCase();
+  const resolvedAddress = labDetails?.address || 'SCO 101, Medical Enclave, Civil Road, Ludhiana - 141001';
+  const resolvedPhone = labDetails?.phone || '+91 7087033009';
+  const resolvedEmail = labDetails?.email || 'care@indianlalaji.com';
+  const resolvedNabl = labDetails?.nablCode || 'NABL Accredited • ISO 15189 Certified';
+
+  const pkgName = pkg?.name || pkg?.title || 'Comprehensive Health Package';
+  const pkgPrice = pkg?.priceINR || pkg?.price || 999;
+  const pkgMrp = pkg?.mrpINR || pkg?.originalPrice || Math.round(pkgPrice * 1.5);
+  const pkgDesc = pkg?.description || 'Complete preventive wellness screening package.';
+  const rawFeatures = Array.isArray(pkg?.features)
+    ? pkg.features
+    : typeof pkg?.features === 'string'
+    ? pkg.features.split('\n').map((s: string) => s.trim()).filter(Boolean)
+    : Array.isArray(pkg?.testsIncluded)
+    ? pkg.testsIncluded
+    : [];
+  const testsList = rawFeatures.length > 0 ? rawFeatures : [
+    'Complete Blood Count (CBC with 24 Parameters)',
+    'Erythrocyte Sedimentation Rate (ESR)',
+    'Fasting Blood Sugar (Glucose)',
+    'HbA1c (Glycated Hemoglobin)',
+    'Lipid Profile (Total Cholesterol, Triglycerides, HDL, LDL, VLDL)',
+    'Liver Function Test (LFT - Bilirubin, SGOT, SGPT, Alkaline Phosphatase, Protein)',
+    'Kidney Function Test (KFT - Serum Creatinine, Blood Urea, Uric Acid, BUN)',
+    'Thyroid Profile (Total T3, Total T4, TSH Ultra-sensitive)',
+    'Vitamin D3 (25-Hydroxy)',
+    'Vitamin B12 (Cyanocobalamin)',
+    'Urine Routine & Microscopic Examination (18 Parameters)'
+  ];
+  const testsCount = pkg?.testsCount || testsList.length;
+
+  // Header Background Bar
+  doc.setFillColor(18, 59, 109); // #123B6D
+  doc.rect(0, 0, pageWidth, 32, 'F');
+
+  // Gold accent line
+  doc.setFillColor(245, 158, 11); // #F59E0B
+  doc.rect(0, 32, pageWidth, 2, 'F');
+
+  // Lab Name in Header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(255, 255, 255);
+  doc.text(resolvedLabName, margin, 12);
+
+  // Lab Subtitle / Accreditation
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(226, 232, 240);
+  doc.text(`${resolvedAddress}  |  Helpline: ${resolvedPhone}`, margin, 18);
+  doc.text(`Email: ${resolvedEmail}  |  ${resolvedNabl}`, margin, 24);
+
+  // Document Badge on top right
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(pageWidth - margin - 48, 6, 48, 20, 2, 2, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(18, 59, 109);
+  doc.text('HEALTH PACKAGE', pageWidth - margin - 24, 13, { align: 'center' });
+  doc.setFontSize(7);
+  doc.setTextColor(15, 118, 110);
+  doc.text('OFFICIAL BROCHURE', pageWidth - margin - 24, 19, { align: 'center' });
+
+  let curY = 40;
+
+  // Package Title & Price Box
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(margin, curY, contentWidth, 38, 3, 3, 'FD');
+
+  // Decorative side bar
+  doc.setFillColor(18, 59, 109);
+  doc.roundedRect(margin, curY, 4, 38, 2, 2, 'F');
+
+  // Package Title
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(18, 59, 109);
+  doc.text(pkgName, margin + 8, curY + 9);
+
+  // Package Description
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(100, 116, 139);
+  const splitDesc = doc.splitTextToSize(pkgDesc, contentWidth - 65);
+  doc.text(splitDesc, margin + 8, curY + 16);
+
+  // Tests Included Count Badge
+  doc.setFillColor(236, 253, 245);
+  doc.setDrawColor(167, 243, 208);
+  doc.roundedRect(margin + 8, curY + 24, 52, 8, 2, 2, 'FD');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(5, 150, 105);
+  doc.text(`✓ ${testsCount} Tests Included`, margin + 12, curY + 29.5);
+
+  // Price on Right Side
+  const priceBoxX = pageWidth - margin - 52;
+  doc.setFillColor(241, 245, 249);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(priceBoxX, curY + 5, 48, 28, 2, 2, 'FD');
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('PACKAGE PRICE', priceBoxX + 24, curY + 11, { align: 'center' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(18, 59, 109);
+  doc.text(`Rs. ${pkgPrice}`, priceBoxX + 24, curY + 19, { align: 'center' });
+
+  if (pkgMrp > pkgPrice) {
+    const discount = Math.round(((pkgMrp - pkgPrice) / pkgMrp) * 100);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(156, 163, 175);
+    doc.text(`MRP Rs. ${pkgMrp} (${discount}% OFF)`, priceBoxX + 24, curY + 26, { align: 'center' });
+  }
+
+  curY += 44;
+
+  // Key Instructions & Highlights Grid (3 boxes)
+  const colW = (contentWidth - 6) / 3;
+  const infoBoxes = [
+    { label: 'Fasting Guideline', val: '10-12 Hrs Fasting' },
+    { label: 'Sample Type', val: 'Blood & Urine' },
+    { label: 'Report Delivery', val: 'Same Day / 24h WhatsApp' },
+  ];
+
+  infoBoxes.forEach((box, i) => {
+    const bX = margin + i * (colW + 3);
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(bX, curY, colW, 14, 2, 2, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text(box.label.toUpperCase(), bX + 4, curY + 5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(box.val, bX + 4, curY + 10.5);
+  });
+
+  curY += 19;
+
+  // Section Header: Included Tests & Investigations
+  doc.setFillColor(18, 59, 109);
+  doc.roundedRect(margin, curY, contentWidth, 7, 1.5, 1.5, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text('INCLUDED TESTS & INVESTIGATION PROFILES', margin + 5, curY + 5);
+  doc.text(`${testsCount} Total Parameters`, pageWidth - margin - 5, curY + 5, { align: 'right' });
+
+  curY += 10;
+
+  // Render Tests Table using autoTable for crisp aligned rows
+  const tableRows = testsList.map((test, index) => [
+    `${index + 1}.`,
+    test,
+    'Included',
+    'Certified'
+  ]);
+
+  autoTable(doc, {
+    startY: curY,
+    margin: { left: margin, right: margin },
+    head: [['#', 'Test / Investigation Profile', 'Status', 'Methodology']],
+    body: tableRows,
+    theme: 'grid',
+    headStyles: {
+      fillColor: [241, 245, 249],
+      textColor: [30, 41, 59],
+      fontSize: 8,
+      fontStyle: 'bold',
+      halign: 'left',
+    },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 120, fontStyle: 'bold' },
+      2: { cellWidth: 26, halign: 'center', textColor: [5, 150, 105], fontStyle: 'bold' },
+      3: { cellWidth: 26, halign: 'center', textColor: [100, 116, 139] },
+    },
+    bodyStyles: {
+      fontSize: 7.8,
+      textColor: [15, 23, 42],
+      cellPadding: 2,
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
+  });
+
+  // Calculate position after table
+  const finalY = (doc as any).lastAutoTable?.finalY || (curY + 70);
+
+  // Preparation & Booking Instructions Box
+  let footY = Math.min(finalY + 6, pageHeight - 48);
+
+  doc.setFillColor(254, 243, 199); // Amber-100
+  doc.setDrawColor(252, 211, 77); // Amber-300
+  doc.roundedRect(margin, footY, contentWidth, 22, 2, 2, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(146, 64, 14); // Amber-900
+  doc.text('Important Preparation & Home Collection Notes:', margin + 4, footY + 5.5);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(180, 83, 9);
+  doc.text('• Overnight 10-12 hours fasting is required. Plain water intake is permitted.', margin + 4, footY + 10.5);
+  doc.text('• Home sample collection is available across the city. Free digital report delivered via WhatsApp & SMS.', margin + 4, footY + 15);
+  doc.text(`• To book appointment or home collection, call Helpline: ${resolvedPhone}`, margin + 4, footY + 19.5);
+
+  // Footer bar at very bottom
+  doc.setDrawColor(203, 213, 225);
+  doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(148, 163, 184);
+  doc.text(`Generated on ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}  •  ${resolvedLabName}`, margin, pageHeight - 7);
+  doc.text('Digital Laboratory Management by IndianLalaji.com', pageWidth - margin, pageHeight - 7, { align: 'right' });
+
+  // Save PDF
+  const cleanFileName = `${pkgName.replace(/[^a-zA-Z0-9]/g, '_')}_Package_Details.pdf`;
+  doc.save(cleanFileName);
+}
+

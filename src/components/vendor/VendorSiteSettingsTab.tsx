@@ -524,6 +524,15 @@ export const VendorSiteSettingsTab: React.FC<VendorSiteSettingsTabProps> = ({
 
   const planStatus: 'Active' | 'Expired' = isPlanExpired ? 'Expired' : 'Active';
 
+  // Automatically transition expired lab to Draft mode so website cannot be viewed
+  useEffect(() => {
+    if (isPlanExpired && currentLabId) {
+      if (currentLabItem && (currentLabItem.status !== 'Draft' || currentLabItem.isWebsiteApproved !== false)) {
+        expireVendorPlan(currentLabId);
+      }
+    }
+  }, [isPlanExpired, currentLabId, currentLabItem, expireVendorPlan]);
+
   // Active Plan details lookup
   const currentPlan = formData.purchasedPlan || '1 Month';
   const totalDays =

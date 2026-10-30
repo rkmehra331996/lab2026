@@ -30,6 +30,7 @@ import {
 import { TestItem, VendorPackage, ReceptionPatientEntry } from '../../types';
 import { useCms } from '../../context/CmsContext';
 import { WebsiteTokenReceiptCard } from './WebsiteTokenReceiptCard';
+import { generatePackagePdf } from '../../utils/pdfGenerator';
 
 interface OnlineTestBookingModalProps {
   isOpen: boolean;
@@ -220,6 +221,25 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
     setSelectedTests((prev) => [...prev, { name, price, type }]);
     setTestSearch('');
     setIsAddingTest(false);
+
+    if (type === 'package') {
+      const matched = vendorPackages.find(
+        (p) => String(p.name || '').toLowerCase().trim() === String(name || '').toLowerCase().trim()
+      );
+      if (matched) {
+        try {
+          generatePackagePdf(matched, {
+            labName: vendorLabSettings?.labName,
+            address: vendorLabSettings?.address,
+            phone: vendorLabSettings?.phone,
+            email: vendorLabSettings?.email,
+            nablCode: vendorLabSettings?.nablAccreditationNo,
+          });
+        } catch (err) {
+          console.warn('Package PDF download error:', err);
+        }
+      }
+    }
   };
 
   const handleRemoveTest = (name: string) => {

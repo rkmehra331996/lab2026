@@ -331,8 +331,8 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
   purchasedPlan: '1 Month',
   planDurationDays: 30,
   remainingVisibilityDays: 24,
-  planPurchasedAt: '2026-02-15',
-  planExpiresAt: '2026-03-17',
+  planPurchasedAt: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10),
+  planExpiresAt: new Date(Date.now() + 24 * 86400000).toISOString().slice(0, 10),
   homeCollectionCharge: 100,
   sections: DEFAULT_VENDOR_SECTIONS,
   heroBanners: [
@@ -2954,6 +2954,98 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return DEFAULT_VENDOR_SETTINGS_MAP;
     }
   });
+
+  // Automated Subscription Plan Expiry Sweep:
+  // "expire hone ke bad draft ho jana cahiye na but yeh to view hota rehta hai"
+  // When a vendor's plan expires (planExpiresAt in the past, or remainingVisibilityDays <= 0, or status === 'Expired'),
+  // its status must automatically transition to 'Draft', isWebsiteApproved = false, and remainingVisibilityDays = 0,
+  // preventing public viewing and locking the website in Draft mode until renewed.
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const isExpiredCheck = (planExpiresAt?: string, remainingDays?: number, status?: string) => {
+      if (status === 'Expired') return true;
+      if (remainingDays !== undefined && remainingDays <= 0) return true;
+      if (planExpiresAt) {
+        const parts = planExpiresAt.split('-');
+        if (parts.length === 3) {
+          const expDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+          expDate.setHours(23, 59, 59, 999);
+          if (expDate.getTime() < today.getTime()) {
+            return true;
+          }
+        } else {
+          const parsed = new Date(planExpiresAt);
+          if (!isNaN(parsed.getTime())) {
+            parsed.setHours(23, 59, 59, 999);
+            if (parsed.getTime() < today.getTime()) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    };
+
+    let labListUpdated = false;
+    const nextLabsList = vendorLabsList.map((lab) => {
+      const settings = vendorLabSettingsMap[lab.id];
+      const expiryStr = lab.planExpiresAt || settings?.planExpiresAt;
+      const remDays = lab.remainingVisibilityDays ?? settings?.remainingVisibilityDays;
+      const isExpired = isExpiredCheck(expiryStr, remDays, lab.status);
+
+      if (isExpired && (lab.status !== 'Draft' || lab.isWebsiteApproved !== false || lab.remainingVisibilityDays !== 0)) {
+        labListUpdated = true;
+        return {
+          ...lab,
+          status: 'Draft' as const,
+          isWebsiteApproved: false,
+          remainingVisibilityDays: 0,
+          planStatusReason: 'Expired — Contact 70870 33009',
+          _updatedAt: new Date().toISOString(),
+        };
+      }
+      return lab;
+    });
+
+    if (labListUpdated) {
+      setVendorLabsList(nextLabsList);
+      try {
+        localStorage.setItem('cms_vendor_labs_list', JSON.stringify(nextLabsList));
+      } catch {}
+    }
+
+    let mapUpdated = false;
+    const nextMap = { ...vendorLabSettingsMap };
+    Object.keys(nextMap).forEach((id) => {
+      const s = nextMap[id];
+      if (s) {
+        const labItem = vendorLabsList.find((l) => l.id === id);
+        const expiryStr = s.planExpiresAt || labItem?.planExpiresAt;
+        const remDays = s.remainingVisibilityDays ?? labItem?.remainingVisibilityDays;
+        const isExpired = isExpiredCheck(expiryStr, remDays, s.status);
+
+        if (isExpired && (s.status !== 'Draft' || s.isWebsiteApproved !== false || s.remainingVisibilityDays !== 0)) {
+          mapUpdated = true;
+          nextMap[id] = {
+            ...s,
+            status: 'Draft',
+            isWebsiteApproved: false,
+            remainingVisibilityDays: 0,
+            _updatedAt: new Date().toISOString(),
+          };
+        }
+      }
+    });
+
+    if (mapUpdated) {
+      setVendorLabSettingsMap(nextMap);
+      try {
+        localStorage.setItem('cms_vendor_lab_settings_map', JSON.stringify(nextMap));
+      } catch {}
+    }
+  }, [vendorLabsList, vendorLabSettingsMap]);
 
   // Effective laboratory for settings: Logged-in vendor/staff ALWAYS gets their own laboratory
   const effectiveSettingsLabId = useMemo(() => {

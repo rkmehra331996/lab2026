@@ -69,7 +69,7 @@ import QRCode from 'qrcode';
 import { useCms, DEFAULT_ALL_VENDOR_DOCTORS } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
 import { Language, LabReport, ReceptionPatientEntry } from '../types';
-import { generateReportPdf, printCanonicalReportPdf } from '../utils/pdfGenerator';
+import { generateReportPdf, printCanonicalReportPdf, generatePackagePdf } from '../utils/pdfGenerator';
 import { safePrint } from '../utils/printHelper';
 import { OnlineTestBookingModal } from './vendor/OnlineTestBookingModal';
 import { HeroBookingForm } from './vendor/HeroBookingForm';
@@ -81,6 +81,7 @@ import { VendorAiVoiceBot } from './vendor/VendorAiVoiceBot';
 import { getTenantWebsiteUrl, getTenantSubdomain, getTenantBrowserUrl, SUPER_ADMIN_DOMAIN, normalizeToDirectoryUrl } from '../constants/domains';
 import { isTenantMatch, isReportAccessibleToTenant } from '../utils/tenantSecurity';
 import { optimizeImageFile } from '../utils/imageOptimizer';
+import { CanonicalPdfViewer } from './CanonicalPdfViewer';
 
 interface LabVendorWebsiteProps {
   targetLabId?: string;
@@ -189,6 +190,28 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         .split(/[-_]/)
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ') + ' Laboratory';
+
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+      let isSettingsExpByDate = false;
+      if (vendorLabSettings?.planExpiresAt) {
+        const parts = vendorLabSettings.planExpiresAt.split('-');
+        if (parts.length === 3) {
+          const expD = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+          expD.setHours(23, 59, 59, 999);
+          if (expD.getTime() < todayDate.getTime()) isSettingsExpByDate = true;
+        }
+      }
+      const isSettingsPlanExpired =
+        isSettingsExpByDate ||
+        (vendorLabSettings?.remainingVisibilityDays !== undefined && vendorLabSettings.remainingVisibilityDays <= 0) ||
+        (vendorLabSettings?.status as any) === 'Expired' ||
+        vendorLabSettings?.status === 'Draft' ||
+        vendorLabSettings?.isWebsiteApproved === false;
+
+      const fallbackStatus = isSettingsPlanExpired ? 'Draft' : ((vendorLabSettings?.status as any) || 'Draft');
+      const fallbackApproved = isSettingsPlanExpired ? false : (vendorLabSettings?.isWebsiteApproved === true);
+
       return {
         id: effectiveLabId,
         name: vendorLabSettings?.labName || vendorLabSettings?.name || formattedName,
@@ -198,9 +221,12 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         address: vendorLabSettings?.address || 'Healthcare Complex, India',
         phone: vendorLabSettings?.phone || '+91 9876543210',
         nablCode: (vendorLabSettings as any)?.nablCode || vendorLabSettings?.nablAccreditationNo || vendorLabSettings?.nablNumber || 'NABL Accredited',
-        badge: 'Verified Diagnostic Lab',
-        status: 'Active',
-        isWebsiteApproved: true,
+        badge: isSettingsPlanExpired ? 'Draft - Subscription Expired' : 'Verified Diagnostic Lab',
+        status: fallbackStatus,
+        isWebsiteApproved: fallbackApproved,
+        planExpiresAt: vendorLabSettings?.planExpiresAt,
+        remainingVisibilityDays: isSettingsPlanExpired ? 0 : (vendorLabSettings?.remainingVisibilityDays ?? 0),
+        planStatusReason: isSettingsPlanExpired ? 'Expired — Contact 70870 33009' : undefined,
         domainPreview: (vendorLabSettings?.domainPreview && !vendorLabSettings.domainPreview.endsWith('.indianlalaji.com'))
           ? vendorLabSettings.domainPreview
           : `indianlalaji.com/shop/${cleanSlug}`,
@@ -582,11 +608,13 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   });
   const [isAdminPreviewingDraft, setIsAdminPreviewingDraft] = useState<boolean>(() => {
     try {
+      const isUserAdmin = currentUser?.role === 'admin';
       const search = window.location.search || '';
-      if (search.includes('preview=true') || search.includes('preview=draft') || search.includes('mode=draft')) return true;
-      if (sessionStorage.getItem('admin_preview_draft') === 'true') return true;
+      const hasPreviewParam = search.includes('preview=true') || search.includes('preview=draft') || search.includes('mode=draft');
+      if (isUserAdmin && hasPreviewParam) return true;
+      if (isUserAdmin && sessionStorage.getItem('admin_preview_draft') === 'true') return true;
       const curId = currentLabItem?.id;
-      if (curId && sessionStorage.getItem(`admin_preview_draft_${curId}`) === 'true') return true;
+      if (isUserAdmin && curId && sessionStorage.getItem(`admin_preview_draft_${curId}`) === 'true') return true;
     } catch {}
     return false;
   });
@@ -1303,6 +1331,23 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       : (showWebsitePrices ? 'Full Body Health Checkup (₹999)' : 'Full Body Health Checkup')
   );
 
+  // Automatically download package details brochure whenever a package is selected
+  const handleSelectPackage = (pkg: any) => {
+    try {
+      generatePackagePdf(pkg, {
+        labName,
+        address: labAddress,
+        phone: labPhone,
+        email: labEmail,
+        nablCode: labNabl,
+      });
+    } catch (err) {
+      console.warn('Package PDF download notice:', err);
+    }
+    setSelectedTestOrPackage(showWebsitePrices ? `${pkg.name} (₹${pkg.priceINR})` : pkg.name);
+    setIsBookingModalOpen(true);
+  };
+
   // Contact Us Inquiry Form State
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -1642,11 +1687,59 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     window.open(`https://wa.me/${waNumber}?text=${text}`, '_blank');
   };
 
-  // Check if website is in Draft mode (Not Approved/Published by Admin)
-  // If lab is explicitly Active or has isWebsiteApproved === true, it is LIVE and accessible!
-  const isDraftOrPending = currentLabItem
-    ? currentLabItem.status === 'Draft' || currentLabItem.status === 'Pending' || (currentLabItem.status !== 'Active' && !currentLabItem.isWebsiteApproved)
-    : false;
+  // Check if laboratory plan has expired or website is in Draft mode
+  // "expire hone ke bad draft ho jana cahiye na but yeh to view hota rehta hai"
+  const todayForExpiry = React.useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  const labExpiryDateStr = currentLabItem?.planExpiresAt || effectiveLabSettings?.planExpiresAt;
+  let isPlanExpiredByDate = false;
+  if (labExpiryDateStr) {
+    const parts = labExpiryDateStr.split('-');
+    if (parts.length === 3) {
+      const expDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      expDate.setHours(23, 59, 59, 999);
+      if (expDate.getTime() < todayForExpiry.getTime()) {
+        isPlanExpiredByDate = true;
+      }
+    } else {
+      const parsed = new Date(labExpiryDateStr);
+      if (!isNaN(parsed.getTime())) {
+        parsed.setHours(23, 59, 59, 999);
+        if (parsed.getTime() < todayForExpiry.getTime()) {
+          isPlanExpiredByDate = true;
+        }
+      }
+    }
+  }
+
+  const isRemainingVisibilityZero =
+    (currentLabItem?.remainingVisibilityDays !== undefined && currentLabItem.remainingVisibilityDays <= 0) ||
+    (effectiveLabSettings?.remainingVisibilityDays !== undefined && effectiveLabSettings.remainingVisibilityDays <= 0);
+
+  const isPlanExpired =
+    isPlanExpiredByDate ||
+    isRemainingVisibilityZero ||
+    (currentLabItem?.status as any) === 'Expired' ||
+    (effectiveLabSettings?.status as any) === 'Expired' ||
+    Boolean(currentLabItem?.planStatusReason?.toLowerCase().includes('expired'));
+
+  // If expired, the website automatically becomes DRAFT mode and MUST NOT be viewed publicly!
+  const isDraftOrPending =
+    isPlanExpired ||
+    !currentLabItem ||
+    currentLabItem.status === 'Draft' ||
+    currentLabItem.status === 'Pending' ||
+    currentLabItem.status === 'Suspended' ||
+    (currentLabItem?.status as any) === 'Expired' ||
+    effectiveLabSettings?.status === 'Draft' ||
+    effectiveLabSettings?.status === 'Pending' ||
+    (effectiveLabSettings?.status as any) === 'Expired' ||
+    currentLabItem.isWebsiteApproved === false ||
+    effectiveLabSettings?.isWebsiteApproved === false;
 
   if (isDraftOrPending && !isAdminPreviewingDraft) {
     return (
@@ -1654,15 +1747,21 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         {/* Top Navbar */}
         <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xs shadow-xs">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shadow-xs ${
+              isPlanExpired ? 'bg-rose-500 text-white' : 'bg-amber-400 text-slate-950'
+            }`}>
               HQ
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-sm text-slate-900">{currentLabItem?.name || labName}</span>
-                <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                  isPlanExpired
+                    ? 'bg-rose-100 text-rose-900 border border-rose-300'
+                    : 'bg-amber-100 text-amber-900 border border-amber-300'
+                }`}>
                   <Clock className="w-2.5 h-2.5" />
-                  <span>Draft Mode (Pending Approval)</span>
+                  <span>{isPlanExpired ? 'Draft Mode (Subscription Expired)' : 'Draft Mode (Pending Approval)'}</span>
                 </span>
               </div>
             </div>
@@ -1691,41 +1790,63 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
         {/* Central Draft Lock Box - Light Theme Only */}
         <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-          <div className="max-w-lg w-full bg-white border border-amber-300 rounded-3xl p-6 sm:p-8 shadow-xl text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+          <div className={`max-w-lg w-full bg-white border rounded-3xl p-6 sm:p-8 shadow-xl text-center space-y-5 animate-in fade-in zoom-in-95 duration-200 ${
+            isPlanExpired ? 'border-rose-300' : 'border-amber-300'
+          }`}>
             {/* Lock Icon */}
             <div className="relative inline-flex items-center justify-center">
-              <div className="w-18 h-18 rounded-3xl bg-amber-50 border-2 border-amber-300 flex items-center justify-center text-amber-600 shadow-inner">
+              <div className={`w-18 h-18 rounded-3xl border-2 flex items-center justify-center shadow-inner ${
+                isPlanExpired
+                  ? 'bg-rose-50 border-rose-300 text-rose-600'
+                  : 'bg-amber-50 border-amber-300 text-amber-600'
+              }`}>
                 <Lock className="w-9 h-9" />
               </div>
-              <div className="absolute -bottom-1 -right-1 bg-amber-400 text-slate-950 p-1.5 rounded-full shadow-sm">
+              <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-full shadow-sm ${
+                isPlanExpired ? 'bg-rose-500 text-white' : 'bg-amber-400 text-slate-950'
+              }`}>
                 <Clock className="w-3.5 h-3.5" />
               </div>
             </div>
 
-            {/* Titles & Message in English Only */}
+            {/* Titles & Message */}
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                <span>⚠️ Website In Draft Mode • Pending Admin Approval</span>
+              <div className={`inline-flex items-center gap-1.5 text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${
+                isPlanExpired
+                  ? 'bg-rose-50 border border-rose-300 text-rose-900'
+                  : 'bg-amber-50 border border-amber-300 text-amber-900'
+              }`}>
+                <span>{isPlanExpired ? '⚠️ Website In Draft Mode • Subscription Expired (वैधता समाप्त)' : '⚠️ Website In Draft Mode • Pending Admin Approval'}</span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Website In Draft Mode
+                {isPlanExpired ? 'Website In Draft Mode (Plan Expired)' : 'Website In Draft Mode'}
               </h1>
-              <p className="text-sm font-semibold text-amber-800">
-                This website will not be live or accessible for visit until the Admin publishes it.
+              <p className={`text-sm font-semibold ${isPlanExpired ? 'text-rose-800' : 'text-amber-800'}`}>
+                {isPlanExpired
+                  ? 'इस लैबोरेटरी की वेबसाइट का प्लान समाप्त हो चुका है और यह ड्राफ्ट मोड में है।'
+                  : 'This website will not be live or accessible for visit until the Admin publishes it.'}
               </p>
               <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed pt-1">
-                This laboratory website was created and is currently in <strong>Draft Status</strong>. Public visit, patient bookings, and diagnostic catalog are locked until Super Admin reviews and approves it.
+                {isPlanExpired
+                  ? 'This laboratory website has been transitioned to Draft mode because its subscription validity has ended. Public visit, patient bookings, and diagnostic catalog are locked until the plan is renewed.'
+                  : 'This laboratory website was created and is currently in Draft Status. Public visit, patient bookings, and diagnostic catalog are locked until Super Admin reviews and approves it.'}
               </p>
             </div>
 
             {/* Contact Support Box */}
-            <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 text-xs space-y-2.5">
-              <div className="font-extrabold text-amber-950 flex items-center justify-center gap-1.5 text-sm">
-                <Phone className="w-4 h-4 text-amber-700" />
-                <span>Contact with 7087033009</span>
+            <div className={`border rounded-2xl p-4 text-xs space-y-2.5 ${
+              isPlanExpired ? 'bg-rose-50/80 border-rose-200' : 'bg-amber-50/80 border-amber-200'
+            }`}>
+              <div className={`font-extrabold flex items-center justify-center gap-1.5 text-sm ${
+                isPlanExpired ? 'text-rose-950' : 'text-amber-950'
+              }`}>
+                <Phone className={`w-4 h-4 ${isPlanExpired ? 'text-rose-700' : 'text-amber-700'}`} />
+                <span>Contact Central Support: 7087033009</span>
               </div>
               <p className="text-[11px] text-slate-600">
-                For approval, verification, or administrative queries, contact central support:
+                {isPlanExpired
+                  ? 'To renew your laboratory subscription plan and make your website live instantly, contact admin:'
+                  : 'For approval, verification, or administrative queries, contact central support:'}
               </p>
               <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
                 <a
@@ -1736,7 +1857,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   <span>Call: 7087033009</span>
                 </a>
                 <a
-                  href="https://wa.me/917087033009?text=Hello%20Admin,%20I%20need%20approval%20and%20activation%20for%20my%20laboratory%20website"
+                  href={`https://wa.me/917087033009?text=${encodeURIComponent(
+                    isPlanExpired
+                      ? `Hello Super Admin, our laboratory "${currentLabItem?.name || labName}" subscription plan has expired. Please help us renew and make our website live.`
+                      : 'Hello Admin, I need approval and activation for my laboratory website.'
+                  )}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition"
@@ -1759,10 +1884,20 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Current Status:</span>
-                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold">
-                  Draft (Pending Approval)
+                <span className={`px-2 py-0.5 rounded font-bold ${
+                  isPlanExpired
+                    ? 'bg-rose-100 text-rose-900 border border-rose-300'
+                    : 'bg-amber-100 text-amber-900 border border-amber-300'
+                }`}>
+                  {isPlanExpired ? 'Draft (Subscription Expired)' : 'Draft (Pending Approval)'}
                 </span>
               </div>
+              {labExpiryDateStr && (
+                <div className="flex items-center justify-between pt-1 border-t border-slate-200">
+                  <span className="text-slate-500">Plan Expiry Date:</span>
+                  <span className="font-semibold text-slate-700">{labExpiryDateStr}</span>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons: Strictly Super Admin Only for Publishing */}
@@ -1826,13 +1961,21 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 text-xs text-amber-950 text-left">
-                    <div className="flex items-center gap-1.5 font-black text-amber-900 mb-1">
-                      <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
-                      <span>Super Admin Approval Required (सुपर एडमिन अप्रूवल आवश्यक)</span>
+                  <div className={`border rounded-xl p-3 text-xs text-left ${
+                    isPlanExpired
+                      ? 'bg-rose-50 border-rose-300 text-rose-950'
+                      : 'bg-amber-50 border border-amber-300 text-amber-950'
+                  }`}>
+                    <div className={`flex items-center gap-1.5 font-black mb-1 ${
+                      isPlanExpired ? 'text-rose-900' : 'text-amber-900'
+                    }`}>
+                      <ShieldCheck className={`w-4 h-4 shrink-0 ${isPlanExpired ? 'text-rose-700' : 'text-amber-700'}`} />
+                      <span>{isPlanExpired ? 'Subscription Renewal Required (प्लान रिन्यू आवश्यक)' : 'Super Admin Approval Required (सुपर एडमिन अप्रूवल आवश्यक)'}</span>
                     </div>
-                    <p className="text-[11px] text-amber-900/90 leading-relaxed">
-                      बिना प्लेटफ़ॉर्म सुपर एडमिन के अप्रूवल के वेबसाइट लाइव नहीं हो सकती। वेबसाइट रिव्यू या एक्टिवेशन के लिए कृपया सुपर एडमिन से संपर्क करें:
+                    <p className={`text-[11px] leading-relaxed ${isPlanExpired ? 'text-rose-900/90' : 'text-amber-900/90'}`}>
+                      {isPlanExpired
+                        ? 'सब्सक्रिप्शन समाप्त होने के कारण वेबसाइट को ड्राफ्ट मोड में रखा गया है। वेबसाइट दोबारा लाइव करने हेतु कृपया प्लान रिन्यू करवाएं:'
+                        : 'बिना प्लेटफ़ॉर्म सुपर एडमिन के अप्रूवल के वेबसाइट लाइव नहीं हो सकती। वेबसाइट रिव्यू या एक्टिवेशन के लिए कृपया सुपर एडमिन से संपर्क करें:'}
                     </p>
                   </div>
 
@@ -1845,7 +1988,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                       <span>Call Admin</span>
                     </a>
                     <a
-                      href="https://wa.me/917087033009?text=Hello%20Super%20Admin,%20please%20approve%20and%20make%20my%20lab%20website%20live."
+                      href={`https://wa.me/917087033009?text=${encodeURIComponent(
+                        isPlanExpired
+                          ? `Hello Super Admin, our laboratory "${currentLabItem?.name || labName}" subscription plan has expired. Please help us renew and make our website live.`
+                          : 'Hello Super Admin, please approve and make my lab website live.'
+                      )}`}
                       target="_blank"
                       rel="noreferrer"
                       className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs"
@@ -1853,6 +2000,17 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                       <span>WhatsApp Admin</span>
                     </a>
                   </div>
+
+                  {onOpenVendorDashboard && (
+                    <button
+                      type="button"
+                      onClick={onOpenVendorDashboard}
+                      className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer shadow-xs flex items-center justify-center gap-2"
+                    >
+                      <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Go to Vendor Dashboard / Renew Plan</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -2270,7 +2428,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   );
 };
 
-  // Full-Screen Diagnostic Report Preview Modal (Reusable)
+  // Full-Screen Diagnostic Report Preview Modal (Reusable) - renders canonical official PDF design
   const renderReportPreviewModal = () => {
     if (!isReportModalOpen || !inlineSearchedReport) return null;
     return (
@@ -2281,246 +2439,15 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         onClick={() => setIsReportModalOpen(false)}
       >
         <div
-          className="relative max-w-5xl w-full h-[95vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200"
+          className="relative max-w-5xl w-full h-[95vh] flex flex-col bg-slate-950 rounded-2xl shadow-2xl overflow-hidden border border-slate-800 animate-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 1. Modal Top Bar */}
-          <div className="bg-[#123B6D] text-white px-4 py-3 sm:px-6 flex items-center justify-between shrink-0 shadow-md">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-amber-300 font-bold shrink-0">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-extrabold tracking-tight flex items-center gap-2">
-                  <span>Diagnostic Report Preview</span>
-                  <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                    ✓ Verified &amp; Signed
-                  </span>
-                </h3>
-                <p className="text-[11px] text-slate-300">
-                  {inlineSearchedReport.labName || labName} • ID: {inlineSearchedReport.reportId}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Download Official PDF */}
-              <button
-                type="button"
-                onClick={handleDownloadInlinePdf}
-                disabled={isDownloadingPdf}
-                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
-                id="modal-btn-download-pdf"
-              >
-                <Download className="w-3.5 h-3.5 text-white" />
-                <span className="hidden sm:inline">{isDownloadingPdf ? 'Preparing...' : 'Download PDF'}</span>
-              </button>
-
-              {/* Print Report */}
-              <button
-                type="button"
-                onClick={handlePrintInlineReport}
-                className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-white/20"
-                id="modal-btn-print-report"
-              >
-                <Printer className="w-3.5 h-3.5 text-white" />
-                <span className="hidden sm:inline">Print</span>
-              </button>
-
-              {/* Close Button */}
-              <button
-                type="button"
-                onClick={() => setIsReportModalOpen(false)}
-                className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white transition cursor-pointer"
-                title="Close Report"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* 2. Paper Sheet Report Container */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/80 flex justify-center">
-            <div className="max-w-4xl w-full bg-white shadow-xl rounded-xl p-6 sm:p-10 border border-slate-200/90 text-slate-900 space-y-6">
-              {/* Report Header */}
-              <div className="border-b-2 border-slate-200 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#123B6D] to-[#0F766E] flex items-center justify-center text-white font-black text-xl shadow-md shrink-0">
-                    {labName.charAt(0)}
-                  </div>
-                  <div>
-                    <h1 className="text-lg sm:text-xl font-black text-[#123B6D] tracking-tight">
-                      {inlineSearchedReport.labName || labName}
-                    </h1>
-                    <p className="text-xs text-slate-500 font-medium">
-                      {labAddress} • Phone: +91 {cleanPhone}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        {vendorLabSettings?.nablAccreditationNo || 'NABL Accredited'}
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">
-                        ISO 15189:2022 Certified
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-left sm:text-right shrink-0">
-                  <div className="inline-block px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black uppercase tracking-wider mb-1">
-                    ✓ Verified Final Report
-                  </div>
-                  <p className="text-xs font-mono text-slate-600 font-bold">
-                    Report ID: <span className="text-[#123B6D]">{inlineSearchedReport.reportId}</span>
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    Sample Date: {inlineSearchedReport.sampleCollectedAt || inlineSearchedReport.reportedAt || 'Today'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Patient Demographic Details Card */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Patient Name</span>
-                  <span className="font-black text-slate-900 text-sm">{inlineSearchedReport.patientName}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Age / Gender</span>
-                  <span className="font-bold text-slate-800">{inlineSearchedReport.ageGender || `${inlineSearchedReport.mobile ? 'Adult' : '-'}`}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Referring Doctor</span>
-                  <span className="font-bold text-slate-800">{inlineSearchedReport.doctor || 'Self / Walk-in'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">UHID / Barcode</span>
-                  <span className="font-mono font-bold text-[#123B6D]">{inlineSearchedReport.uhid || inlineSearchedReport.tokenNumber || inlineSearchedReport.reportId}</span>
-                </div>
-              </div>
-
-              {/* Test Investigation Table */}
-              <div className="overflow-x-auto rounded-xl border border-slate-200">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#123B6D] text-white uppercase text-[10px] font-black tracking-wider">
-                    <tr>
-                      <th className="py-3 px-4">Investigation / Parameter</th>
-                      <th className="py-3 px-4 text-center">Result</th>
-                      <th className="py-3 px-4">Unit</th>
-                      <th className="py-3 px-4">Biological Ref. Range</th>
-                      <th className="py-3 px-4 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {inlineSearchedReport.items.map((item, idx) => {
-                      const isAbnormal = Boolean(item.isAbnormal);
-                      return (
-                        <tr
-                          key={idx}
-                          className={isAbnormal ? 'bg-amber-50/60 font-medium' : 'hover:bg-slate-50/80 transition'}
-                        >
-                          <td className="py-2.5 px-4 font-bold text-slate-900">
-                            <div>{item.testName}</div>
-                            {item.parameter && item.parameter !== item.testName && (
-                              <div className="text-[11px] font-normal text-slate-500">{item.parameter}</div>
-                            )}
-                          </td>
-                          <td className={`py-2.5 px-4 text-center font-black text-sm ${isAbnormal ? 'text-amber-700' : 'text-emerald-700'}`}>
-                            {item.result}
-                          </td>
-                          <td className="py-2.5 px-4 text-slate-500 font-medium">
-                            {item.unit || '-'}
-                          </td>
-                          <td className="py-2.5 px-4 text-slate-600 font-mono text-[11px]">
-                            {item.referenceRange || 'Standard'}
-                          </td>
-                          <td className="py-2.5 px-4 text-center">
-                            {isAbnormal ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300">
-                                ATTENTION
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                NORMAL
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Clinical Impression & Notes */}
-              {inlineSearchedReport.clinicalImpression && (
-                <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 text-xs text-slate-800 space-y-1">
-                  <span className="font-bold text-[#123B6D] text-xs uppercase tracking-wider block">Clinical Impression / Note:</span>
-                  <p className="leading-relaxed text-slate-700">{inlineSearchedReport.clinicalImpression}</p>
-                </div>
-              )}
-
-              {/* Pathologist Verification & Signature */}
-              <div className="pt-6 border-t-2 border-slate-200 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div className="space-y-1.5 text-xs text-slate-500">
-                  <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>Digitally Verified &amp; Signed</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">
-                    This is an authenticated electronic clinical pathology report.
-                  </p>
-                </div>
-
-                <div className="text-left sm:text-right">
-                  <div className="inline-block p-2 rounded-lg bg-slate-50 border border-slate-200 mb-1">
-                    <span className="font-serif italic font-black text-slate-800 text-sm tracking-wide">
-                      {inlineSearchedReport.pathologist || 'Dr. Rohit Sharma, MD'}
-                    </span>
-                  </div>
-                  <p className="text-xs font-bold text-slate-800">
-                    {inlineSearchedReport.pathologist || 'Consultant Pathologist'}
-                  </p>
-                  <p className="text-[10px] text-slate-500 font-medium">
-                    Reg No: DMC/R/18429 • MD Pathology
-                  </p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* 3. Modal Bottom Action Bar */}
-          <div className="p-3 sm:p-4 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsReportModalOpen(false)}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
-            >
-              Close Preview
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handlePrintInlineReport}
-                className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <Printer className="w-4 h-4 text-slate-600" />
-                <span>Print Report</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDownloadInlinePdf}
-                disabled={isDownloadingPdf}
-                className="px-5 py-2 rounded-xl bg-[#123B6D] hover:bg-[#0c294d] text-white font-bold text-xs transition flex items-center gap-2 shadow-md cursor-pointer active:scale-98 disabled:opacity-50"
-              >
-                <Download className="w-4 h-4 text-amber-300" />
-                <span>{isDownloadingPdf ? 'Generating PDF...' : 'Download Official PDF'}</span>
-              </button>
-            </div>
-          </div>
+          <CanonicalPdfViewer
+            report={inlineSearchedReport}
+            onClose={() => setIsReportModalOpen(false)}
+            className="flex-1 h-full border-0 rounded-2xl"
+            title={`DIAGNOSTIC REPORT • ${inlineSearchedReport.reportId}`}
+          />
         </div>
       </div>
     );
@@ -3544,20 +3471,40 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                             </div>
                           </div>
 
-                          {/* Uske neeche inline 2 buttons: Price aur Book Test */}
-                          <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5 mt-auto shrink-0">
+                          {/* Uske neeche inline buttons: Price, Download Brochure aur Book Test */}
+                          <div className="pt-3 border-t border-slate-100 flex items-center gap-2 mt-auto shrink-0">
                             {showWebsitePrices && (
-                              <div className="px-3.5 py-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm sm:text-base flex items-center justify-center shrink-0 shadow-2xs">
+                              <div className="px-3 py-2 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
                                 ₹{pkg.priceINR}
                               </div>
                             )}
 
                             <button
                               type="button"
-                              onClick={() => {
-                                setSelectedTestOrPackage(showWebsitePrices ? `${pkg.name} (₹${pkg.priceINR})` : pkg.name);
-                                setIsBookingModalOpen(true);
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                try {
+                                  generatePackagePdf(pkg, {
+                                    labName,
+                                    address: labAddress,
+                                    phone: labPhone,
+                                    email: labEmail,
+                                    nablCode: labNabl,
+                                  });
+                                } catch (err) {
+                                  console.warn('Package PDF download error:', err);
+                                }
                               }}
+                              className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
+                              title="Download Package PDF Details"
+                              aria-label="Download Package Details PDF"
+                            >
+                              <Download className="w-4 h-4 text-[#123B6D]" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleSelectPackage(pkg)}
                               className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
                             >
                               <span>Book Test</span>
@@ -3629,18 +3576,39 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                                   </div>
                                 </div>
                               </div>
-                              <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5 mt-auto">
+                              <div className="pt-3 border-t border-slate-100 flex items-center gap-2 mt-auto">
                                 {showWebsitePrices && (
                                   <div className="px-3.5 py-2 rounded-xl bg-blue-50 border border-blue-200 text-[#123B6D] font-black text-base shadow-2xs">
                                     ₹{pkg.priceINR}
                                   </div>
                                 )}
+
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setSelectedTestOrPackage(showWebsitePrices ? `${pkg.name} (₹${pkg.priceINR})` : pkg.name);
-                                    setIsBookingModalOpen(true);
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      generatePackagePdf(pkg, {
+                                        labName,
+                                        address: labAddress,
+                                        phone: labPhone,
+                                        email: labEmail,
+                                        nablCode: labNabl,
+                                      });
+                                    } catch (err) {
+                                      console.warn('Package PDF download error:', err);
+                                    }
                                   }}
+                                  className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
+                                  title="Download Package PDF Details"
+                                  aria-label="Download Package Details PDF"
+                                >
+                                  <Download className="w-4 h-4 text-[#123B6D]" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectPackage(pkg)}
                                   className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-3 rounded-xl text-xs font-black shadow-sm flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
                                 >
                                   <span>Book Test</span>
@@ -3748,10 +3716,30 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      setSelectedTestOrPackage(showWebsitePrices ? `${pkg.name} (₹${pkg.priceINR})` : pkg.name);
-                                      setIsBookingModalOpen(true);
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        generatePackagePdf(pkg, {
+                                          labName,
+                                          address: labAddress,
+                                          phone: labPhone,
+                                          email: labEmail,
+                                          nablCode: labNabl,
+                                        });
+                                      } catch (err) {
+                                        console.warn('Package PDF download error:', err);
+                                      }
                                     }}
+                                    className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
+                                    title="Download Package PDF Details"
+                                    aria-label="Download Package Details PDF"
+                                  >
+                                    <Download className="w-4 h-4 text-[#123B6D]" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSelectPackage(pkg)}
                                     className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-3 rounded-xl text-xs font-black transition shadow-sm flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
                                   >
                                     <span>Book Test</span>
@@ -5903,258 +5891,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       )}
 
       {/* Full-Screen Diagnostic Report Preview Modal */}
-      {isReportModalOpen && inlineSearchedReport && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-2 sm:p-4 md:p-6 animate-in fade-in duration-200"
-          onClick={() => setIsReportModalOpen(false)}
-        >
-          <div
-            className="relative max-w-5xl w-full h-[95vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* 1. Modal Top Bar */}
-            <div className="bg-[#123B6D] text-white px-4 py-3 sm:px-6 flex items-center justify-between shrink-0 shadow-md">
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-amber-300 font-bold shrink-0">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-extrabold tracking-tight flex items-center gap-2">
-                    <span>Diagnostic Report Preview</span>
-                    <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                      ✓ Verified &amp; Signed
-                    </span>
-                  </h3>
-                  <p className="text-[11px] text-slate-300">
-                    {inlineSearchedReport.labName || labName} • ID: {inlineSearchedReport.reportId}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* Download Official PDF */}
-                <button
-                  type="button"
-                  onClick={handleDownloadInlinePdf}
-                  disabled={isDownloadingPdf}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
-                  id="modal-btn-download-pdf"
-                >
-                  <Download className="w-3.5 h-3.5 text-white" />
-                  <span className="hidden sm:inline">{isDownloadingPdf ? 'Preparing...' : 'Download PDF'}</span>
-                </button>
-
-                {/* Print Report */}
-                <button
-                  type="button"
-                  onClick={handlePrintInlineReport}
-                  className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-white/20"
-                  id="modal-btn-print-report"
-                >
-                  <Printer className="w-3.5 h-3.5 text-white" />
-                  <span className="hidden sm:inline">Print</span>
-                </button>
-
-                {/* Close Modal */}
-                <button
-                  type="button"
-                  onClick={() => setIsReportModalOpen(false)}
-                  className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer ml-1"
-                  aria-label="Close report viewer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* 2. Modal Body: Official Diagnostic Report Sheet (Scrollable) */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-100/70 space-y-5">
-              <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-xs border border-slate-200 p-5 sm:p-8 space-y-6">
-                
-                {/* Lab Official Letterhead */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b-2 border-[#123B6D]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#123B6D] to-[#0F766E] flex items-center justify-center text-white font-black text-xl shadow-md shrink-0">
-                      {labName.charAt(0)}
-                    </div>
-                    <div>
-                      <h1 className="text-lg sm:text-xl font-black text-[#123B6D] tracking-tight">
-                        {inlineSearchedReport.labName || labName}
-                      </h1>
-                      <p className="text-xs text-slate-500 font-medium">
-                        {labAddress} • Phone: +91 {cleanPhone}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] font-bold text-[#0F766E] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">
-                          NABL Accredited: {labNabl}
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                          ISO 15189:2022 Certified
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-left sm:text-right shrink-0">
-                    <div className="inline-block px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black uppercase tracking-wider mb-1">
-                      ✓ Verified Final Report
-                    </div>
-                    <p className="text-xs font-mono text-slate-600 font-bold">
-                      Report ID: <span className="text-[#123B6D]">{inlineSearchedReport.reportId}</span>
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      Sample Date: {inlineSearchedReport.sampleCollectedAt || inlineSearchedReport.reportedAt || 'Today'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Patient Demographic Details Card */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Patient Name</span>
-                    <span className="font-black text-slate-900 text-sm">{inlineSearchedReport.patientName}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Age / Gender</span>
-                    <span className="font-bold text-slate-800">{inlineSearchedReport.ageGender || `${inlineSearchedReport.mobile ? 'Adult' : '-'}`}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Referring Doctor</span>
-                    <span className="font-bold text-slate-800">{inlineSearchedReport.doctor || 'Self / Walk-in'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">UHID / Barcode</span>
-                    <span className="font-mono font-bold text-[#123B6D]">{inlineSearchedReport.uhid || inlineSearchedReport.tokenNumber || inlineSearchedReport.reportId}</span>
-                  </div>
-                </div>
-
-                {/* Test Investigation Table */}
-                <div className="overflow-x-auto rounded-xl border border-slate-200">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#123B6D] text-white uppercase text-[10px] font-black tracking-wider">
-                      <tr>
-                        <th className="py-3 px-4">Investigation / Parameter</th>
-                        <th className="py-3 px-4 text-center">Result</th>
-                        <th className="py-3 px-4">Unit</th>
-                        <th className="py-3 px-4">Biological Ref. Range</th>
-                        <th className="py-3 px-4 text-center">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {inlineSearchedReport.items.map((item, idx) => {
-                        const isAbnormal = Boolean(item.isAbnormal);
-                        return (
-                          <tr
-                            key={idx}
-                            className={isAbnormal ? 'bg-amber-50/60 font-medium' : 'hover:bg-slate-50/80 transition'}
-                          >
-                            <td className="py-2.5 px-4 font-bold text-slate-900">
-                              <div>{item.testName}</div>
-                              {item.parameter && item.parameter !== item.testName && (
-                                <div className="text-[11px] font-normal text-slate-500">{item.parameter}</div>
-                              )}
-                            </td>
-                            <td className={`py-2.5 px-4 text-center font-black text-sm ${isAbnormal ? 'text-amber-700' : 'text-emerald-700'}`}>
-                              {item.result}
-                            </td>
-                            <td className="py-2.5 px-4 text-slate-500 font-medium">
-                              {item.unit || '-'}
-                            </td>
-                            <td className="py-2.5 px-4 text-slate-600 font-mono text-[11px]">
-                              {item.referenceRange || 'Standard'}
-                            </td>
-                            <td className="py-2.5 px-4 text-center">
-                              {isAbnormal ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300">
-                                  ATTENTION
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                  NORMAL
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Clinical Impression & Notes */}
-                {inlineSearchedReport.clinicalImpression && (
-                  <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 text-xs text-slate-800 space-y-1">
-                    <span className="font-bold text-[#123B6D] text-xs uppercase tracking-wider block">Clinical Impression / Note:</span>
-                    <p className="leading-relaxed text-slate-700">{inlineSearchedReport.clinicalImpression}</p>
-                  </div>
-                )}
-
-                {/* Pathologist Verification & Signature */}
-                <div className="pt-6 border-t-2 border-slate-200 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                  <div className="space-y-1.5 text-xs text-slate-500">
-                    <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      <span>Digitally Verified &amp; Signed</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      This is an authenticated electronic clinical pathology report.
-                    </p>
-                  </div>
-
-                  <div className="text-left sm:text-right">
-                    <div className="inline-block p-2 rounded-lg bg-slate-50 border border-slate-200 mb-1">
-                      <span className="font-serif italic font-black text-slate-800 text-sm tracking-wide">
-                        {inlineSearchedReport.pathologist || 'Dr. Rohit Sharma, MD'}
-                      </span>
-                    </div>
-                    <p className="text-xs font-bold text-slate-800">
-                      {inlineSearchedReport.pathologist || 'Consultant Pathologist'}
-                    </p>
-                    <p className="text-[10px] text-slate-500 font-medium">
-                      Reg No: DMC/R/18429 • MD Pathology
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* 3. Modal Bottom Action Bar */}
-            <div className="p-3 sm:p-4 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsReportModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
-              >
-                Close Preview
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handlePrintInlineReport}
-                  className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Printer className="w-4 h-4 text-slate-600" />
-                  <span>Print Report</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDownloadInlinePdf}
-                  disabled={isDownloadingPdf}
-                  className="px-5 py-2 rounded-xl bg-[#123B6D] hover:bg-[#0c294d] text-white font-bold text-xs transition flex items-center gap-2 shadow-md cursor-pointer active:scale-98 disabled:opacity-50"
-                >
-                  <Download className="w-4 h-4 text-amber-300" />
-                  <span>{isDownloadingPdf ? 'Generating PDF...' : 'Download Official PDF'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderReportPreviewModal()}
 
     </div>
   );
