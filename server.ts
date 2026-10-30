@@ -114,6 +114,7 @@ function readDevDb(): Record<string, any> {
 function writeDevDb(data: Record<string, any>): boolean {
   try {
     data._lastUpdated = new Date().toISOString();
+    data._lastUpdatedTime = Date.now();
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
     return true;
   } catch (err) {
@@ -518,11 +519,11 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
     }
 
     const store = readDevDb();
-    const lastUpdatedTime = new Date(store._lastUpdated || Date.now()).getTime();
+    const lastUpdatedTime = store._lastUpdatedTime || (store._lastUpdated ? new Date(store._lastUpdated).getTime() : 1791800000000);
 
     if (action === 'check_updates') {
       const since = parseFloat(req.query.since as string) || 0;
-      const hasUpdates = lastUpdatedTime > since;
+      const hasUpdates = since > 0 && lastUpdatedTime > since;
       res.json({
         status: 'success',
         success: true,

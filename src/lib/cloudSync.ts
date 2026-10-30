@@ -213,21 +213,6 @@ async function callHostingerApi(endpoint: string, options?: RequestInit): Promis
     const primaryBase = getPrimaryApiBase();
     const primaryUrl = buildApiUrl(primaryBase, endpoint);
     const result = await fetchWithTimeout(primaryUrl, options);
-    if (result && (result.status === 'success' || result.success === true || result.status === 'online')) {
-      return result;
-    }
-
-    // Automatic fallback: If local origin didn't succeed, attempt production Hostinger (or vice-versa)
-    if (typeof window !== 'undefined') {
-      const fallbackBase = primaryBase === window.location.origin ? 'https://indianlalaji.com' : window.location.origin;
-      const fallbackUrl = buildApiUrl(fallbackBase, endpoint);
-      const fallbackResult = await fetchWithTimeout(fallbackUrl, options);
-      if (fallbackResult && (fallbackResult.status === 'success' || fallbackResult.success === true || fallbackResult.status === 'online')) {
-        return fallbackResult;
-      }
-      return fallbackResult || result;
-    }
-
     return result;
   } catch {
     return null;
@@ -1035,7 +1020,7 @@ export async function syncAllWithHostinger(): Promise<{
   }
 }
 
-// Start continuous multi-device sync background heartbeat (every 1.5 seconds)
+// Start continuous multi-device sync background heartbeat (every 8 seconds when active)
 function startMultiDeviceSyncHeartbeat() {
   if (isPollingActive || typeof window === 'undefined') return;
   isPollingActive = true;
@@ -1043,10 +1028,12 @@ function startMultiDeviceSyncHeartbeat() {
   // Initial immediate fetch
   pollHostingerServerUpdates(true);
 
-  // Poll every 1.5 seconds for changes across devices
+  // Poll every 8 seconds for changes across devices only when active and online
   pollingTimer = setInterval(() => {
-    pollHostingerServerUpdates();
-  }, 1500);
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible' && navigator.onLine) {
+      pollHostingerServerUpdates();
+    }
+  }, 8000);
 
   // Poll immediately when user tabs back into the browser or reconnects
   window.addEventListener('focus', () => {

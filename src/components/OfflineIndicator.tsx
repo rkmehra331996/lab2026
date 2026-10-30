@@ -55,8 +55,8 @@ export const OfflineIndicator: React.FC = () => {
     }
   };
 
-  // If online, no pending queue items, and no temporary message, keep UI completely clean
-  if (isOnline && pendingCount === 0 && !syncSuccessMsg) {
+  // Keep UI completely clean and silent when online (background sync handles queue seamlessly)
+  if (isOnline) {
     return null;
   }
 
