@@ -69,7 +69,7 @@ async function ensureLetterheadBg(resolved: {
 }
 
 // Dynamically resolve lab details from report and vendor dashboard settings
-function resolveLabDetails(report: LabReport) {
+export function resolveLabDetails(report: LabReport) {
   let email = (report.labEmail || '').trim();
   let domain = (report.labDomain || '').trim();
   let timings = (report.labTimings || '').trim();

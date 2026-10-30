@@ -35,10 +35,11 @@ export async function renderPdfPages(
   const scale = typeof optionsOrScale === 'number' ? optionsOrScale : (optionsOrScale.scale ?? 1.5);
   const blurBody = typeof optionsOrScale === 'object' ? Boolean(optionsOrScale.blurBody) : false;
 
-  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-  const pdfDoc = await loadingTask.promise;
-  const numPages = pdfDoc.numPages;
-  const pages: RenderedPdfPage[] = [];
+  try {
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdfDoc = await loadingTask.promise;
+    const numPages = pdfDoc.numPages;
+    const pages: RenderedPdfPage[] = [];
 
   for (let i = 1; i <= numPages; i++) {
     const page = await pdfDoc.getPage(i);
@@ -96,7 +97,11 @@ export async function renderPdfPages(
     });
   }
 
-  return pages;
+    return pages;
+  } catch (err) {
+    console.warn('PDF.js renderPdfPages caught error:', err);
+    return [];
+  }
 }
 
 export { pdfjsLib };
