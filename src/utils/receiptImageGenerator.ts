@@ -45,7 +45,7 @@ export async function buildReceiptSlipImage(
   const testItems = Array.isArray(data.tests) ? data.tests : [];
   const testCount = Math.max(1, testItems.length);
   const hasUtr = Boolean(data.upiTransactionRef);
-  const height = (hasUtr ? 870 : 840) + testCount * 30;
+  const height = (hasUtr ? 830 : 800) + testCount * 30;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -257,17 +257,9 @@ export async function buildReceiptSlipImage(
     ctx.fillText('SCAN WITH CAMERA TO VIEW & DOWNLOAD REPORT', width / 2, y);
 
     y += 18;
-    ctx.fillStyle = '#1D4ED8';
-    ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`REPORT Download: ${reportUrl}`, width / 2, y);
-
-    const labWebsiteUrl = cleanShop
-      ? `${origin}/shop/${cleanShop}`
-      : origin;
-    y += 16;
-    ctx.fillStyle = '#0F766E';
-    ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`Website: ${labWebsiteUrl}`, width / 2, y);
+    ctx.fillStyle = '#64748B';
+    ctx.font = '11px system-ui, -apple-system, sans-serif';
+    ctx.fillText('Online reports available on official lab portal', width / 2, y);
   } catch (err) {
     console.error('QR code generation failed on slip image:', err);
   }

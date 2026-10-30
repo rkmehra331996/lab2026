@@ -781,21 +781,9 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1D4ED8] hover:underline"
                   >
-                    <span>🔗 REPORT Download</span>
+                    <span>🔗 View Report Online</span>
                     <ExternalLink className="w-3 h-3 shrink-0" />
                   </a>
-                  <div className="pt-0.5">
-                    <a
-                      href={getTenantDirectUrl(receipt.labId)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 hover:underline"
-                    >
-                      <Globe className="w-3 h-3 shrink-0" />
-                      <span>🌐 Lab Website</span>
-                      <ExternalLink className="w-2.5 h-2.5 shrink-0" />
-                    </a>
-                  </div>
                 </div>
               </div>
             </div>
