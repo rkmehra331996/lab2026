@@ -35,7 +35,9 @@ export const SeoPostCardsSection: React.FC<SeoPostCardsSectionProps> = ({
     ? publishedPosts
     : publishedPosts.filter((p) => p.category === selectedCategory);
 
-  const postsToRender = (selectedCategory !== 'All' || showAllPosts) ? displayedPosts : displayedPosts.slice(0, 6);
+  const hasFeaturedBanner = selectedCategory === 'All' && displayedPosts[0]?.id === 'post-best-laboratory-management-software-india';
+  const cardPostsPool = hasFeaturedBanner ? displayedPosts.slice(1) : displayedPosts;
+  const postsToRender = (selectedCategory !== 'All' || showAllPosts) ? cardPostsPool : cardPostsPool.slice(0, 6);
 
   if (publishedPosts.length === 0) {
     return null;

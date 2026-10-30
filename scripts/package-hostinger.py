@@ -41,6 +41,8 @@ def package_hostinger():
             s = os.path.join(uploads_src, item)
             d = os.path.join(uploads_dst, item)
             if os.path.isfile(s):
+                shutil.copy2(s, d)
+
     # 4. Copy SQL schema and Setup Guide to dist for Hostinger import
     sql_src = os.path.join(root_dir, 'hostinger_database_schema.sql')
     sql_dst = os.path.join(dist_dir, 'hostinger_database_schema.sql')

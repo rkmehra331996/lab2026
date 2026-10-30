@@ -157,8 +157,10 @@ async function startServer() {
         const rootDir = __dirname;
         const targetZip = path.join(rootDir, 'public', 'indianalala_hostinger_build.zip');
 
-        // Only package if missing or rebuild query param explicitly passed
-        if (req.query.rebuild === 'true' || !fs.existsSync(targetZip)) {
+        // Always ensure final new version zip is packaged and fresh from latest build
+        try {
+          execSync('node scripts/createHostingerZip.mjs', { cwd: rootDir, stdio: 'inherit' });
+        } catch {
           try {
             execSync('python3 scripts/package-hostinger.py', { cwd: rootDir, stdio: 'inherit' });
           } catch {}

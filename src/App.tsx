@@ -1145,79 +1145,7 @@ export default function App() {
           <PricingSection onOpenDemo={handleOpenDemo} />
         )}
 
-        {/* 4b. Featured Editorial Guide: Best Laboratory Management Software in India */}
-        {(() => {
-          const flagshipPost = (seoPosts || []).find((p) => p.id === 'post-best-laboratory-management-software-india') || (seoPosts || [])[0];
-          if (!flagshipPost) return null;
-          return (
-            <section className="py-12 bg-gradient-to-b from-white via-slate-50/80 to-blue-50/30 border-t border-slate-200">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div
-                  onClick={() => {
-                    setActivePost(flagshipPost);
-                    setCurrentView('seo_post');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="bg-white rounded-3xl border-2 border-blue-600/30 hover:border-blue-600 p-6 sm:p-8 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group"
-                >
-                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                    <div className="space-y-3 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-xs flex items-center gap-1.5">
-                          <span>🏆</span>
-                          <span>2026 Comprehensive Review &amp; Guide</span>
-                        </span>
-                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200">
-                          Best Laboratory Management Software in India
-                        </span>
-                        <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-                          <span>⏱️ 10 min read</span>
-                        </span>
-                      </div>
 
-                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#123B6D] group-hover:text-blue-700 leading-tight transition-colors">
-                        {flagshipPost.title}
-                      </h2>
-
-                      <p className="text-sm text-slate-600 leading-relaxed max-w-4xl">
-                        {flagshipPost.excerpt}
-                      </p>
-
-                      <div className="flex items-center gap-2 flex-wrap pt-1">
-                        {[
-                          'Top Pathology Lab Software',
-                          'Best LIMS Software in India',
-                          'Automated WhatsApp Reports',
-                          'Instant Dynamic UPI Payments',
-                          'NABL ISO 15189 Quality Trails',
-                          'Multi-Branch & Dual-Counter Desks',
-                          'Affordable Pricing from ₹1,499/mo',
-                        ].map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 group-hover:bg-blue-50 text-slate-700 group-hover:text-blue-900 border border-slate-200/80 transition-colors"
-                          >
-                            ✓ {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 flex items-center">
-                      <button
-                        type="button"
-                        className="px-6 py-3.5 rounded-2xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-black text-sm flex items-center gap-2.5 shadow-md group-hover:scale-105 transition-all cursor-pointer"
-                      >
-                        <span>Read Full Post</span>
-                        <span className="text-amber-400 font-black">→</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          );
-        })()}
 
         {/* 5. Contact Us Section */}
         {portalSections.finalCta !== false && (
