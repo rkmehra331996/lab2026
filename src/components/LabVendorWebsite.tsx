@@ -202,15 +202,20 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
           if (expD.getTime() < todayDate.getTime()) isSettingsExpByDate = true;
         }
       }
-      const isSettingsPlanExpired =
-        isSettingsExpByDate ||
-        (vendorLabSettings?.remainingVisibilityDays !== undefined && vendorLabSettings.remainingVisibilityDays <= 0) ||
-        (vendorLabSettings?.status as any) === 'Expired' ||
-        vendorLabSettings?.status === 'Draft' ||
-        vendorLabSettings?.isWebsiteApproved === false;
+      const isSettingsActive =
+        vendorLabSettings?.status === 'Active' ||
+        vendorLabSettings?.isWebsiteApproved === true;
 
-      const fallbackStatus = isSettingsPlanExpired ? 'Draft' : ((vendorLabSettings?.status as any) || 'Draft');
-      const fallbackApproved = isSettingsPlanExpired ? false : (vendorLabSettings?.isWebsiteApproved === true);
+      const isSettingsPlanExpired =
+        !isSettingsActive &&
+        (isSettingsExpByDate ||
+          (vendorLabSettings?.remainingVisibilityDays !== undefined && vendorLabSettings.remainingVisibilityDays <= 0) ||
+          (vendorLabSettings?.status as any) === 'Expired' ||
+          vendorLabSettings?.status === 'Draft' ||
+          vendorLabSettings?.isWebsiteApproved === false);
+
+      const fallbackStatus = isSettingsActive ? 'Active' : (isSettingsPlanExpired ? 'Draft' : ((vendorLabSettings?.status as any) || 'Draft'));
+      const fallbackApproved = isSettingsActive ? true : (isSettingsPlanExpired ? false : (vendorLabSettings?.isWebsiteApproved === true));
 
       return {
         id: effectiveLabId,
@@ -221,11 +226,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         address: vendorLabSettings?.address || 'Healthcare Complex, India',
         phone: vendorLabSettings?.phone || '+91 9876543210',
         nablCode: (vendorLabSettings as any)?.nablCode || vendorLabSettings?.nablAccreditationNo || vendorLabSettings?.nablNumber || 'NABL Accredited',
-        badge: isSettingsPlanExpired ? 'Draft - Subscription Expired' : 'Verified Diagnostic Lab',
+        badge: isSettingsPlanExpired ? 'Draft - Subscription Expired' : (isSettingsActive ? 'Verified Diagnostic Lab' : 'Draft - Pending Admin Approval'),
         status: fallbackStatus,
         isWebsiteApproved: fallbackApproved,
         planExpiresAt: vendorLabSettings?.planExpiresAt,
-        remainingVisibilityDays: isSettingsPlanExpired ? 0 : (vendorLabSettings?.remainingVisibilityDays ?? 0),
+        remainingVisibilityDays: isSettingsActive ? Math.max(vendorLabSettings?.remainingVisibilityDays ?? 30, 1) : (isSettingsPlanExpired ? 0 : (vendorLabSettings?.remainingVisibilityDays ?? 0)),
         planStatusReason: isSettingsPlanExpired ? 'Expired — Contact 70870 33009' : undefined,
         domainPreview: (vendorLabSettings?.domainPreview && !vendorLabSettings.domainPreview.endsWith('.indianlalaji.com'))
           ? vendorLabSettings.domainPreview
@@ -1720,26 +1725,24 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     (currentLabItem?.remainingVisibilityDays !== undefined && currentLabItem.remainingVisibilityDays <= 0) ||
     (effectiveLabSettings?.remainingVisibilityDays !== undefined && effectiveLabSettings.remainingVisibilityDays <= 0);
 
-  const isPlanExpired =
-    isPlanExpiredByDate ||
-    isRemainingVisibilityZero ||
-    (currentLabItem?.status as any) === 'Expired' ||
-    (effectiveLabSettings?.status as any) === 'Expired' ||
-    Boolean(currentLabItem?.planStatusReason?.toLowerCase().includes('expired'));
+  // Check if laboratory has been approved and activated by Super Admin
+  const isApprovedAndActive =
+    (currentLabItem?.status === 'Active' && currentLabItem?.isWebsiteApproved !== false) ||
+    (effectiveLabSettings?.status === 'Active' && effectiveLabSettings?.isWebsiteApproved !== false) ||
+    currentLabItem?.isWebsiteApproved === true ||
+    effectiveLabSettings?.isWebsiteApproved === true;
 
-  // If expired, the website automatically becomes DRAFT mode and MUST NOT be viewed publicly!
-  const isDraftOrPending =
-    isPlanExpired ||
-    !currentLabItem ||
-    currentLabItem.status === 'Draft' ||
-    currentLabItem.status === 'Pending' ||
-    currentLabItem.status === 'Suspended' ||
-    (currentLabItem?.status as any) === 'Expired' ||
-    effectiveLabSettings?.status === 'Draft' ||
-    effectiveLabSettings?.status === 'Pending' ||
-    (effectiveLabSettings?.status as any) === 'Expired' ||
-    currentLabItem.isWebsiteApproved === false ||
-    effectiveLabSettings?.isWebsiteApproved === false;
+  const isPlanExpired =
+    !isApprovedAndActive &&
+    (isPlanExpiredByDate ||
+      isRemainingVisibilityZero ||
+      (currentLabItem?.status as any) === 'Expired' ||
+      (effectiveLabSettings?.status as any) === 'Expired' ||
+      Boolean(currentLabItem?.planStatusReason?.toLowerCase().includes('expired')));
+
+  // If approved and active, the website is published live and accessible across all devices!
+  // If not approved, or in Draft/Pending status, the website is locked in Draft mode
+  const isDraftOrPending = !isApprovedAndActive || isPlanExpired;
 
   if (isDraftOrPending && !isAdminPreviewingDraft) {
     return (

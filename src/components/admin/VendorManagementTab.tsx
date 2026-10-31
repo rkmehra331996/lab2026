@@ -383,15 +383,22 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     const labItem = typeof vendor === 'string' ? vendorLabsList.find((l) => l.id === vendor) : vendor;
     const labId = typeof vendor === 'string' ? vendor : vendor.id;
     selectVendorLab(labId);
-    if (isPreview || labItem?.status === 'Draft' || !labItem?.isWebsiteApproved || viewMode === 'drafts') {
+    const isLabDraft = labItem?.status === 'Draft' || !labItem?.isWebsiteApproved;
+    if (isPreview || (isLabDraft && viewMode === 'drafts')) {
       try {
         sessionStorage.setItem('admin_preview_draft', 'true');
         sessionStorage.setItem(`admin_preview_draft_${labId}`, 'true');
       } catch {}
+    } else {
+      try {
+        sessionStorage.removeItem('admin_preview_draft');
+        sessionStorage.removeItem(`admin_preview_draft_${labId}`);
+      } catch {}
     }
     try {
       const slug = labItem?.slug || labId.replace(/^lab-/, '');
-      window.history.pushState({}, '', `/shop/${slug}${isPreview || viewMode === 'drafts' ? '?preview=true' : ''}`);
+      const appendPreview = isPreview || (isLabDraft && viewMode === 'drafts');
+      window.history.pushState({}, '', `/shop/${slug}${appendPreview ? '?preview=true' : ''}`);
     } catch {}
     onNavigateView('vendor_website');
   };

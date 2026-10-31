@@ -189,6 +189,17 @@ export default function App() {
         selectVendorLab(existing.id);
         setSelectedVendorLabId(existing.id);
         setCurrentView(nextView);
+        // If lab is currently marked Draft locally, query server in background to get latest approved state
+        if (existing.status !== 'Active' || !existing.isWebsiteApproved) {
+          fetch(`/api/lab/${encodeURIComponent(cleanId)}`)
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.found && data.lab && (data.lab.status === 'Active' || data.lab.isWebsiteApproved)) {
+                injectCloudLab(data.lab, data.settings);
+              }
+            })
+            .catch(() => {});
+        }
         return;
       }
 

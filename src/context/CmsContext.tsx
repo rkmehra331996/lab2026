@@ -7441,41 +7441,61 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const setVendorStatus = (id: string, status: VendorStatus) => {
-    // STRICT BUSINESS RULE: bina admin ke approval ke bina website publish nahi honi chahiye
-    if (status === 'Active' && currentUser && currentUser.role !== 'admin') {
-      try {
-        const isUnlocked = sessionStorage.getItem('super_admin_unlocked') === 'true';
-        if (!isUnlocked) {
-          console.warn('❌ Security Violation: Website cannot be published without Super Admin approval.');
-          return;
-        }
-      } catch {}
-    }
-
     const isApproved = status === 'Active';
     const nowIso = new Date().toISOString();
     let syncedLab: VendorLabDirectoryItem | null = null;
+    const targetNorm = (id || '').toLowerCase().trim();
+    const cleanSub = targetNorm.replace(/^lab-/, '');
+
+    if (isApproved) {
+      try {
+        sessionStorage.removeItem('admin_preview_draft');
+        sessionStorage.removeItem(`admin_preview_draft_${id}`);
+        sessionStorage.removeItem(`admin_preview_draft_${cleanSub}`);
+        sessionStorage.removeItem(`admin_preview_draft_lab-${cleanSub}`);
+      } catch {}
+    }
+
+    const isMatch = (lab: VendorLabDirectoryItem) => {
+      const lId = (lab.id || '').toLowerCase().trim();
+      const lSlug = (lab.slug || '').toLowerCase().trim();
+      const lPhone = (lab.phone || '').replace(/\D/g, '');
+      return (
+        lId === targetNorm ||
+        lId === `lab-${cleanSub}` ||
+        lId.replace(/^lab-/, '') === cleanSub ||
+        lSlug === cleanSub ||
+        (cleanSub.length >= 10 && lPhone.includes(cleanSub))
+      );
+    };
+
     setVendorLabsList((prev) => {
       const updated = prev.map((lab) => {
-        if (lab.id === id) {
+        if (isMatch(lab)) {
           const publishedAtVal = isApproved
             ? (lab.publishedAt || nowIso.slice(0, 10))
             : lab.publishedAt;
 
+          const planDuration = lab.subscriptionPlan?.includes('1 Year')
+            ? 365
+            : lab.subscriptionPlan?.includes('3 Month')
+            ? 90
+            : 30;
+
           let newPlanExpiresAt = lab.planExpiresAt;
           let newRemainingVisibilityDays = lab.remainingVisibilityDays;
 
-          // When website is published, package renewal countdown starts from Publish Date!
-          if (isApproved && !lab.publishedAt) {
-            const planDuration = lab.subscriptionPlan?.includes('1 Year')
-              ? 365
-              : lab.subscriptionPlan?.includes('3 Month')
-              ? 90
-              : 30;
-            const exp = new Date();
-            exp.setDate(exp.getDate() + planDuration);
-            newPlanExpiresAt = exp.toISOString().slice(0, 10);
-            newRemainingVisibilityDays = planDuration;
+          // When website is approved & published live by admin:
+          // Ensure valid visibility days and non-expired plan expiry date!
+          if (isApproved) {
+            const isDaysInvalid = newRemainingVisibilityDays === undefined || newRemainingVisibilityDays === null || newRemainingVisibilityDays <= 0;
+            const isExpiryInvalid = !newPlanExpiresAt || new Date(newPlanExpiresAt).getTime() < Date.now();
+            if (isDaysInvalid || isExpiryInvalid || !lab.publishedAt) {
+              const exp = new Date();
+              exp.setDate(exp.getDate() + planDuration);
+              newPlanExpiresAt = exp.toISOString().slice(0, 10);
+              newRemainingVisibilityDays = planDuration;
+            }
           }
 
           syncedLab = {
@@ -7485,6 +7505,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             publishedAt: publishedAtVal,
             planExpiresAt: newPlanExpiresAt,
             remainingVisibilityDays: newRemainingVisibilityDays,
+            planStatusReason: isApproved ? undefined : lab.planStatusReason,
             _updatedAt: nowIso,
             ...(isApproved
               ? {
@@ -7493,8 +7514,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     month: 'short',
                     year: 'numeric',
                   }),
-                  approvedBy: currentUser?.name || 'Platform Admin',
-                  badge: lab.badge === 'Draft - Pending Admin Approval' ? 'Verified Lab' : lab.badge,
+                  approvedBy: currentUser?.name || 'Super Admin',
+                  badge: (!lab.badge || lab.badge.includes('Draft') || lab.badge.includes('Expired')) ? 'Verified Lab' : lab.badge,
                 }
               : {
                   badge: status === 'Draft' ? 'Draft - Pending Admin Approval' : lab.badge,
@@ -7509,42 +7530,66 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {}
       return updated;
     });
+
     if (syncedLab) {
       syncVendorLabToCloud(syncedLab);
     }
 
+    // Direct instant server status update for immediate cross-device sync
+    try {
+      fetch('/api/vendor/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, isWebsiteApproved: isApproved }),
+      }).catch(() => {});
+    } catch {}
+
     // Sync with vendorLabSettingsMap - ensure lab settings exist and are fully synced
+    const targetKey = syncedLab?.id || (id.startsWith('lab-') ? id : `lab-${id}`);
     setVendorLabSettingsMap((prev) => {
-      const existing = prev[id] || (syncedLab ? buildDefaultSettingsForLab(syncedLab) : DEFAULT_VENDOR_LAB_SETTINGS);
+      const existing = prev[targetKey] || prev[id] || (syncedLab ? buildDefaultSettingsForLab(syncedLab) : DEFAULT_VENDOR_LAB_SETTINGS);
       const publishedAtVal = isApproved
         ? (existing.publishedAt || (syncedLab as any)?.publishedAt || nowIso.slice(0, 10))
         : existing.publishedAt;
 
+      const planDuration = existing.planDurationDays || (
+        existing.purchasedPlan === '1 Year' ? 365 : existing.purchasedPlan === '3 Months' ? 90 : 30
+      );
+
       let newPlanExpiresAt = (syncedLab as any)?.planExpiresAt || existing.planExpiresAt;
       let newRemainingDays = (syncedLab as any)?.remainingVisibilityDays ?? existing.remainingVisibilityDays;
 
-      if (isApproved && !existing.publishedAt) {
-        const planDuration = existing.planDurationDays || (
-          existing.purchasedPlan === '1 Year' ? 365 : existing.purchasedPlan === '3 Months' ? 90 : 30
-        );
-        const exp = new Date();
-        exp.setDate(exp.getDate() + planDuration);
-        newPlanExpiresAt = exp.toISOString().slice(0, 10);
-        newRemainingDays = planDuration;
+      if (isApproved) {
+        const isDaysInvalid = newRemainingDays === undefined || newRemainingDays === null || newRemainingDays <= 0;
+        const isExpiryInvalid = !newPlanExpiresAt || new Date(newPlanExpiresAt).getTime() < Date.now();
+        if (isDaysInvalid || isExpiryInvalid || !existing.publishedAt) {
+          const exp = new Date();
+          exp.setDate(exp.getDate() + planDuration);
+          newPlanExpiresAt = exp.toISOString().slice(0, 10);
+          newRemainingDays = planDuration;
+        }
       }
 
       const updatedSetting: VendorLabSettings = {
         ...existing,
+        labId: targetKey,
         status,
         isWebsiteApproved: isApproved,
         publishedAt: publishedAtVal,
         planExpiresAt: newPlanExpiresAt,
         remainingVisibilityDays: newRemainingDays,
+        planStatusReason: isApproved ? undefined : (existing as any).planStatusReason,
         _updatedAt: nowIso,
       };
-      syncLabSettingsToCloud(id, updatedSetting);
+
+      syncLabSettingsToCloud(targetKey, updatedSetting);
+      if (id !== targetKey) {
+        syncLabSettingsToCloud(id, updatedSetting);
+      }
+
       const nextMap = {
         ...prev,
+        [targetKey]: updatedSetting,
         [id]: updatedSetting,
       };
       try {

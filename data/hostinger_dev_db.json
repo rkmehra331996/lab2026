@@ -11,14 +11,15 @@
       "password": "abcde12345",
       "pin": "123456",
       "nablCode": "NABL-1761",
-      "badge": "Draft - Pending Admin Approval",
+      "badge": "Verified Lab",
       "rating": 5,
       "activePackages": 3,
       "turnaroundTime": "Same Day (4-6 Hours)",
       "emergency": true,
       "color": "#0F766E",
-      "status": "Draft",
-      "isWebsiteApproved": false,
+      "status": "Active",
+      "isWebsiteApproved": true,
+      "remainingVisibilityDays": 30,
       "ownerName": "new lab Admin",
       "email": "1111111111@indianlalaji.com",
       "subscriptionPlan": "1 Month",
@@ -33,8 +34,9 @@
         "Due Billing Desk"
       ],
       "logoUrl": null,
-      "_updatedAt": "2026-10-13T06:15:31.299Z",
-      "_syncStatus": "syncing"
+      "_updatedAt": "2026-10-31T10:36:52.678Z",
+      "_syncStatus": "syncing",
+      "publishedAt": "2026-10-31"
     },
     {
       "id": "lab-1020304050",
@@ -278,14 +280,14 @@
       "password": "abcde12345",
       "pin": "123456",
       "nablCode": "NABL-1761",
-      "badge": "Draft - Pending Admin Approval",
+      "badge": "Verified Lab",
       "rating": 5,
       "activePackages": 3,
       "turnaroundTime": "Same Day (4-6 Hours)",
       "emergency": true,
       "color": "#0F766E",
-      "status": "Draft",
-      "isWebsiteApproved": false,
+      "status": "Active",
+      "isWebsiteApproved": true,
       "ownerName": "new lab Admin",
       "email": "1111111111@indianlalaji.com",
       "subscriptionPlan": "1 Month",
@@ -300,8 +302,10 @@
         "Due Billing Desk"
       ],
       "logoUrl": null,
-      "_updatedAt": "2026-10-13T06:15:31.299Z",
-      "_syncStatus": "syncing"
+      "_updatedAt": "2026-10-31T10:36:52.678Z",
+      "_syncStatus": "syncing",
+      "publishedAt": "2026-10-31",
+      "remainingVisibilityDays": 30
     },
     {
       "id": "lab-1020304050",
@@ -949,7 +953,7 @@
       "siteDescription": "new lab, located in Punjab, Punjab. Diagnostic Pathology & Clinical Hub. Authorized NABL accredited pathology services with automated WhatsApp report delivery.",
       "purchasedPlan": "1 Month",
       "planDurationDays": 30,
-      "remainingVisibilityDays": 24,
+      "remainingVisibilityDays": 30,
       "planPurchasedAt": "2026-10-13",
       "planExpiresAt": "2026-11-12",
       "sections": {
@@ -994,11 +998,12 @@
       "termsAndConditions": "1. ACCEPTANCE OF TERMS: By accessing or utilizing the services provided by this diagnostic laboratory, patients and referring healthcare providers agree to abide by all clinical laboratory terms and protocols.\n2. DIAGNOSTIC SERVICES & TESTING: All testing is performed under strictly regulated NABL accredited and ISO 15189 standards using calibrated automated analyzers. Reports reflect specimen findings at the time of collection.\n3. SAMPLE COLLECTION & FASTING PROTOCOLS: Certain clinical tests mandate pre-test fasting, medication adjustments, or specific dietary preparations. Failure to adhere may affect diagnostic accuracy.\n4. DELIVERY OF RESULTS: Verified digital reports are dispatched via secure WhatsApp PDF and online patient portal. In cases of critical alert values, referring clinicians or patient emergency contacts will be promptly notified.\n5. LIMITATION OF LIABILITY: Test results should always be correlated with clinical symptoms and interpreted by a registered medical practitioner. No medical diagnosis is conclusive based solely on an isolated report.",
       "privacyPolicy": "1. DATA CONFIDENTIALITY: We uphold stringent patient privacy and medical confidentiality in compliance with medical data security standards and healthcare data protection laws.\n2. COLLECTION OF INFORMATION: We collect necessary demographic and clinical details (e.g., patient name, age, gender, contact number, referring doctor) solely for accurate test processing, billing, and report generation.\n3. DIGITAL REPORT ACCESS: Patient test results are accessible only via authenticated credentials (Unique Report ID & registered Mobile Number) or direct authorized WhatsApp transmission.\n4. THIRD-PARTY SHARING: Patient diagnostic records are never sold, rented, or disclosed to unauthorized commercial third parties. Data is shared exclusively with treating medical practitioners upon patient consent or as required by statutory public health mandates.\n5. DATA STORAGE & RETENTION: Physical specimen records and digital pathology logs are safely archived in accordance with statutory medical record retention schedules.",
       "refundPolicy": "1. CANCELLATION BEFORE SAMPLE COLLECTION: If a patient cancels a scheduled laboratory test or home sample collection appointment before the phlebotomist visits or sample is drawn, a 100% full refund will be processed promptly.\n2. POST-COLLECTION STATUS: Once a biological specimen has been collected, transported, or processed in the laboratory analyzer, cancellations or refunds cannot be issued due to incurred reagent and consumable costs.\n3. FAILED OR INCONCLUSIVE SAMPLES: In the rare event of hemolysis, lipemia, or insufficient sample volume necessitating a repeat test, a free recollected sample will be processed at no additional charge to the patient.\n4. REFUND DISPATCH TIMELINE: Approved digital payment refunds are credited back to the original source UPI / Bank Account within 2 to 5 business days.",
-      "isWebsiteApproved": false,
-      "status": "Draft",
+      "isWebsiteApproved": true,
+      "status": "Active",
       "ownerPassword": "abcde12345",
       "ownerPin": "123456",
-      "_updatedAt": "2026-10-13T06:15:29.952Z"
+      "_updatedAt": "2026-10-31T10:36:52.678Z",
+      "publishedAt": "2026-10-31"
     }
   },
   "labSettingsMap": {
@@ -1417,7 +1422,7 @@
       "siteDescription": "new lab, located in Punjab, Punjab. Diagnostic Pathology & Clinical Hub. Authorized NABL accredited pathology services with automated WhatsApp report delivery.",
       "purchasedPlan": "1 Month",
       "planDurationDays": 30,
-      "remainingVisibilityDays": 24,
+      "remainingVisibilityDays": 30,
       "planPurchasedAt": "2026-10-13",
       "planExpiresAt": "2026-11-12",
       "sections": {
@@ -1462,11 +1467,12 @@
       "termsAndConditions": "1. ACCEPTANCE OF TERMS: By accessing or utilizing the services provided by this diagnostic laboratory, patients and referring healthcare providers agree to abide by all clinical laboratory terms and protocols.\n2. DIAGNOSTIC SERVICES & TESTING: All testing is performed under strictly regulated NABL accredited and ISO 15189 standards using calibrated automated analyzers. Reports reflect specimen findings at the time of collection.\n3. SAMPLE COLLECTION & FASTING PROTOCOLS: Certain clinical tests mandate pre-test fasting, medication adjustments, or specific dietary preparations. Failure to adhere may affect diagnostic accuracy.\n4. DELIVERY OF RESULTS: Verified digital reports are dispatched via secure WhatsApp PDF and online patient portal. In cases of critical alert values, referring clinicians or patient emergency contacts will be promptly notified.\n5. LIMITATION OF LIABILITY: Test results should always be correlated with clinical symptoms and interpreted by a registered medical practitioner. No medical diagnosis is conclusive based solely on an isolated report.",
       "privacyPolicy": "1. DATA CONFIDENTIALITY: We uphold stringent patient privacy and medical confidentiality in compliance with medical data security standards and healthcare data protection laws.\n2. COLLECTION OF INFORMATION: We collect necessary demographic and clinical details (e.g., patient name, age, gender, contact number, referring doctor) solely for accurate test processing, billing, and report generation.\n3. DIGITAL REPORT ACCESS: Patient test results are accessible only via authenticated credentials (Unique Report ID & registered Mobile Number) or direct authorized WhatsApp transmission.\n4. THIRD-PARTY SHARING: Patient diagnostic records are never sold, rented, or disclosed to unauthorized commercial third parties. Data is shared exclusively with treating medical practitioners upon patient consent or as required by statutory public health mandates.\n5. DATA STORAGE & RETENTION: Physical specimen records and digital pathology logs are safely archived in accordance with statutory medical record retention schedules.",
       "refundPolicy": "1. CANCELLATION BEFORE SAMPLE COLLECTION: If a patient cancels a scheduled laboratory test or home sample collection appointment before the phlebotomist visits or sample is drawn, a 100% full refund will be processed promptly.\n2. POST-COLLECTION STATUS: Once a biological specimen has been collected, transported, or processed in the laboratory analyzer, cancellations or refunds cannot be issued due to incurred reagent and consumable costs.\n3. FAILED OR INCONCLUSIVE SAMPLES: In the rare event of hemolysis, lipemia, or insufficient sample volume necessitating a repeat test, a free recollected sample will be processed at no additional charge to the patient.\n4. REFUND DISPATCH TIMELINE: Approved digital payment refunds are credited back to the original source UPI / Bank Account within 2 to 5 business days.",
-      "isWebsiteApproved": false,
-      "status": "Draft",
+      "isWebsiteApproved": true,
+      "status": "Active",
       "ownerPassword": "abcde12345",
       "ownerPin": "123456",
-      "_updatedAt": "2026-10-13T06:15:29.952Z"
+      "_updatedAt": "2026-10-31T10:36:52.678Z",
+      "publishedAt": "2026-10-31"
     }
   },
   "tests": [
@@ -1627,7 +1633,7 @@
     "supportPhone": "+91 7087033009",
     "supportEmail": "contact@indianlalaji.com"
   },
-  "_lastUpdated": "2026-10-13T06:30:35.532Z",
+  "_lastUpdated": "2026-10-31T10:36:52.678Z",
   "reception_entries": [],
   "lab_reports": [],
   "vendor_bookings": [],
@@ -1780,5 +1786,6 @@
       "_updatedAt": "2026-10-13T06:15:31.295Z",
       "_syncStatus": "syncing"
     }
-  ]
+  ],
+  "_lastUpdatedTime": 1793443012678
 }

@@ -30,7 +30,7 @@ function readDevDb(): Record<string, any> {
       const raw = fs.readFileSync(DB_FILE, 'utf-8');
       const store = JSON.parse(raw);
       // Ensure 6 shops are always present
-      if (!store.vendorLabs || store.vendorLabs.length === 0 || !store.vendor_labs || store.vendor_labs.length === 0) {
+      if ((!store.vendorLabs || store.vendorLabs.length === 0) && (!store.vendor_labs || store.vendor_labs.length === 0)) {
         const seedLabsPath = path.join(__dirname, 'public', 'api', 'data', 'vendor_labs.json');
         if (fs.existsSync(seedLabsPath)) {
           const labs = JSON.parse(fs.readFileSync(seedLabsPath, 'utf-8'));
@@ -40,6 +40,11 @@ function readDevDb(): Record<string, any> {
       }
 
       // Mutual alias synchronization
+      if (store.vendor_labs && (!store.vendorLabs || store.vendorLabs.length === 0)) store.vendorLabs = store.vendor_labs;
+      else if (store.vendorLabs && (!store.vendor_labs || store.vendor_labs.length === 0)) store.vendor_labs = store.vendorLabs;
+      if (store.lab_settings && (!store.labSettingsMap || Object.keys(store.labSettingsMap).length === 0)) store.labSettingsMap = store.lab_settings;
+      else if (store.labSettingsMap && (!store.lab_settings || Object.keys(store.lab_settings).length === 0)) store.lab_settings = store.labSettingsMap;
+
       if (store.reception_entries && !store.receptionEntries) store.receptionEntries = store.reception_entries;
       else if (store.receptionEntries && !store.reception_entries) store.reception_entries = store.receptionEntries;
       if (store.lab_reports && !store.reports) store.reports = store.lab_reports;
@@ -481,6 +486,37 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
     if (matchedLab) {
       const labId = matchedLab.id;
       const labSettings = settingsMap[labId] || null;
+
+      // Ensure active status consistency across devices
+      const isActuallyActive =
+        matchedLab.status === 'Active' ||
+        matchedLab.isWebsiteApproved === true ||
+        labSettings?.status === 'Active' ||
+        labSettings?.isWebsiteApproved === true;
+
+      const unifiedLab = isActuallyActive
+        ? {
+            ...matchedLab,
+            status: 'Active',
+            isWebsiteApproved: true,
+            badge: matchedLab.badge && !matchedLab.badge.includes('Draft') ? matchedLab.badge : 'Verified Lab',
+            remainingVisibilityDays: Math.max(matchedLab.remainingVisibilityDays || labSettings?.remainingVisibilityDays || 30, 1),
+          }
+        : matchedLab;
+
+      const unifiedSettings = labSettings
+        ? {
+            ...labSettings,
+            ...(isActuallyActive
+              ? {
+                  status: 'Active',
+                  isWebsiteApproved: true,
+                  remainingVisibilityDays: Math.max(labSettings.remainingVisibilityDays || matchedLab.remainingVisibilityDays || 30, 1),
+                }
+              : {}),
+          }
+        : null;
+
       const labTests = tests.filter((t: any) => !t.labId || t.labId === labId || t.labId === 'all');
       const labPackages = packages.filter((p: any) => !p.labId || p.labId === labId || p.labId === 'all');
       const labDoctors = doctors.filter((d: any) => !d.labId || d.labId === labId || d.labId === 'all');
@@ -489,8 +525,8 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
       return res.json({
         status: 'success',
         found: true,
-        lab: matchedLab,
-        settings: labSettings,
+        lab: unifiedLab,
+        settings: unifiedSettings,
         tests: labTests,
         packages: labPackages,
         doctors: labDoctors,
@@ -503,6 +539,95 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
       found: false,
       message: `Laboratory '${rawId}' was not found in directory.`,
     });
+  });
+
+  // Dedicated instant vendor status update endpoint for real-time multi-device activation
+  app.post(['/api/vendor/status', '/api/vendor-status'], (req, res) => {
+    try {
+      const { id, status = 'Active', isWebsiteApproved = true } = req.body || {};
+      if (!id) {
+        return res.status(400).json({ status: 'error', message: 'Lab ID is required' });
+      }
+
+      const store = readDevDb();
+      const targetId = String(id).trim();
+      const targetLower = targetId.toLowerCase();
+      const cleanSlug = targetLower.replace(/^lab-/, '');
+
+      const isApproved = status === 'Active' || isWebsiteApproved === true;
+      const nowIso = new Date().toISOString();
+
+      let matched = false;
+      const updateLab = (l: any) => {
+        const lId = (l.id || '').toLowerCase();
+        const lSlug = (l.slug || '').toLowerCase();
+        const lPhone = (l.phone || '').replace(/\D/g, '');
+        const isMatch =
+          lId === targetLower ||
+          lId === `lab-${targetLower}` ||
+          lId.replace(/^lab-/, '') === cleanSlug ||
+          lSlug === cleanSlug ||
+          (cleanSlug.length >= 10 && lPhone.includes(cleanSlug));
+
+        if (isMatch) {
+          matched = true;
+          return {
+            ...l,
+            status: isApproved ? 'Active' : status,
+            isWebsiteApproved: isApproved,
+            badge: isApproved ? 'Verified Lab' : 'Draft - Pending Admin Approval',
+            publishedAt: isApproved ? (l.publishedAt || nowIso.slice(0, 10)) : l.publishedAt,
+            remainingVisibilityDays: isApproved ? Math.max(l.remainingVisibilityDays || 30, 1) : l.remainingVisibilityDays,
+            _updatedAt: nowIso,
+          };
+        }
+        return l;
+      };
+
+      if (Array.isArray(store.vendor_labs)) {
+        store.vendor_labs = store.vendor_labs.map(updateLab);
+      }
+      if (Array.isArray(store.vendorLabs)) {
+        store.vendorLabs = store.vendorLabs.map(updateLab);
+      }
+
+      if (!store.lab_settings) store.lab_settings = {};
+      if (!store.labSettingsMap) store.labSettingsMap = {};
+
+      const settingsKeys = Object.keys(store.lab_settings);
+      const matchedSettingsKey = settingsKeys.find(
+        (k) =>
+          k.toLowerCase() === targetLower ||
+          k.toLowerCase() === `lab-${targetLower}` ||
+          k.toLowerCase().replace(/^lab-/, '') === cleanSlug
+      ) || targetId;
+
+      const existingSet = store.lab_settings[matchedSettingsKey] || store.labSettingsMap[matchedSettingsKey] || {};
+      const updatedSet = {
+        ...existingSet,
+        status: isApproved ? 'Active' : status,
+        isWebsiteApproved: isApproved,
+        publishedAt: isApproved ? (existingSet.publishedAt || nowIso.slice(0, 10)) : existingSet.publishedAt,
+        remainingVisibilityDays: isApproved ? Math.max(existingSet.remainingVisibilityDays || 30, 1) : existingSet.remainingVisibilityDays,
+        _updatedAt: nowIso,
+      };
+
+      store.lab_settings[matchedSettingsKey] = updatedSet;
+      store.labSettingsMap[matchedSettingsKey] = updatedSet;
+
+      writeDevDb(store);
+
+      return res.json({
+        status: 'success',
+        success: true,
+        matched,
+        id: targetId,
+        labStatus: isApproved ? 'Active' : status,
+        isWebsiteApproved: isApproved,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ status: 'error', message: err.message });
+    }
   });
 
   // 2. Fetch all sync data or collection
@@ -648,9 +773,21 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
           store.labSettingsMap[labId] = { ...(store.labSettingsMap[labId] || {}), ...data };
 
           const updateLabEntry = (l: any) => {
-            if (l.id === labId) {
+            const isMatch =
+              l.id === labId ||
+              l.id === `lab-${labId}` ||
+              l.id.replace(/^lab-/, '') === String(labId).replace(/^lab-/, '') ||
+              (data.phone && l.phone && l.phone.replace(/\D/g, '') === String(data.phone).replace(/\D/g, ''));
+
+            if (isMatch) {
               return {
                 ...l,
+                ...(data.status !== undefined ? { status: data.status } : {}),
+                ...(data.isWebsiteApproved !== undefined ? { isWebsiteApproved: Boolean(data.isWebsiteApproved) } : {}),
+                ...(data.publishedAt !== undefined ? { publishedAt: data.publishedAt } : {}),
+                ...(data.planExpiresAt !== undefined ? { planExpiresAt: data.planExpiresAt } : {}),
+                ...(data.remainingVisibilityDays !== undefined ? { remainingVisibilityDays: data.remainingVisibilityDays } : {}),
+                ...(data.badge !== undefined ? { badge: data.badge } : {}),
                 ...(data.phone !== undefined ? { phone: data.phone } : {}),
                 ...(data.address !== undefined ? { address: data.address } : {}),
                 ...(data.email !== undefined ? { email: data.email } : {}),
@@ -800,6 +937,26 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
         }
         for (const k of targetKeys) {
           store[k] = store[key];
+        }
+
+        if ((key === 'vendor_labs' || key === 'vendorLabs') && targetId && data) {
+          if (!store.lab_settings) store.lab_settings = {};
+          if (!store.labSettingsMap) store.labSettingsMap = {};
+          const settingsKey = String(targetId).startsWith('lab-') ? String(targetId) : `lab-${targetId}`;
+          const currentSet = store.lab_settings[settingsKey] || store.lab_settings[targetId] || {};
+          const nextSet = {
+            ...currentSet,
+            ...(data.status !== undefined ? { status: data.status } : {}),
+            ...(data.isWebsiteApproved !== undefined ? { isWebsiteApproved: Boolean(data.isWebsiteApproved) } : {}),
+            ...(data.publishedAt !== undefined ? { publishedAt: data.publishedAt } : {}),
+            ...(data.planExpiresAt !== undefined ? { planExpiresAt: data.planExpiresAt } : {}),
+            ...(data.remainingVisibilityDays !== undefined ? { remainingVisibilityDays: data.remainingVisibilityDays } : {}),
+            _updatedAt: new Date().toISOString(),
+          };
+          store.lab_settings[settingsKey] = nextSet;
+          store.lab_settings[targetId] = nextSet;
+          store.labSettingsMap[settingsKey] = nextSet;
+          store.labSettingsMap[targetId] = nextSet;
         }
       }
     }

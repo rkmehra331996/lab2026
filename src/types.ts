@@ -406,6 +406,7 @@ export interface VendorLabSettings {
   publishedAt?: string;
   planDurationDays?: number;
   remainingVisibilityDays?: number;
+  planStatusReason?: string;
   // Booking Form Settings
   bookingTiming?: string;
   bookingTimeSlots?: string[];
