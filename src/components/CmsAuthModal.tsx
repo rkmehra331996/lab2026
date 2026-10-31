@@ -1397,20 +1397,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
               ) : (
                 /* Registration Form */
                 <form onSubmit={handleCreateLabSubmit} className="space-y-4">
-                  {/* Title Header */}
-                  <div className="border-b border-slate-200 pb-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-black text-[#123B6D]">Create Laboratory</h4>
-                      <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                        <Clock className="w-2.5 h-2.5 text-amber-700" />
-                        <span>Saves to Draft Mode</span>
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Enter laboratory information and owner credentials. Lab pehle <strong>Draft</strong> me jayegi, uske baad <strong>Admin Approval</strong> ke baad website publish hogi.
-                    </p>
-                  </div>
-
                   {/* GROUP 1: Details */}
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                     <div className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
