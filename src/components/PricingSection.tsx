@@ -23,7 +23,7 @@ interface PricingSectionProps {
 }
 
 export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) => {
-  const { pricingPlans, openRegisterLabModal, companySettings } = useCms();
+  const { pricingPlans, companySettings } = useCms();
   const [activeSlide, setActiveSlide] = useState(2); // Default to 3 Months (index 2)
 
   // Dynamic UPI Plan Modal State
@@ -284,53 +284,29 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
 
                   <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
                     {isDemo ? (
-                      <>
-                        <button
-                          onClick={() => {
-                            if (onOpenDemo) onOpenDemo();
-                            else openRegisterLabModal(activeMobilePlan.name);
-                          }}
-                          className="w-full py-3 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-98"
-                        >
-                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Start Free Demo • 1 Day Access</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openRegisterLabModal('Free Demo Plan')}
-                          className="w-full py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Register Lab for Free Demo (₹0)</span>
-                        </button>
-                      </>
+                      <button
+                        onClick={() => {
+                          if (onOpenDemo) onOpenDemo();
+                        }}
+                        className="w-full py-3 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-98"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Start Free Demo • 1 Day Access</span>
+                      </button>
                     ) : (
-                      <>
-                        <button
-                          onClick={() => openRegisterLabModal(activeMobilePlan.name)}
-                          className={`w-full py-3 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer ${
-                            isHighlighted
-                              ? 'bg-[#123B6D] hover:bg-[#0e2c52] text-white shadow-md active:scale-98'
-                              : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-98'
-                          }`}
-                        >
-                          <span>Choose {planDisplayName} • Register Lab</span>
-                          <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedUpiPlan(activeMobilePlan);
-                            setIsUpiModalOpen(true);
-                            setIsSubmitted(false);
-                            setUtrNumber('');
-                          }}
-                          className="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                        >
-                          <QrCode className="w-3.5 h-3.5 text-amber-600" />
-                          <span>Pay ₹{price.toLocaleString('en-IN')} via Dynamic UPI QR</span>
-                        </button>
-                      </>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedUpiPlan(activeMobilePlan);
+                          setIsUpiModalOpen(true);
+                          setIsSubmitted(false);
+                          setUtrNumber('');
+                        }}
+                        className="w-full py-3 rounded-xl border border-amber-300 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98"
+                      >
+                        <QrCode className="w-4 h-4 text-slate-950" />
+                        <span>Pay ₹{price.toLocaleString('en-IN')} via Dynamic UPI QR</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -500,53 +476,29 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
 
                 <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
                   {isDemo ? (
-                    <>
-                      <button
-                        onClick={() => {
-                          if (onOpenDemo) onOpenDemo();
-                          else openRegisterLabModal(plan.name);
-                        }}
-                        className="w-full py-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-98"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                        <span>Start Free Demo (1 Day)</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openRegisterLabModal('Free Demo Plan')}
-                        className="w-full py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 font-black text-xs transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Register Lab Free</span>
-                      </button>
-                    </>
+                    <button
+                      onClick={() => {
+                        if (onOpenDemo) onOpenDemo();
+                      }}
+                      className="w-full py-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-98"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Start Free Demo (1 Day)</span>
+                    </button>
                   ) : (
-                    <>
-                      <button
-                        onClick={() => openRegisterLabModal(plan.name)}
-                        className={`w-full py-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
-                          isHighlighted
-                            ? 'bg-[#123B6D] hover:bg-[#0e2c52] text-white shadow-md hover:shadow-lg active:scale-98'
-                            : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-98'
-                        }`}
-                      >
-                        <span>Choose {plan.name}</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedUpiPlan(plan);
-                          setIsUpiModalOpen(true);
-                          setIsSubmitted(false);
-                          setUtrNumber('');
-                        }}
-                        className="w-full py-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 font-black text-[11px] transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
-                      >
-                        <QrCode className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Pay ₹{price.toLocaleString('en-IN')} via UPI QR</span>
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedUpiPlan(plan);
+                        setIsUpiModalOpen(true);
+                        setIsSubmitted(false);
+                        setUtrNumber('');
+                      }}
+                      className="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md active:scale-98"
+                    >
+                      <QrCode className="w-4 h-4 text-slate-950" />
+                      <span>Pay ₹{price.toLocaleString('en-IN')} via UPI QR</span>
+                    </button>
                   )}
                 </div>
               </div>

@@ -215,17 +215,17 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
   // (No Superadmin login, No Create Laboratory option inside vendor's lab)
   const effectiveIsVendor = Boolean(isVendorContext);
 
-  // Sync tab with context when modal opens or target role changes
+  // Always ensure login tab is active
   useEffect(() => {
-    if (effectiveIsVendor) {
-      setActiveTab('login');
-    } else if (targetLoginRole === 'admin') {
-      setActiveTab('login');
-      setMainRole('super_admin');
-    } else if (authModalTab) {
-      setActiveTab(authModalTab);
+    setActiveTab('login');
+    if (!effectiveIsVendor) {
+      if (targetLoginRole === 'admin') {
+        setMainRole('super_admin');
+      } else if (targetLoginRole === 'vendor') {
+        setMainRole('vendor_owner');
+      }
     }
-  }, [authModalTab, isOpen, effectiveIsVendor, targetLoginRole]);
+  }, [isOpen, effectiveIsVendor, targetLoginRole]);
 
   useEffect(() => {
     if (effectiveIsVendor) {
@@ -662,8 +662,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
             <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-sm shadow-md shrink-0">
               {effectiveIsVendor ? (
                 <Building className="w-5 h-5 text-slate-950" />
-              ) : activeTab === 'register' ? (
-                <Building2 className="w-5 h-5 text-slate-950" />
               ) : (
                 <Crown className="w-5 h-5 text-slate-950" />
               )}
@@ -675,13 +673,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     <span>Lab Portal Login</span>
                     <span className="text-[11px] bg-white/20 px-2 py-0.5 rounded-full font-bold">
                       {activeLabDisplayName.slice(0, 20)}...
-                    </span>
-                  </>
-                ) : activeTab === 'register' ? (
-                  <>
-                    <span>Create Laboratory</span>
-                    <span className="text-[11px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-black uppercase">
-                      New Registration
                     </span>
                   </>
                 ) : (
@@ -696,8 +687,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
               <p className="text-[11px] text-slate-300">
                 {effectiveIsVendor
                   ? 'Role-based access: Lab Admin • Receptionist • Technician'
-                  : activeTab === 'register'
-                  ? 'Provision diagnostic laboratory, owner credentials & WhatsApp report sync'
                   : 'Main Platform: SuperAdmin (Full Access) & Admin Lab Owner (Assigned)'}
               </p>
             </div>
@@ -711,46 +700,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Modal Navigation Tabs (Only shown on Main Website or when switching to Super Admin) */}
-        {!effectiveIsVendor && (
-          <div className="flex border-b border-slate-200 bg-slate-50 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('login');
-                setCreatedLabData(null);
-                setLoginError('');
-              }}
-              className={`flex-1 py-3 px-4 text-xs font-bold transition flex items-center justify-center gap-2 border-b-2 cursor-pointer ${
-                activeTab === 'login'
-                  ? 'border-[#123B6D] text-[#123B6D] bg-white'
-                  : 'border-transparent text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <KeyRound className="w-4 h-4 text-amber-500" />
-              <span>Portal Login (लॉगिन)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('register');
-                setCreateError('');
-              }}
-              className={`flex-1 py-3 px-4 text-xs font-bold transition flex items-center justify-center gap-2 border-b-2 cursor-pointer ${
-                activeTab === 'register'
-                  ? 'border-[#123B6D] text-[#123B6D] bg-white'
-                  : 'border-transparent text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <Building2 className="w-4 h-4 text-emerald-600" />
-              <span>Create Laboratory (नई लैब बनाएं)</span>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black">
-                FREE
-              </span>
-            </button>
-          </div>
-        )}
 
         {/* Modal Scrollable Body */}
         <div className="p-4 sm:p-6 overflow-y-auto">

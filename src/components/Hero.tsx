@@ -40,7 +40,7 @@ export const Hero: React.FC<HeroProps> = ({
   onLaunchLabShop,
   language = 'en',
 }) => {
-  const { companySettings, openRegisterLabModal, selectedVendorLabId, selectVendorLab } = useCms();
+  const { companySettings, selectedVendorLabId, selectVendorLab } = useCms();
   const t = (language && TRANSLATIONS[language]) || TRANSLATIONS['en'];
 
   // Dynamic CMS copy
@@ -131,7 +131,7 @@ export const Hero: React.FC<HeroProps> = ({
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 id="hero-btn-start"
-                onClick={openRegisterLabModal}
+                onClick={onOpenDemo}
                 className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-8 py-3.5 rounded-xl font-bold text-sm transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
                 <span>{t.getStarted}</span>

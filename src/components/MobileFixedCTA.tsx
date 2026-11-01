@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Building2 } from 'lucide-react';
+import { MessageSquare, PhoneCall } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 
 interface MobileFixedCTAProps {
@@ -8,7 +8,7 @@ interface MobileFixedCTAProps {
 }
 
 export const MobileFixedCTA: React.FC<MobileFixedCTAProps> = () => {
-  const { openRegisterLabModal, companySettings } = useCms();
+  const { companySettings } = useCms();
   const phone = companySettings?.supportPhone || '+91 7087033009';
   const cleanPhone = phone.replace(/\D/g, '');
 
@@ -32,15 +32,15 @@ export const MobileFixedCTA: React.FC<MobileFixedCTAProps> = () => {
           <span>WHATSAPP</span>
         </button>
 
-        {/* Create Lab Button */}
-        <button
-          onClick={openRegisterLabModal}
+        {/* Call Helpline Button */}
+        <a
+          href={`tel:${phone}`}
           className="h-11 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-98 cursor-pointer"
-          aria-label="Create Your Lab"
+          aria-label="Call Support Helpline"
         >
-          <Building2 className="w-4 h-4 text-amber-300" />
-          <span>CREATE LAB</span>
-        </button>
+          <PhoneCall className="w-4 h-4 text-amber-300" />
+          <span>CALL SUPPORT</span>
+        </a>
       </div>
     </div>
   );
