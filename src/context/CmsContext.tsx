@@ -5444,6 +5444,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 1. SUPER ADMIN: Check if user is Super Admin by role, email, or username
     const isSuperAdminEmail =
+      inputIdentifier === 'rkmehra331996@gmail.com' ||
+      inputIdentifier === 'rkmehra331996' ||
       inputIdentifier === 'pageguru1@gmail.com' ||
       inputIdentifier === 'therkmehra331996@gmail.com' ||
       inputIdentifier === 'superadmin@indianlalaji.com' ||
@@ -5471,6 +5473,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (role === 'admin' || isSuperAdminEmail) {
       // Validate Super Admin Password
       const validAdminPasswords = [
+        'Asdfzxcv@336699Mom',
+        'asdfzxcv@336699mom',
         'Asdfzxcv@336699',
         'asdfzxcv@336699',
         'Asdfzxcv@331996@#',
@@ -5502,7 +5506,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       user = {
         id: 'usr-admin-super',
         name: 'Super Admin',
-        email: email || 'pageguru1@gmail.com',
+        email: email || 'rkmehra331996@gmail.com',
         role: 'admin',
         entityName: 'Diagnostic SaaS Portal Central System',
         labId: 'all',

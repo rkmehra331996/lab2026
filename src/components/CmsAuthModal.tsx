@@ -504,6 +504,8 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
 
       // Auto-detect Super Admin credentials entered in Lab login modal
       const isSuperAdminEmail =
+        cleanInput === 'rkmehra331996@gmail.com' ||
+        cleanInput === 'rkmehra331996' ||
         cleanInput === 'pageguru1@gmail.com' ||
         cleanInput === 'therkmehra331996@gmail.com' ||
         cleanInput === 'superadmin@indianlalaji.com' ||
@@ -598,6 +600,8 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
       const last10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : cleanDigits;
 
       const isSuperAdminEmail =
+        cleanInput === 'rkmehra331996@gmail.com' ||
+        cleanInput === 'rkmehra331996' ||
         cleanInput === 'pageguru1@gmail.com' ||
         cleanInput === 'therkmehra331996@gmail.com' ||
         cleanInput === 'superadmin@indianlalaji.com' ||
