@@ -1096,25 +1096,30 @@ export async function getCanonicalReportPdfBlob(report: LabReport): Promise<{
 }
 
 /**
- * Downloads the exact same canonical PDF file (conditioned on complete payment)
+ * Verifies if report payment is 100% complete
+ */
+export function isReportPaymentComplete(report: Partial<LabReport> | null | undefined): boolean {
+  if (!report) return false;
+  const due = Number(report.dueAmount ?? 0);
+  const paid = Number(report.paidAmount ?? 0);
+  const total = Number(report.totalAmount ?? (report as any).totalCharge ?? 0);
+  const status = String(report.paymentStatus || '').toLowerCase().trim();
+
+  if (due > 0) return false;
+  if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment') return false;
+  if (total > 0 && paid < total) return false;
+  if (status === 'full payment' || status === 'paid' || status === 'completed') return true;
+  if (due <= 0 && (!status || status !== 'pending')) return true;
+  return false;
+}
+
+/**
+ * Downloads the exact same canonical PDF file (conditioned on 100% complete payment)
  */
 export async function downloadReportPdf(report: LabReport, prebuiltDoc?: jsPDF): Promise<boolean> {
   try {
-    const statusLower = (report.paymentStatus || '').toLowerCase();
-    const isDuePending = Boolean(
-      (report.dueAmount !== undefined && report.dueAmount > 0) ||
-      statusLower === 'pending' ||
-      statusLower === 'partial' ||
-      statusLower === 'due' ||
-      (report.paymentStatus !== undefined &&
-        statusLower !== 'full payment' &&
-        statusLower !== 'paid' &&
-        statusLower !== 'completed' &&
-        (report.dueAmount ?? 0) > 0)
-    );
-
-    if (isDuePending) {
-      console.warn(`[SECURITY] Cannot download report ${report.reportId}: Full payment is pending (Due: ₹${report.dueAmount || 0}).`);
+    if (!isReportPaymentComplete(report)) {
+      console.warn(`[SECURITY] Cannot download report ${report.reportId}: 100% payment is not complete (Due: ₹${report.dueAmount || 0}).`);
       return false;
     }
 
@@ -1135,25 +1140,12 @@ export async function downloadReportPdf(report: LabReport, prebuiltDoc?: jsPDF):
 export const generateReportPdf = downloadReportPdf;
 
 /**
- * Prints the exact canonical PDF document directly using browser iframe (conditioned on complete payment)
+ * Prints the exact canonical PDF document directly using browser iframe (conditioned on 100% complete payment)
  */
 export async function printCanonicalReportPdf(report: LabReport, existingBlobUrl?: string): Promise<boolean> {
   try {
-    const statusLower = (report.paymentStatus || '').toLowerCase();
-    const isDuePending = Boolean(
-      (report.dueAmount !== undefined && report.dueAmount > 0) ||
-      statusLower === 'pending' ||
-      statusLower === 'partial' ||
-      statusLower === 'due' ||
-      (report.paymentStatus !== undefined &&
-        statusLower !== 'full payment' &&
-        statusLower !== 'paid' &&
-        statusLower !== 'completed' &&
-        (report.dueAmount ?? 0) > 0)
-    );
-
-    if (isDuePending) {
-      console.warn(`[SECURITY] Cannot print report ${report.reportId}: Full payment is pending.`);
+    if (!isReportPaymentComplete(report)) {
+      console.warn(`[SECURITY] Cannot print report ${report.reportId}: 100% payment is not complete.`);
       return false;
     }
 

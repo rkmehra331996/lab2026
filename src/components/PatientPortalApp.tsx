@@ -197,15 +197,57 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [matchedList, setMatchedList] = useState<Array<{ type: 'report' | 'entry'; report?: LabReport; entry?: ReceptionPatientEntry }>>([]);
 
-  // Calculate active due amount
-  const activeDueAmount =
-    matchedEntry !== null && matchedEntry.dueAmount !== undefined
-      ? matchedEntry.dueAmount
-      : searchedReport?.dueAmount !== undefined
-      ? searchedReport.dueAmount
-      : 0;
+  // 100% Payment Clearance Verification: Patient can ONLY view report if payment is 100% complete
+  const isPayment100PercentComplete = React.useMemo(() => {
+    // 1. Check matched reception entry if present
+    if (matchedEntry) {
+      const due = Number(matchedEntry.dueAmount ?? 0);
+      const paid = Number(matchedEntry.paidAmount ?? 0);
+      const total = Number(matchedEntry.totalAmount ?? 0);
+      const status = String(matchedEntry.paymentStatus || '').toLowerCase().trim();
 
-  const isPaymentPending = activeDueAmount > 0;
+      if (due > 0) return false;
+      if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment') return false;
+      if (total > 0 && paid < total) return false;
+      if (status === 'full payment' || status === 'paid' || status === 'completed') return true;
+      if (due <= 0 && paid >= total) return true;
+    }
+
+    // 2. Check searched report
+    if (searchedReport) {
+      const due = Number(searchedReport.dueAmount ?? 0);
+      const paid = Number(searchedReport.paidAmount ?? 0);
+      const total = Number(searchedReport.totalAmount ?? (searchedReport as any).totalCharge ?? 0);
+      const status = String(searchedReport.paymentStatus || '').toLowerCase().trim();
+
+      if (due > 0) return false;
+      if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment') return false;
+      if (total > 0 && paid < total) return false;
+      if (status === 'full payment' || status === 'paid' || status === 'completed') return true;
+      if (due <= 0 && (!status || status !== 'pending')) return true;
+    }
+
+    return true;
+  }, [matchedEntry, searchedReport]);
+
+  const isPaymentPending = !isPayment100PercentComplete;
+
+  // Calculate active due amount
+  const activeDueAmount = React.useMemo(() => {
+    const fromEntry = matchedEntry?.dueAmount !== undefined ? Number(matchedEntry.dueAmount) : 0;
+    const fromReport = searchedReport?.dueAmount !== undefined ? Number(searchedReport.dueAmount) : 0;
+    const fromCalc = (matchedEntry?.totalAmount && matchedEntry?.paidAmount)
+      ? Math.max(0, Number(matchedEntry.totalAmount) - Number(matchedEntry.paidAmount))
+      : (searchedReport?.totalAmount && searchedReport?.paidAmount)
+      ? Math.max(0, Number(searchedReport.totalAmount) - Number(searchedReport.paidAmount))
+      : 0;
+    const due = Math.max(fromEntry, fromReport, fromCalc);
+    if (due > 0) return due;
+    if (isPaymentPending) {
+      return Number(matchedEntry?.totalAmount || searchedReport?.totalAmount || 500);
+    }
+    return 0;
+  }, [matchedEntry, searchedReport, isPaymentPending]);
 
   // Real-time auto-sync for patient screen (Instant updates on client phone when lab changes anything)
   useEffect(() => {
@@ -1436,8 +1478,96 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
           </div>
         )}
 
-        {/* THE AUTHENTICATED REPORT VIEW: SHOWN ONLY WHEN MATCHED SUCCESSFULLY */}
-        {searchedReport && (
+        {/* WHEN REPORT IS FOUND BUT PAYMENT IS NOT 100% COMPLETE: REPORT IS STRICTLY LOCKED */}
+        {searchedReport && isPaymentPending && (
+          <div className="space-y-4 animate-in fade-in duration-200">
+            {/* Top Bar with Patient Name and Close */}
+            <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-2xl border border-slate-200 shadow-2xs no-print">
+              <div className="flex items-center gap-2 truncate">
+                <FileText className="w-4 h-4 text-amber-600 shrink-0" />
+                <span className="text-xs font-bold text-slate-800 truncate">
+                  Report: <strong className="text-slate-900">{searchedReport.patientName}</strong> <span className="text-slate-500 font-mono text-[11px]">({searchedReport.reportId})</span>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleResetSearch}
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition flex items-center gap-1 cursor-pointer shrink-0"
+                title="Close report and search another"
+              >
+                <X className="w-3.5 h-3.5 text-slate-500" />
+                <span>Close</span>
+              </button>
+            </div>
+
+            {/* Locked Screen Card */}
+            <div className="bg-white rounded-2xl border-2 border-amber-300 shadow-sm p-6 sm:p-8 space-y-6 text-center no-print">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+                <Lock className="w-8 h-8 text-amber-600" />
+              </div>
+
+              <div className="space-y-2 max-w-lg mx-auto">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Report View Locked • Payment Incomplete</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                  Payment 100% Complete Nahi Hai
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-700 font-semibold leading-relaxed">
+                  “Aapki report ready hai, lekin payment 100% complete na hone ki wajah se report view nahi ki ja sakti. Baki bachi payment jama hone ke baad hi complete report khulegi.”
+                </p>
+              </div>
+
+              {/* Patient Details & Due Summary Box */}
+              <div className="max-w-md mx-auto bg-slate-50 rounded-xl p-4 border border-slate-200 text-xs space-y-2.5 text-left">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span className="text-slate-500 font-bold">Patient Name:</span>
+                  <span className="font-black text-slate-900">{searchedReport.patientName}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span className="text-slate-500 font-bold">Report ID / Token:</span>
+                  <span className="font-mono font-black text-[#123B6D]">{searchedReport.reportId}</span>
+                </div>
+                <div className="flex items-center justify-between pt-0.5">
+                  <span className="text-slate-700 font-bold">Pending Due Balance:</span>
+                  <span className="font-mono font-black text-base text-rose-600">₹{activeDueAmount}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPayOnlineModal(true)}
+                  className="w-full sm:flex-1 bg-[#123B6D] hover:bg-[#0c294d] text-white py-3 px-5 rounded-xl text-xs sm:text-sm font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <CreditCard className="w-4 h-4 text-amber-300" />
+                  <span>Pay ₹{activeDueAmount} &amp; Unlock Report</span>
+                </button>
+
+                <a
+                  href={`tel:${labPhone}`}
+                  className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Phone className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Call Lab Reception</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={handleResetSearch}
+                  className="w-full sm:w-auto text-slate-500 hover:text-slate-800 py-3 px-3 rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* THE AUTHENTICATED REPORT VIEW: SHOWN ONLY WHEN PAYMENT IS 100% COMPLETE */}
+        {searchedReport && !isPaymentPending && (
           <div className="space-y-4 animate-in fade-in duration-200">
             {/* Top Bar above report with Patient Name and Close Report */}
             <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-2xl border border-slate-200 shadow-2xs no-print">
@@ -1482,54 +1612,6 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               </div>
             )}
 
-            {/* MANDATORY PAYMENT PENDING NOTIFICATION BANNER (When Report is Ready but Payment is Due) */}
-            {isPaymentPending && (
-              <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5 text-xs text-amber-950 shadow-xs space-y-3.5 no-print">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
-                      <Lock className="w-5 h-5 text-amber-700" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-sm text-slate-900">
-                          Report Ready • Payment Due: ₹{activeDueAmount}
-                        </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full">
-                          Action Required
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-800 font-semibold mt-1 max-w-xl leading-relaxed">
-                        “Aapki report ready hai, lekin payment clear na hone ki wajah se report abhi view nahi ki ja sakti. Payment clear karne ke baad aap complete report dekh sakte hain.”
-                      </p>
-                      <p className="text-[11px] text-amber-800 mt-0.5">
-                        Please clear the pending balance to view investigations and download official signed PDF.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
-                    <button
-                      type="button"
-                      onClick={() => setShowPayOnlineModal(true)}
-                      className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer active:scale-98"
-                    >
-                      <CreditCard className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Pay ₹{activeDueAmount} & Unlock</span>
-                    </button>
-                    <a
-                      href={`tel:${labPhone}`}
-                      className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                      title="Call Lab Reception"
-                    >
-                      <Phone className="w-3.5 h-3.5 text-slate-500" />
-                      <span className="hidden sm:inline">Call Lab</span>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Success Download / Print Toast */}
             {downloadSuccessToast && (
               <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2">
@@ -1551,8 +1633,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             <div className="pt-1">
               <CanonicalPdfViewer
                 report={searchedReport}
-                isPaymentPending={isPaymentPending}
-                activeDueAmount={activeDueAmount}
+                isPaymentPending={false}
+                activeDueAmount={0}
                 onPayOnline={() => setShowPayOnlineModal(true)}
                 title={`OFFICIAL REPORT MASTER • ${searchedReport.reportId}`}
               />
@@ -1561,28 +1643,16 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             {/* ACTION BAR (Neatly positioned BELOW the report) */}
             <div className="flex flex-wrap items-center justify-end gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm no-print">
               <div className="flex items-center gap-2.5 flex-wrap w-full sm:w-auto justify-end">
-                {/* 1. PDF Download Button (Conditional on Payment Clearance) */}
-                {isPaymentPending ? (
-                  <button
-                    id="btn-download-pdf-portal-locked"
-                    onClick={() => setShowPayOnlineModal(true)}
-                    className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
-                    title={`Payment pending: Clear ₹${activeDueAmount} to download report PDF`}
-                  >
-                    <Lock className="w-4 h-4 text-amber-700" />
-                    <span>Download PDF (Due ₹{activeDueAmount})</span>
-                  </button>
-                ) : (
-                  <button
-                    id="btn-download-pdf-portal"
-                    onClick={handleDownloadPdf}
-                    className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
-                    title="Download Official NABL Medical Report PDF"
-                  >
-                    <Download className="w-4 h-4 text-emerald-300" />
-                    <span>Download PDF</span>
-                  </button>
-                )}
+                {/* 1. PDF Download Button */}
+                <button
+                  id="btn-download-pdf-portal"
+                  onClick={handleDownloadPdf}
+                  className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
+                  title="Download Official NABL Medical Report PDF"
+                >
+                  <Download className="w-4 h-4 text-emerald-300" />
+                  <span>Download PDF</span>
+                </button>
 
                 {/* 2. Share on WhatsApp Button */}
                 <button

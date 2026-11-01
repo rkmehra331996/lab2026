@@ -57,22 +57,21 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
 
-  // Payment status calculation
-  const statusLower = (report.paymentStatus || '').toLowerCase();
-  const isDuePaymentPending =
-    isPaymentPending !== undefined
-      ? isPaymentPending
-      : Boolean(
-          (report.dueAmount !== undefined && report.dueAmount > 0) ||
-          statusLower === 'pending' ||
-          statusLower === 'partial' ||
-          statusLower === 'due' ||
-          (report.paymentStatus !== undefined &&
-            statusLower !== 'full payment' &&
-            statusLower !== 'paid' &&
-            statusLower !== 'completed' &&
-            (report.dueAmount ?? 0) > 0)
-        );
+  // Payment status calculation: payment must be 100% complete to view report
+  const isDuePaymentPending = useMemo(() => {
+    if (isPaymentPending !== undefined) return isPaymentPending;
+    const due = Number(report.dueAmount ?? 0);
+    const paid = Number(report.paidAmount ?? 0);
+    const total = Number(report.totalAmount ?? (report as any).totalCharge ?? 0);
+    const status = (report.paymentStatus || '').toLowerCase().trim();
+
+    if (due > 0) return true;
+    if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment') return true;
+    if (total > 0 && paid < total) return true;
+    if (status === 'full payment' || status === 'paid' || status === 'completed') return false;
+    if (due <= 0 && (!status || status !== 'pending')) return false;
+    return true;
+  }, [isPaymentPending, report]);
 
   const effectiveDueAmount =
     activeDueAmount !== undefined
@@ -287,6 +286,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
 
   // Handle direct PDF download
   const handleDownload = async () => {
+    if (isDuePaymentPending) return;
     setIsDownloading(true);
     try {
       await downloadReportPdf(report, prebuiltDoc);
@@ -299,6 +299,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
 
   // Handle direct print
   const handlePrint = async () => {
+    if (isDuePaymentPending) return;
     setIsPrinting(true);
     try {
       await printCanonicalReportPdf(report, pdfBlobUrl);
@@ -365,7 +366,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
           )}
 
           {/* Toggle between Exact PDF Pages and Native Browser PDF Embed */}
-          {pdfBlobUrl && (
+          {pdfBlobUrl && !isDuePaymentPending && (
             <div className="hidden lg:flex items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5 text-[11px]">
               <button
                 type="button"
@@ -432,7 +433,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
       {/* Main A4 Medical Report Canvas Area */}
       <div className="flex-1 overflow-auto bg-slate-950 p-2 sm:p-6 flex flex-col items-center justify-start min-h-[500px]">
         {/* VIEW MODE 1: NATIVE BROWSER PDF EMBED */}
-        {viewMode === 'embed' && pdfBlobUrl && (
+        {viewMode === 'embed' && pdfBlobUrl && !isDuePaymentPending && (
           <div className="w-full max-w-[900px] h-[82vh] bg-white rounded-xl shadow-2xl border border-slate-700 overflow-hidden">
             <iframe
               src={`${pdfBlobUrl}#toolbar=0&navpanes=0`}
@@ -469,24 +470,24 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
                 {/* Secure Payment Pending Lock Overlay */}
                 {isDuePaymentPending && (
                   <div
-                    className="absolute inset-x-0 top-0 bottom-0 backdrop-blur-md bg-white/70 flex flex-col items-center justify-center p-4 sm:p-6 text-center z-20 select-none"
-                    style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+                    className="absolute inset-x-0 top-0 bottom-0 bg-slate-950/96 backdrop-blur-2xl flex flex-col items-center justify-center p-4 sm:p-6 text-center z-20 select-none"
+                    style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
                   >
-                    <div className="max-w-md mx-auto bg-slate-900/95 text-white rounded-2xl p-6 shadow-2xl border border-amber-400/40 flex flex-col items-center space-y-3.5 animate-in zoom-in-95 duration-200">
-                      <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-400 shadow-inner">
-                        <Lock className="w-6 h-6" />
+                    <div className="max-w-md mx-auto bg-slate-900 text-white rounded-2xl p-6 shadow-2xl border border-amber-400/40 flex flex-col items-center space-y-3.5 animate-in zoom-in-95 duration-200">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border-2 border-amber-400/60 flex items-center justify-center text-amber-400 shadow-inner">
+                        <Lock className="w-7 h-7" />
                       </div>
 
                       <div className="space-y-1.5">
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 text-amber-300 text-[11px] font-bold border border-amber-400/30">
                           <AlertCircle className="w-3.5 h-3.5" />
-                          <span>Report Body Locked (Pending Payment)</span>
+                          <span>Report Locked (Payment Incomplete)</span>
                         </div>
                         <h4 className="text-base sm:text-lg font-black text-white">
                           Due Amount: <span className="text-amber-400 font-mono">₹{effectiveDueAmount}</span>
                         </h4>
                         <p className="text-xs text-slate-300 leading-relaxed max-w-xs mx-auto">
-                          बकाया राशि क्लियर होने तक रिपोर्ट परिणाम लॉक रहेंगे। पेमेंट पूरा होते ही पूरी रिपोर्ट और डाउनलोड अनलॉक हो जाएंगे।
+                          बकाया राशि क्लियर होने तक रिपोर्ट परिणाम लॉक रहेंगे। पेमेंट 100% पूरा होते ही पूरी रिपोर्ट और डाउनलोड अनलॉक हो जाएंगे।
                         </p>
                       </div>
 
@@ -589,6 +590,35 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
             )}
 
             {/* REPORT BODY ZONE */}
+            {isDuePaymentPending ? (
+              <div className="p-8 sm:p-14 flex flex-col items-center justify-center text-center space-y-4 my-auto bg-slate-950 text-white min-h-[400px]">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border-2 border-amber-400 text-amber-400 flex items-center justify-center shadow-inner">
+                  <Lock className="w-8 h-8" />
+                </div>
+                <div className="space-y-1.5 max-w-md">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 text-amber-300 text-xs font-bold border border-amber-400/30">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Report Locked (Payment Incomplete)</span>
+                  </div>
+                  <h3 className="text-xl font-black text-white">
+                    Due Amount: ₹{effectiveDueAmount}
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    बकाया राशि क्लियर होने तक रिपोर्ट परिणाम लॉक रहेंगे। पेमेंट 100% पूरा होते ही पूरी रिपोर्ट और डाउनलोड अनलॉक हो जाएंगे।
+                  </p>
+                </div>
+                {onPayOnline && effectiveDueAmount > 0 && (
+                  <button
+                    type="button"
+                    onClick={onPayOnline}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition shadow-lg flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <CreditCard className="w-4 h-4 text-slate-950" />
+                    <span>Pay ₹{effectiveDueAmount} &amp; Unlock Report</span>
+                  </button>
+                )}
+              </div>
+            ) : (
             <div className={`relative ${isStaticLetterhead ? 'p-2 sm:p-3' : 'p-4 sm:p-7'} space-y-5 flex-1 bg-white/95 rounded-lg`}>
               {/* PATIENT DEMOGRAPHICS BOX */}
               <div className="bg-slate-50 border border-slate-300 rounded-xl p-3.5 sm:p-4 text-xs shadow-xs relative">
@@ -841,6 +871,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
                 </div>
               )}
             </div>
+          )}
 
             {/* Standard Navy Footer Bar ONLY if not using custom static letterhead */}
             {(!isStaticLetterhead || !letterheadBg) && (

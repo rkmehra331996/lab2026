@@ -43,6 +43,7 @@ import {
   Youtube,
   ExternalLink,
   Lock,
+  CreditCard,
   KeyRound,
   Image as ImageIcon,
   Users,
@@ -1301,8 +1302,37 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     performInlineReportSearch();
   };
 
+  const isInlineReportPaymentIncomplete = React.useMemo(() => {
+    if (!inlineSearchedReport) return false;
+    const due = Number(inlineSearchedReport.dueAmount ?? 0);
+    const paid = Number(inlineSearchedReport.paidAmount ?? 0);
+    const total = Number(inlineSearchedReport.totalAmount ?? (inlineSearchedReport as any).totalCharge ?? 0);
+    const status = (inlineSearchedReport.paymentStatus || '').toLowerCase().trim();
+
+    if (due > 0) return true;
+    if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment') return true;
+    if (total > 0 && paid < total) return true;
+    if (status === 'full payment' || status === 'paid' || status === 'completed') return false;
+    if (due <= 0 && (!status || status !== 'pending')) return false;
+    return true;
+  }, [inlineSearchedReport]);
+
+  const inlineReportDueAmount = React.useMemo(() => {
+    if (!inlineSearchedReport) return 0;
+    const due = Number(inlineSearchedReport.dueAmount ?? 0);
+    if (due > 0) return due;
+    if (isInlineReportPaymentIncomplete) {
+      return Number(inlineSearchedReport.totalAmount || 500);
+    }
+    return 0;
+  }, [inlineSearchedReport, isInlineReportPaymentIncomplete]);
+
   const handleDownloadInlinePdf = async () => {
     if (!inlineSearchedReport) return;
+    if (isInlineReportPaymentIncomplete) {
+      alert(`Payment 100% complete nahi hui hai (Baki: ₹${inlineReportDueAmount}). Report download karne ke liye kripya reception desk se baki payment clear karein.`);
+      return;
+    }
     try {
       setIsDownloadingPdf(true);
       await generateReportPdf(inlineSearchedReport);
@@ -1315,6 +1345,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
   const handlePrintInlineReport = async () => {
     if (!inlineSearchedReport) return;
+    if (isInlineReportPaymentIncomplete) {
+      alert(`Payment 100% complete nahi hui hai (Baki: ₹${inlineReportDueAmount}). Report print karne ke liye kripya payment clear karein.`);
+      return;
+    }
     try {
       const printed = await printCanonicalReportPdf(inlineSearchedReport);
       if (!printed) {
@@ -2349,29 +2383,72 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 </div>
               )}
 
-              {/* Inline Side-by-Side: View Report & Download Report */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsReportModalOpen(true)}
-                  className="flex-1 py-3 px-3 rounded-xl bg-[#123B6D] hover:bg-[#0c294d] text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer active:scale-98"
-                  id={viewReportBtnId}
-                >
-                  <Eye className="w-4 h-4 text-amber-300" />
-                  <span>View Report</span>
-                </button>
+              {/* If payment is not 100% complete: lock view & show payment due banner */}
+              {isInlineReportPaymentIncomplete ? (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 space-y-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-extrabold text-xs text-amber-950 flex items-center gap-1.5">
+                        <span>Payment Incomplete • Report Locked</span>
+                        <span className="font-mono text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
+                          Due: ₹{inlineReportDueAmount}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-700 font-medium mt-0.5 leading-relaxed">
+                        “Aapki report ready hai, lekin payment 100% complete na hone ki wajah se report view nahi ki ja sakti. Baki payment jama karne ke baad hi report dekhi ja sakti hai.”
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onNavigateView) {
+                          onNavigateView('patient_portal');
+                        } else {
+                          window.location.href = `/report/${encodeURIComponent(inlineSearchedReport.reportId)}`;
+                        }
+                      }}
+                      className="flex-1 py-2 px-3 rounded-lg bg-[#123B6D] hover:bg-[#0c294d] text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                    >
+                      <CreditCard className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Pay ₹{inlineReportDueAmount} &amp; Unlock</span>
+                    </button>
+                    <a
+                      href={`tel:${labPhone || '7087033009'}`}
+                      className="py-2 px-3 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Phone className="w-3 h-3 text-slate-500" />
+                      <span>Call Lab</span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                /* Inline Side-by-Side: View Report & Download Report */
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsReportModalOpen(true)}
+                    className="flex-1 py-3 px-3 rounded-xl bg-[#123B6D] hover:bg-[#0c294d] text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer active:scale-98"
+                    id={viewReportBtnId}
+                  >
+                    <Eye className="w-4 h-4 text-amber-300" />
+                    <span>View Report</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleDownloadInlinePdf}
-                  disabled={isDownloadingPdf}
-                  className="flex-1 py-3 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer active:scale-98 disabled:opacity-50"
-                  id={isModal ? 'welcome-btn-download-report' : 'btn-download-report'}
-                >
-                  <Download className="w-4 h-4 text-white" />
-                  <span>{isDownloadingPdf ? 'Preparing...' : 'Download Report'}</span>
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadInlinePdf}
+                    disabled={isDownloadingPdf}
+                    className="flex-1 py-3 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer active:scale-98 disabled:opacity-50"
+                    id={isModal ? 'welcome-btn-download-report' : 'btn-download-report'}
+                  >
+                    <Download className="w-4 h-4 text-white" />
+                    <span>{isDownloadingPdf ? 'Preparing...' : 'Download Report'}</span>
+                  </button>
+                </div>
+              )}
             </div>
           ) : inlinePendingSample ? (
             /* Result Case 2: Sample under testing in lab -> "Report is Under Process" */
@@ -2445,12 +2522,56 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
           className="relative max-w-5xl w-full h-[95vh] flex flex-col bg-slate-950 rounded-2xl shadow-2xl overflow-hidden border border-slate-800 animate-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
-          <CanonicalPdfViewer
-            report={inlineSearchedReport}
-            onClose={() => setIsReportModalOpen(false)}
-            className="flex-1 h-full border-0 rounded-2xl"
-            title={`DIAGNOSTIC REPORT • ${inlineSearchedReport.reportId}`}
-          />
+          {isInlineReportPaymentIncomplete ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 text-white">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border-2 border-amber-400 text-amber-400 flex items-center justify-center shadow-inner">
+                <Lock className="w-8 h-8" />
+              </div>
+              <div className="space-y-2 max-w-md">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-400/40">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Report View Locked • Incomplete Payment</span>
+                </div>
+                <h3 className="text-xl font-black text-white">
+                  Payment 100% Complete Nahi Hai
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  “Aapki report ready hai, lekin payment 100% complete na hone ki wajah se report view nahi ki ja sakti. Baki payment (₹{inlineReportDueAmount}) jama karne ke baad hi complete report khulegi.”
+                </p>
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsReportModalOpen(false);
+                    if (onNavigateView) {
+                      onNavigateView('patient_portal');
+                    } else {
+                      window.location.href = `/report/${encodeURIComponent(inlineSearchedReport.reportId)}`;
+                    }
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <CreditCard className="w-4 h-4 text-slate-950" />
+                  <span>Pay Due Online (₹{inlineReportDueAmount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ) : (
+            <CanonicalPdfViewer
+              report={inlineSearchedReport}
+              onClose={() => setIsReportModalOpen(false)}
+              className="flex-1 h-full border-0 rounded-2xl"
+              title={`DIAGNOSTIC REPORT • ${inlineSearchedReport.reportId}`}
+            />
+          )}
         </div>
       </div>
     );
