@@ -409,8 +409,8 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
         badge: 'Central Reference Lab',
         status: 'Active',
         isWebsiteApproved: true,
-        domainPreview: 'apexdiagnostics.indianlalaji.com',
-        slug: 'apex',
+        domainPreview: 'indianlalaji.com/shop/7087033009',
+        slug: '7087033009',
       },
       {
         id: 'lab-citycare',
@@ -424,8 +424,8 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
         badge: 'Enterprise Diagnostic Network',
         status: 'Active',
         isWebsiteApproved: true,
-        domainPreview: 'citycare.indianlalaji.com',
-        slug: 'citycare',
+        domainPreview: 'indianlalaji.com/shop/9815012345',
+        slug: '9815012345',
       },
       {
         id: 'lab-metropath',
@@ -439,8 +439,8 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
         badge: 'Super Specialty Lab',
         status: 'Active',
         isWebsiteApproved: true,
-        domainPreview: 'metropath.indianlalaji.com',
-        slug: 'metropath',
+        domainPreview: 'indianlalaji.com/shop/9417098765',
+        slug: '9417098765',
       },
       {
         id: 'lab-sanjivani',
@@ -454,8 +454,8 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
         badge: 'Regional Diagnostic Center',
         status: 'Active',
         isWebsiteApproved: true,
-        domainPreview: 'sanjivani.indianlalaji.com',
-        slug: 'sanjivani',
+        domainPreview: 'indianlalaji.com/shop/9888123456',
+        slug: '9888123456',
       },
     ];
 

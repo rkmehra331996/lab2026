@@ -328,19 +328,17 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     }
 
     const isApproved = formState.status === 'Active';
-    const autoSlug = formState.name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || 'newlab';
-    const cleanId = (formState.domainPreview || '')
-      .trim()
-      .replace(/^https?:\/\//, '')
-      .replace(/^indianlalaji\.com\/shop\//, '')
-      .replace(/\.indianlalaji\.com$/, '')
-      .replace(/[^a-z0-9-]/g, '') || (editingVendor ? editingVendor.id : `lab-${autoSlug}`);
-    const normalizedLabId = cleanId.startsWith('lab-') ? cleanId : `lab-${cleanId}`;
-    const finalDirectoryUrl = `indianlalaji.com/shop/${normalizedLabId}`;
+    // URL register mobile ke sath hi bnana hai:
+    const cleanPhoneDigits = (formState.phone || '').replace(/\D/g, '');
+    const mobileSlug = cleanPhoneDigits.length >= 10
+      ? cleanPhoneDigits.slice(-10)
+      : (cleanPhoneDigits || (editingVendor?.phone ? editingVendor.phone.replace(/\D/g, '').slice(-10) : '') || (editingVendor ? editingVendor.id.replace(/^lab-/, '') : '7087033009'));
+    const finalDirectoryUrl = `indianlalaji.com/shop/${mobileSlug}`;
 
     if (editingVendor) {
       updateVendorLab(editingVendor.id, {
         ...formState,
+        slug: mobileSlug,
         domainPreview: finalDirectoryUrl,
         websiteUrl: `https://${finalDirectoryUrl}`,
         isWebsiteApproved: isApproved,
@@ -354,8 +352,10 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       setEditingVendor(null);
     } else {
       const isApproved = formState.status === 'Active';
+      const newLabId = `lab-${mobileSlug}`;
       addVendorLab({
         ...formState,
+        slug: mobileSlug,
         domainPreview: finalDirectoryUrl,
         websiteUrl: `https://${finalDirectoryUrl}`,
         status: formState.status || (isApproved ? 'Active' : 'Draft'),
@@ -365,7 +365,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       showToast(
         isApproved
           ? `✅ Created lab "${formState.name}" as LIVE & Published! Directory URL: https://${finalDirectoryUrl}`
-          : `Created lab "${formState.name}" in DRAFT mode. Open Website Draft tab to review and publish.`
+          : `Created lab "${formState.name}" in DRAFT mode. Open Website Draft tab to review and publish. (URL: https://${finalDirectoryUrl})`
       );
       setIsAddModalOpen(false);
     }
@@ -395,8 +395,12 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
         sessionStorage.removeItem(`admin_preview_draft_${labId}`);
       } catch {}
     }
+
     try {
-      const slug = labItem?.slug || labId.replace(/^lab-/, '');
+      const cleanPhoneDigits = (labItem?.phone || '').replace(/\D/g, '');
+      const slug = cleanPhoneDigits.length >= 10
+        ? cleanPhoneDigits.slice(-10)
+        : (cleanPhoneDigits || labItem?.slug || labId.replace(/^lab-/, ''));
       const appendPreview = isPreview || (isLabDraft && viewMode === 'drafts');
       window.history.pushState({}, '', `/shop/${slug}${appendPreview ? '?preview=true' : ''}`);
     } catch {}
@@ -1136,17 +1140,14 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                       <span className="font-bold">Live Vendor Directory URL:</span>
                       <strong className="font-mono bg-white px-2 py-0.5 rounded border border-indigo-200 text-indigo-950">
                         https://indianlalaji.com/shop/{
-                          (formState.domainPreview || '')
-                            .replace(/^https?:\/\//, '')
-                            .replace(/^indianlalaji\.com\/shop\//, '')
-                            .replace(/\.indianlalaji\.com$/, '') ||
-                          editingVendor?.id ||
-                          'lab-id'
+                          (formState.phone || '').replace(/\D/g, '').slice(-10) ||
+                          (editingVendor?.phone || '').replace(/\D/g, '').slice(-10) ||
+                          '7087033009'
                         }
                       </strong>
                     </p>
                     <p className="text-[10px] text-slate-600">
-                      Rule: Har vendor ka dedicated website URL <strong>indianlalaji.com/shop/...</strong> directory format mein hota hai (subdomain nahi).
+                      Rule: URL hamesha registered mobile number ke sath banta hai: <strong>indianlalaji.com/shop/&lt;REGISTERED_MOBILE&gt;</strong>
                     </p>
                   </div>
                 </div>

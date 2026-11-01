@@ -186,8 +186,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       if (match) return match;
 
       // If not yet in vendorLabsList, synthesize lab item from effectiveLabId and vendorLabSettings
-      const cleanSlug = effectiveLabId.replace(/^lab-/, '');
-      const formattedName = cleanSlug
+      const rawPhoneDigits = (vendorLabSettings?.phone || effectiveLabId || '').replace(/\D/g, '');
+      const registeredPhone = rawPhoneDigits.length >= 10 ? rawPhoneDigits.slice(-10) : '';
+      const cleanSlug = registeredPhone || effectiveLabId.replace(/^lab-/, '');
+      const formattedName = effectiveLabId.replace(/^lab-/, '')
         .split(/[-_]/)
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ') + ' Laboratory';
@@ -308,8 +310,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     }, 120);
   };
 
-  const dedicatedShopPath = currentLabItem?.slug || currentLabItem?.id || effectiveLabId || 'lab-apex';
-  const canonicalUrl = getTenantWebsiteUrl(dedicatedShopPath);
+  const registeredMobileNum = (currentLabItem?.phone || (effectiveLabSettings as any)?.phone || '').replace(/\D/g, '').slice(-10);
+  const dedicatedShopPath = registeredMobileNum || currentLabItem?.slug || currentLabItem?.id || effectiveLabId || '7087033009';
+  const canonicalUrl = getTenantWebsiteUrl(registeredMobileNum || dedicatedShopPath);
 
   const handleOpenAdmin = () => {
     if (currentUser && (currentUser.role === 'vendor' || currentUser.role === 'admin')) {

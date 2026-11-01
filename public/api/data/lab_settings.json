@@ -90,7 +90,7 @@
     "supportPhone": "+91 7087033009",
     "status": "Active",
     "isWebsiteApproved": true,
-    "domainPreview": "indianlalaji.com/shop/apex",
+    "domainPreview": "indianlalaji.com/shop/7087033009",
     "websiteDomain": "",
     "nablCode": "MC-4821",
     "establishedYear": 2012,
@@ -106,7 +106,7 @@
     ],
     "autoSendWhatsApp": true,
     "enableOnlineBooking": true,
-    "websiteUrl": "https://indianlalaji.com/shop/apex"
+    "websiteUrl": "https://indianlalaji.com/shop/7087033009"
   },
   {
     "id": "lab-citycare",
@@ -127,7 +127,7 @@
     "supportPhone": "+91 9815012345",
     "status": "Active",
     "isWebsiteApproved": true,
-    "domainPreview": "indianlalaji.com/shop/citycare",
+    "domainPreview": "indianlalaji.com/shop/9815012345",
     "websiteDomain": "",
     "nablCode": "MC-3912 (QCI Certified)",
     "establishedYear": 2016,
@@ -143,7 +143,7 @@
     ],
     "autoSendWhatsApp": true,
     "enableOnlineBooking": true,
-    "websiteUrl": "https://indianlalaji.com/shop/citycare"
+    "websiteUrl": "https://indianlalaji.com/shop/9815012345"
   },
   {
     "id": "lab-metropath",
@@ -164,7 +164,7 @@
     "supportPhone": "+91 9417098765",
     "status": "Active",
     "isWebsiteApproved": true,
-    "domainPreview": "indianlalaji.com/shop/metropath",
+    "domainPreview": "indianlalaji.com/shop/9417098765",
     "websiteDomain": "",
     "nablCode": "MC-5104 (NABL Accredited)",
     "establishedYear": 2010,
@@ -180,7 +180,7 @@
     ],
     "autoSendWhatsApp": true,
     "enableOnlineBooking": true,
-    "websiteUrl": "https://indianlalaji.com/shop/metropath"
+    "websiteUrl": "https://indianlalaji.com/shop/9417098765"
   },
   {
     "id": "lab-sanjivani",
@@ -201,7 +201,7 @@
     "supportPhone": "+91 9888123456",
     "status": "Active",
     "isWebsiteApproved": true,
-    "domainPreview": "indianlalaji.com/shop/sanjivani",
+    "domainPreview": "indianlalaji.com/shop/9888123456",
     "websiteDomain": "",
     "nablCode": "ISO 9001:2015 Compliant",
     "establishedYear": 2018,
@@ -217,6 +217,6 @@
     ],
     "autoSendWhatsApp": true,
     "enableOnlineBooking": true,
-    "websiteUrl": "https://indianlalaji.com/shop/sanjivani"
+    "websiteUrl": "https://indianlalaji.com/shop/9888123456"
   }
 ]

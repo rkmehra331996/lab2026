@@ -75,7 +75,7 @@
   },
   {
     "id": "lab-apex",
-    "slug": "apex",
+    "slug": "7087033009",
     "name": "Apex Diagnostic & Clinical Pathology Laboratory",
     "tagline": "Advanced Pathology, Biochemistry & Digital Testing Centre",
     "city": "Ludhiana",
@@ -101,7 +101,7 @@
     "paymentMode": "UPI (Confirmed)",
     "paymentReference": "UPI-REF-9021849201",
     "joinedDate": "12 Jan 2026",
-    "domainPreview": "indianlalaji.com/shop/apex",
+    "domainPreview": "indianlalaji.com/shop/7087033009",
     "establishedYear": 2012,
     "features": [
       "Free Home Sample Pickup",
@@ -109,11 +109,11 @@
       "UPI Dynamic QR",
       "Barcoded Tubes"
     ],
-    "websiteUrl": "https://indianlalaji.com/shop/apex"
+    "websiteUrl": "https://indianlalaji.com/shop/7087033009"
   },
   {
     "id": "lab-citycare",
-    "slug": "citycare",
+    "slug": "9815012345",
     "name": "CityCare Advanced Diagnostics & Scan Centre",
     "tagline": "Automated Immunoassay, Biochemistry & Preventive Profiles",
     "city": "Mohali",
@@ -139,7 +139,7 @@
     "paymentMode": "Net Banking (Confirmed)",
     "paymentReference": "HDFC-IMPS-8492011",
     "joinedDate": "18 Feb 2026",
-    "domainPreview": "indianlalaji.com/shop/citycare",
+    "domainPreview": "indianlalaji.com/shop/9815012345",
     "establishedYear": 2016,
     "features": [
       "3 Collection Desks",
@@ -147,11 +147,11 @@
       "Same-Day Hormones",
       "Online Portal"
     ],
-    "websiteUrl": "https://indianlalaji.com/shop/citycare"
+    "websiteUrl": "https://indianlalaji.com/shop/9815012345"
   },
   {
     "id": "lab-metropath",
-    "slug": "metropath",
+    "slug": "9417098765",
     "name": "MetroPath Scans & Molecular Pathology Hub",
     "tagline": "Hormone Assays, Vitamin Profiling & Cancer Tumor Markers",
     "city": "Chandigarh",
@@ -177,7 +177,7 @@
     "paymentMode": "Card (Confirmed)",
     "paymentReference": "TXN-CARD-482910",
     "joinedDate": "05 Mar 2026",
-    "domainPreview": "indianlalaji.com/shop/metropath",
+    "domainPreview": "indianlalaji.com/shop/9417098765",
     "establishedYear": 2010,
     "features": [
       "24x7 Emergency Desk",
@@ -185,11 +185,11 @@
       "Doctor Consult Desk",
       "Digital QR Reports"
     ],
-    "websiteUrl": "https://indianlalaji.com/shop/metropath"
+    "websiteUrl": "https://indianlalaji.com/shop/9417098765"
   },
   {
     "id": "lab-sanjivani",
-    "slug": "sanjivani",
+    "slug": "9888123456",
     "name": "Sanjivani Pathology & Preventive Health Lab",
     "tagline": "Affordable Routine Blood Testing & Free Home Sample Collection",
     "city": "Amritsar",
@@ -215,7 +215,7 @@
     "paymentMode": "UPI (Confirmed)",
     "paymentReference": "UPI-9821049281",
     "joinedDate": "22 Apr 2026",
-    "domainPreview": "indianlalaji.com/shop/sanjivani",
+    "domainPreview": "indianlalaji.com/shop/9888123456",
     "establishedYear": 2018,
     "features": [
       "Affordable Fever Panels",
@@ -223,6 +223,6 @@
       "Instant SMS Alerts",
       "Senior Citizen Discount"
     ],
-    "websiteUrl": "https://indianlalaji.com/shop/sanjivani"
+    "websiteUrl": "https://indianlalaji.com/shop/9888123456"
   }
 ]

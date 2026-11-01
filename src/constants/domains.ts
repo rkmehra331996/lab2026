@@ -11,125 +11,170 @@ export const SUPPORT_PHONE = '7087033009';
 export const SUPPORT_PHONE_FORMATTED = '+91 7087033009';
 
 /**
- * Returns clean vendor slug/ID for a lab (e.g. 'lab-baburamlab-6535', 'lab-apex')
+ * Known default registered phones for existing seed labs
  */
-export function getTenantSubdomain(subdomainOrDomain?: string): string {
-  if (!subdomainOrDomain) return 'lab-apex';
+export const DEFAULT_LAB_REGISTERED_PHONES: Record<string, string> = {
+  'lab-apex': '7087033009',
+  'apex': '7087033009',
+  'lab-1020304050': '1020304050',
+  '1020304050': '1020304050',
+  'lab-6070809010': '6070809010',
+  '6070809010': '6070809010',
+  'lab-citycare': '9815012345',
+  'citycare': '9815012345',
+  'lab-metropath': '9417098765',
+  'metropath': '9417098765',
+  'lab-sanjivani': '9888123456',
+  'sanjivani': '9888123456',
+  'lab-pulse': '9876543210',
+  'pulse': '9876543210',
+  'lab-carepoint': '9911002233',
+  'carepoint': '9911002233',
+  'lab-lifeline-due': '9872011223',
+  'lifeline': '9872011223',
+  'lab-healtech-pending': '9779034567',
+  'healtech': '9779034567',
+};
+
+/**
+ * Extracts the 10-digit registered mobile number for a lab.
+ * "url register mobile ke sath hi bnana chahiye"
+ */
+export function getRegisteredMobileForLab(subdomainOrDomain?: string): string {
+  if (!subdomainOrDomain) return '7087033009';
   const clean = subdomainOrDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
 
-  // 1. If it's already a shop URL path: /shop/lab-baburamlab-6535 -> lab-baburamlab-6535
-  if (clean.includes('/shop/')) {
-    return clean.split('/shop/')[1].split('/')[0].split('?')[0].split('#')[0];
-  }
-  if (clean.includes('/lab/')) {
-    return clean.split('/lab/')[1].split('/')[0].split('?')[0].split('#')[0];
-  }
-
-  // 2. If it's already a full lab ID (e.g. 'lab-baburamlab-6535' or 'lab-apex'), preserve it completely
-  if (clean.startsWith('lab-') && !clean.includes('.')) {
-    return clean;
+  // 1. Direct path extraction /shop/9815012345 or /lab/9815012345
+  let target = clean;
+  if (target.includes('/shop/')) {
+    target = target.split('/shop/')[1].split('/')[0].split('?')[0].split('#')[0];
+  } else if (target.includes('/lab/')) {
+    target = target.split('/lab/')[1].split('/')[0].split('?')[0].split('#')[0];
   }
 
-  // 3. If it's a subdomain on indianlalaji.com or indianalala.com (e.g. baburamlab.indianlalaji.com)
-  if (clean.endsWith('indianlalaji.com') || clean.endsWith('indianalala.com')) {
-    const withoutSuffix = clean.replace(/\.?(indianlalaji|indianalala)\.com$/, '');
-    const parts = withoutSuffix.split('.');
-    const sub = parts[parts.length - 1];
-    if (sub && sub !== 'www' && sub !== 'app' && sub !== 'report' && sub !== 'admin') {
-      // Look up full lab ID from directory in localStorage if available
-      try {
-        if (typeof window !== 'undefined') {
-          const stored = localStorage.getItem('cms_vendor_labs_directory');
-          if (stored) {
-            const list = JSON.parse(stored);
-            if (Array.isArray(list)) {
-              const matched = list.find((l: any) =>
-                (l.id && l.id.toLowerCase() === sub) ||
-                (l.id && l.id.toLowerCase() === `lab-${sub}`) ||
-                (l.domainPreview && l.domainPreview.toLowerCase().includes(sub)) ||
-                (l.slug && l.slug.toLowerCase() === sub) ||
-                (l.id && l.id.toLowerCase().includes(sub))
-              );
-              if (matched && matched.id) return matched.id;
-            }
+  // 2. If target already contains 10 consecutive digits (e.g. 7087033009, +91 7087033009)
+  const targetDigits = target.replace(/\D/g, '');
+  if (targetDigits.length >= 10) {
+    return targetDigits.slice(-10);
+  }
+
+  // 3. Check known default phone registry
+  const lowerTarget = target.toLowerCase();
+  if (DEFAULT_LAB_REGISTERED_PHONES[lowerTarget]) {
+    return DEFAULT_LAB_REGISTERED_PHONES[lowerTarget];
+  }
+  const cleanKey = lowerTarget.replace(/^lab-/, '');
+  if (DEFAULT_LAB_REGISTERED_PHONES[cleanKey]) {
+    return DEFAULT_LAB_REGISTERED_PHONES[cleanKey];
+  }
+
+  // 4. Look up in localStorage directory (cms_vendor_labs_list, cms_vendor_labs_directory)
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('cms_vendor_labs_list') || localStorage.getItem('cms_vendor_labs_directory');
+      if (stored) {
+        const list = JSON.parse(stored);
+        if (Array.isArray(list)) {
+          const matched = list.find((l: any) => {
+            const idLower = (l.id || '').toLowerCase();
+            const slugLower = (l.slug || '').toLowerCase();
+            const dp = (l.domainPreview || '').toLowerCase();
+            return (
+              idLower === lowerTarget ||
+              idLower === `lab-${lowerTarget}` ||
+              idLower.replace(/^lab-/, '') === lowerTarget.replace(/^lab-/, '') ||
+              slugLower === lowerTarget ||
+              dp.includes(lowerTarget) ||
+              (l.name && l.name.toLowerCase().replace(/[^a-z0-9]/g, '') === lowerTarget.replace(/[^a-z0-9]/g, ''))
+            );
+          });
+          if (matched && matched.phone) {
+            const pDigits = String(matched.phone).replace(/\D/g, '');
+            if (pDigits.length >= 10) return pDigits.slice(-10);
+            if (pDigits.length > 0) return pDigits;
+          }
+          if (matched && matched.slug) {
+            const sDigits = String(matched.slug).replace(/\D/g, '');
+            if (sDigits.length >= 10) return sDigits.slice(-10);
           }
         }
-      } catch {}
-      return sub.startsWith('lab-') ? sub : `lab-${sub}`;
-    }
+      }
+    } catch {}
   }
 
-  // 4. Fallback dot splitting
-  if (clean.includes('.')) {
-    const part = clean.split('.')[0];
-    if (part !== 'indianlalaji' && part !== 'www') {
-      return part.startsWith('lab-') ? part : `lab-${part}`;
-    }
-  }
-
-  return clean.startsWith('lab-') ? clean : `lab-${clean}`;
+  // 5. Fallback: if there are any digits, return them, else default to '7087033009'
+  return targetDigits.length > 0 ? targetDigits : (lowerTarget.replace(/^lab-/, '') || '7087033009');
 }
 
 /**
- * Returns canonical vendor shop URL on indianlalaji.com:
- * https://indianlalaji.com/shop/VENDOR_ID
- * e.g. https://indianlalaji.com/shop/lab-baburamlab-6535
+ * Returns clean vendor slug/registered mobile for a lab URL
+ * Format: indianlalaji.com/shop/<REGISTERED_MOBILE>
+ */
+export function getTenantSubdomain(subdomainOrDomain?: string): string {
+  if (!subdomainOrDomain) return '7087033009';
+  return getRegisteredMobileForLab(subdomainOrDomain);
+}
+
+/**
+ * Returns canonical vendor shop URL on indianlalaji.com using registered mobile:
+ * https://indianlalaji.com/shop/<REGISTERED_MOBILE>
+ * e.g. https://indianlalaji.com/shop/7087033009
  */
 export function getVendorShopUrl(vendorIdOrSlug?: string): string {
-  const cleanId = getTenantSubdomain(vendorIdOrSlug);
-  return `https://${SUPER_ADMIN_DOMAIN}/shop/${cleanId}`;
+  const registeredMobile = getRegisteredMobileForLab(vendorIdOrSlug);
+  return `https://${SUPER_ADMIN_DOMAIN}/shop/${registeredMobile}`;
 }
 
 /**
- * Returns relative pathname for vendor shop:
- * /shop/VENDOR_ID
+ * Returns relative pathname for vendor shop using registered mobile:
+ * /shop/<REGISTERED_MOBILE>
  */
 export function getTenantShopPath(vendorIdOrSlug?: string): string {
-  const cleanId = getTenantSubdomain(vendorIdOrSlug);
-  return `/shop/${cleanId}`;
+  const registeredMobile = getRegisteredMobileForLab(vendorIdOrSlug);
+  return `/shop/${registeredMobile}`;
 }
 
 /**
  * Returns the 100% working live direct link for any browser/environment:
- * e.g. https://<domain>/shop/VENDOR_ID or https://indianlalaji.com/shop/VENDOR_ID
+ * e.g. https://<domain>/shop/<REGISTERED_MOBILE> or https://indianlalaji.com/shop/<REGISTERED_MOBILE>
  */
 export function getTenantDirectUrl(subdomainOrDomain?: string): string {
-  const cleanId = getTenantSubdomain(subdomainOrDomain);
+  const registeredMobile = getRegisteredMobileForLab(subdomainOrDomain);
   if (typeof window !== 'undefined' && window.location.origin) {
-    return `${window.location.origin}/shop/${cleanId}`;
+    return `${window.location.origin}/shop/${registeredMobile}`;
   }
-  return `https://${SUPER_ADMIN_DOMAIN}/shop/${cleanId}`;
+  return `https://${SUPER_ADMIN_DOMAIN}/shop/${registeredMobile}`;
 }
 
 /**
- * Returns formatted canonical website/shop URL for a vendor
- * e.g., https://indianlalaji.com/shop/lab-baburamlab-6535 or custom domain if configured
+ * Returns formatted canonical website/shop URL for a vendor with registered mobile
+ * e.g., https://indianlalaji.com/shop/7087033009 or custom domain if configured
  */
 export function getTenantWebsiteUrl(subdomainOrDomain?: string): string {
-  if (!subdomainOrDomain) return `https://${SUPER_ADMIN_DOMAIN}/shop/lab-apex`;
+  if (!subdomainOrDomain) return `https://${SUPER_ADMIN_DOMAIN}/shop/7087033009`;
   const clean = subdomainOrDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
   // Custom domains without indianlalaji.com or indianalala.com
   if (clean.includes('.') && !clean.includes('indianlalaji.com') && !clean.includes('indianalala.com')) {
     return `https://${clean}`;
   }
-  const cleanId = getTenantSubdomain(subdomainOrDomain);
-  return `https://${SUPER_ADMIN_DOMAIN}/shop/${cleanId}`;
+  const registeredMobile = getRegisteredMobileForLab(subdomainOrDomain);
+  return `https://${SUPER_ADMIN_DOMAIN}/shop/${registeredMobile}`;
 }
 
 /**
- * Generates an active, interactive preview link that works directly in the user's browser/preview
- * as well as direct link on indianlalaji.com: indianlalaji.com/shop/VENDOR_ID
+ * Generates an active, interactive preview link using registered mobile:
+ * /shop/<REGISTERED_MOBILE>
  */
 export function getTenantBrowserUrl(subdomainOrDomain: string, targetView: string = 'vendor_website'): string {
-  const cleanId = getTenantSubdomain(subdomainOrDomain);
+  const registeredMobile = getRegisteredMobileForLab(subdomainOrDomain);
   if (typeof window !== 'undefined' && window.location.origin) {
     const origin = window.location.origin;
     if (targetView === 'vendor_website') {
-      return `${origin}/shop/${cleanId}`;
+      return `${origin}/shop/${registeredMobile}`;
     }
-    return `${origin}/?lab=${cleanId}&view=${targetView}`;
+    return `${origin}/?lab=${registeredMobile}&view=${targetView}`;
   }
-  return `https://${SUPER_ADMIN_DOMAIN}/shop/${cleanId}`;
+  return `https://${SUPER_ADMIN_DOMAIN}/shop/${registeredMobile}`;
 }
 
 export function getSuperAdminDashboardUrl(): string {
@@ -137,19 +182,15 @@ export function getSuperAdminDashboardUrl(): string {
 }
 
 /**
- * Normalizes any vendor URL or slug to canonical directory format:
- * e.g. 'https://baburamlab.indianlalaji.com' -> 'https://indianlalaji.com/shop/baburamlab'
- * e.g. 'baburamlab' -> 'https://indianlalaji.com/shop/baburamlab'
- * e.g. 'lab-1020304050' -> 'https://indianlalaji.com/shop/lab-1020304050'
- * External custom domains (e.g. apexdiag.in) are preserved as https://apexdiag.in
+ * Normalizes any vendor URL or slug to canonical directory format with registered mobile:
+ * e.g. 'https://indianlalaji.com/shop/7087033009'
  */
 export function normalizeToDirectoryUrl(urlOrSlugOrId?: string): string {
-  if (!urlOrSlugOrId) return `https://${SUPER_ADMIN_DOMAIN}/shop/lab-apex`;
+  if (!urlOrSlugOrId) return `https://${SUPER_ADMIN_DOMAIN}/shop/7087033009`;
   let str = urlOrSlugOrId.trim();
   str = str.replace(/^https?:\/\//i, '').replace(/\/$/, '');
 
   // 1. Independent external custom domain check (e.g. apexdiag.in, baburamlab.com)
-  // Must have dot and NOT contain indianlalaji.com or indianalala.com or localhost
   if (
     str.includes('.') &&
     !str.includes('indianlalaji.com') &&
@@ -160,23 +201,7 @@ export function normalizeToDirectoryUrl(urlOrSlugOrId?: string): string {
     return `https://${str.toLowerCase()}`;
   }
 
-  // 2. Extract clean lab slug/id from directory path or subdomain
-  if (str.includes('/shop/')) {
-    str = str.split('/shop/')[1].split('/')[0].split('?')[0].split('#')[0];
-  } else if (str.includes('/lab/')) {
-    str = str.split('/lab/')[1].split('/')[0].split('?')[0].split('#')[0];
-  } else if (str.toLowerCase().endsWith('.indianlalaji.com') || str.toLowerCase().endsWith('.indianalala.com')) {
-    // e.g. baburamlab.indianlalaji.com -> baburamlab
-    str = str.replace(/\.?(indianlalaji|indianalala)\.com$/i, '');
-    const parts = str.split('.');
-    str = parts[parts.length - 1];
-  } else if (str.toLowerCase().includes('indianlalaji.com') || str.toLowerCase().includes('indianalala.com')) {
-    str = str.replace(/^.*?indianlalaji\.com\/?/i, '').replace(/^.*?indianalala\.com\/?/i, '');
-    if (str.toLowerCase().startsWith('shop/')) str = str.slice(5);
-  }
-
-  // Sanitize slug
-  const cleanSlug = str.trim().toLowerCase().replace(/[^a-z0-9-]/g, '') || 'lab-apex';
-  return `https://${SUPER_ADMIN_DOMAIN}/shop/${cleanSlug}`;
+  const registeredMobile = getRegisteredMobileForLab(str);
+  return `https://${SUPER_ADMIN_DOMAIN}/shop/${registeredMobile}`;
 }
 

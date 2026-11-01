@@ -202,7 +202,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
         : '',
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       `🔗 *REPORT Download:* ${reportUrl}`,
-      `🌐 *Website:* ${getTenantDirectUrl(receipt.labId)}`,
+      `🌐 *Website:* ${getTenantDirectUrl(receipt.labPhone || receipt.labId)}`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       `📍 *${receipt.labName}*${receipt.labPhone ? ` • Helpline: ${receipt.labPhone}` : ''}`,
     ]

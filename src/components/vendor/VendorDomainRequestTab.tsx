@@ -155,11 +155,12 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = () 
     }
 
     const resetTarget = selectedVendorLabId || vendorLabSettings?.labId || 'lab-apex';
+    const regPhone = (vendorLabSettings?.phone || (vendorLabSettings as any)?.whatsappNumber || '').replace(/\D/g, '').slice(-10) || '7087033009';
     updateVendorLabSettings({
       labId: resetTarget,
       websiteDomain: '',
-      domainPreview: `indianlalaji.com/shop/${resetTarget}`,
-      websiteUrl: `https://indianlalaji.com/shop/${resetTarget}`,
+      domainPreview: `indianlalaji.com/shop/${regPhone}`,
+      websiteUrl: `https://indianlalaji.com/shop/${regPhone}`,
       isCustomDomainActive: false,
     });
 

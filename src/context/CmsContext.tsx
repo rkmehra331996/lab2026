@@ -38,7 +38,7 @@ import { getPermissionsForRole, LAB_OPTIONS } from '../utils/rbac';
 import { isTenantMatch, verifyTenantOwnership, stampTenant } from '../utils/tenantSecurity';
 import { applySeoSettingsToDOM } from '../utils/seoManager';
 import { resolveAppRoute } from '../utils/domainRouting';
-import { getVendorShopUrl } from '../constants/domains';
+import { getVendorShopUrl, SUPER_ADMIN_DOMAIN } from '../constants/domains';
 import {
   syncReceptionEntryToCloud,
   deleteReceptionEntryFromCloud,
@@ -301,7 +301,7 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
   tagline: 'Advanced Pathology, Biochemistry & Diagnostic Testing Centre',
   description: 'Advanced Pathology, Biochemistry & Diagnostic Testing Centre. 100% NABL Accredited & Certified. Instant digital WhatsApp PDF reports & doorstep sample collection.',
   logoUrl: '',
-  websiteUrl: 'https://indianlalaji.com/shop/lab-apex',
+  websiteUrl: 'https://indianlalaji.com/shop/7087033009',
   ogImageUrl: '',
   phone: '7087033009',
   helplinePhone: '+91 7087033009',
@@ -315,7 +315,7 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
   emergencyHours: '24x7 Emergency Services at Central Lab',
   announcementText: '🌟 Special Notice: Free Blood Glucose and Hemoglobin checkup on Saturday morning!',
   email: 'care@apexdiagnostics.in',
-  domainPreview: 'indianlalaji.com/shop/lab-apex',
+  domainPreview: 'indianlalaji.com/shop/7087033009',
   websiteDomain: 'trustedweb.online',
   customDomain: 'trustedweb.online',
   isCustomDomainActive: true,
@@ -1219,18 +1219,17 @@ export const DEFAULT_ALL_VENDOR_DOCTORS: VendorDoctor[] = [
 const DEFAULT_VENDOR_DOCTORS = DEFAULT_ALL_VENDOR_DOCTORS;
 
 export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
-  const shortId = (dirItem.id || 'lab-unknown').replace('lab-', '');
-  const cleanPhone = (dirItem.phone || '9876543210').replace(/\D/g, '').slice(-10);
-  const targetLabId = dirItem.id || `lab-${shortId}`;
+  const cleanPhone = (dirItem.phone || '7087033009').replace(/\D/g, '').slice(-10) || '7087033009';
+  const targetLabId = dirItem.id || `lab-${cleanPhone}`;
   return {
     labId: dirItem.id,
-    labShopId: `LSP-${shortId.toUpperCase()}`,
+    labShopId: `LSP-${cleanPhone}`,
     labName: dirItem.name,
     name: dirItem.name,
     tagline: dirItem.tagline || 'Advanced Pathology & Clinical Testing',
     description: `${dirItem.name}, located in ${dirItem.city || 'City'}, ${dirItem.state || 'India'}. ${dirItem.tagline || ''}. Authorized NABL accredited pathology services with automated WhatsApp report delivery.`,
     logoUrl: '',
-    websiteUrl: getVendorShopUrl(targetLabId),
+    websiteUrl: `https://${SUPER_ADMIN_DOMAIN}/shop/${cleanPhone}`,
     ogImageUrl: '',
     phone: cleanPhone,
     helplinePhone: dirItem.phone || '+91 ' + cleanPhone,
@@ -1243,13 +1242,13 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
     heroPromoText: `Doorstep Home Sample Pickup Across ${dirItem.city || 'City'} • NABL PDF Delivery in 4-6 Hours`,
     emergencyHours: dirItem.emergency ? '24x7 Emergency Services at Central Desk' : 'Emergency Blood Collection Available',
     announcementText: `🌟 Welcome to ${dirItem.name}! Instant online test booking and verified digital WhatsApp reports now active.`,
-    email: dirItem.email || `contact@${shortId}lab.in`,
-    domainPreview: `indianlalaji.com/shop/${targetLabId}`,
+    email: dirItem.email || `contact@${cleanPhone}lab.in`,
+    domainPreview: `indianlalaji.com/shop/${cleanPhone}`,
     merchantName: `${dirItem.name} Pvt Ltd`,
-    upiId1: `${shortId}lab@icici`,
+    upiId1: `${cleanPhone}@icici`,
     qrCode1Label: `Counter Billing QR (${dirItem.city || 'Counter'} Desk)`,
     qrCode1Url: '',
-    upiId2: `${shortId}diag@oksbi`,
+    upiId2: `${cleanPhone}diag@oksbi`,
     qrCode2Label: 'Home Sample Collection Handheld QR',
     homeCollectionCharge: 100,
     featureImageUrl: '',
@@ -7364,13 +7363,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Vendor Lab Directory Management
   const addVendorLab = (vendor: Omit<VendorLabDirectoryItem, 'id'>): VendorLabDirectoryItem => {
-    const randomSuffix = Math.random().toString(36).slice(2, 7);
-    const newLabId = (vendor as any).id || `lab-${Date.now()}-${randomSuffix}`;
+    const cleanMobile = (vendor.phone || '').replace(/\D/g, '').slice(-10);
+    const newLabId = (vendor as any).id || (cleanMobile ? `lab-${cleanMobile}` : `lab-${Date.now()}`);
+    const mobileSlug = cleanMobile || newLabId.replace(/^lab-/, '');
+    const finalDirectoryUrl = `indianlalaji.com/shop/${mobileSlug}`;
     const targetStatus = vendor.status || 'Active';
     const isApproved = Boolean(vendor.isWebsiteApproved ?? (targetStatus === 'Active'));
     const newLab: VendorLabDirectoryItem = {
       ...vendor,
       id: newLabId,
+      slug: mobileSlug,
+      domainPreview: finalDirectoryUrl,
+      websiteUrl: `https://${finalDirectoryUrl}`,
       logoUrl: vendor.logoUrl || '',
       status: targetStatus,
       isWebsiteApproved: isApproved,
