@@ -2825,14 +2825,37 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (routeRes.targetLab) {
           const raw = routeRes.targetLab.trim();
           const cleanSub = raw.split('.')[0].replace(/^lab-/, '');
-          const dirMatch = VENDOR_LABS_DIRECTORY.find(
-            (l) =>
-              l.id.toLowerCase() === raw.toLowerCase() ||
-              l.id.toLowerCase() === `lab-${raw.toLowerCase()}` ||
-              l.id.toLowerCase().replace(/^lab-/, '') === cleanSub.toLowerCase() ||
+          const rawDigits = raw.replace(/\D/g, '');
+          const raw10 = rawDigits.length >= 10 ? rawDigits.slice(-10) : '';
+
+          let allLabsToCheck = VENDOR_LABS_DIRECTORY;
+          try {
+            const stored = localStorage.getItem('cms_vendor_labs_list');
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                allLabsToCheck = parsed;
+              }
+            }
+          } catch {}
+
+          const dirMatch = allLabsToCheck.find((l) => {
+            const idLower = (l.id || '').toLowerCase();
+            const rawLower = raw.toLowerCase();
+            const lDigits = (l.phone || '').replace(/\D/g, '');
+            const l10 = lDigits.length >= 10 ? lDigits.slice(-10) : '';
+
+            return (
+              idLower === rawLower ||
+              idLower === `lab-${rawLower}` ||
+              idLower.replace(/^lab-/, '') === cleanSub.toLowerCase() ||
+              (l.slug && l.slug.toLowerCase() === cleanSub.toLowerCase()) ||
+              (l.slug && l.slug.toLowerCase() === rawLower) ||
+              (raw10 && l10 === raw10) ||
               (l.domainPreview && l.domainPreview.toLowerCase().includes(cleanSub.toLowerCase())) ||
-              (l.slug && l.slug.toLowerCase() === cleanSub.toLowerCase())
-          );
+              (l.domainPreview && l.domainPreview.toLowerCase().split('.')[0] === cleanSub.toLowerCase())
+            );
+          });
           if (dirMatch) return dirMatch.id;
           return raw.startsWith('lab-') ? raw : `lab-${raw}`;
         }
@@ -7608,33 +7631,31 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const query = labIdOrSubdomain.toLowerCase().trim().replace(/^https?:\/\//, '');
     const cleanSub = query.split('.')[0].replace(/^lab-/, '');
 
-    const lab =
-      vendorLabsList.find((l) => {
-        const labIdClean = l.id.toLowerCase();
-        const labSubClean = (l.domainPreview || '').toLowerCase().split('.')[0];
-        const labNameSlug = l.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        return (
-          labIdClean === query ||
-          labIdClean === `lab-${query}` ||
-          labIdClean.replace(/^lab-/, '') === cleanSub ||
-          labSubClean === cleanSub ||
-          (l.domainPreview && l.domainPreview.toLowerCase() === query) ||
-          labNameSlug.includes(cleanSub)
-        );
-      }) ||
-      VENDOR_LABS_DIRECTORY.find((l) => {
-        const labIdClean = l.id.toLowerCase();
-        const labSubClean = (l.domainPreview || '').toLowerCase().split('.')[0];
-        const labNameSlug = l.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        return (
-          labIdClean === query ||
-          labIdClean === `lab-${query}` ||
-          labIdClean.replace(/^lab-/, '') === cleanSub ||
-          labSubClean === cleanSub ||
-          (l.domainPreview && l.domainPreview.toLowerCase() === query) ||
-          labNameSlug.includes(cleanSub)
-        );
-      });
+    const queryDigits = query.replace(/\D/g, '');
+    const query10 = queryDigits.length >= 10 ? queryDigits.slice(-10) : '';
+
+    const labMatcher = (l: VendorLabDirectoryItem) => {
+      const labIdClean = (l.id || '').toLowerCase();
+      const labSubClean = (l.domainPreview || '').toLowerCase().split('.')[0];
+      const labNameSlug = (l.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const lSlug = (l.slug || '').toLowerCase();
+      const lPhoneDigits = (l.phone || '').replace(/\D/g, '');
+      const l10 = lPhoneDigits.length >= 10 ? lPhoneDigits.slice(-10) : '';
+
+      return (
+        labIdClean === query ||
+        labIdClean === `lab-${query}` ||
+        labIdClean.replace(/^lab-/, '') === cleanSub ||
+        lSlug === cleanSub ||
+        lSlug === query ||
+        (query10 && l10 === query10) ||
+        labSubClean === cleanSub ||
+        (l.domainPreview && l.domainPreview.toLowerCase() === query) ||
+        labNameSlug.includes(cleanSub)
+      );
+    };
+
+    const lab = vendorLabsList.find(labMatcher) || VENDOR_LABS_DIRECTORY.find(labMatcher);
 
     const targetId = lab ? lab.id : (query.startsWith('lab-') ? query : `lab-${query}`);
     setSelectedVendorLabId(targetId);

@@ -251,10 +251,10 @@ export default function App() {
         if (intendedView === 'patient_portal') {
           setCurrentView('patient_portal');
         } else {
-          setUrlLabError({
-            identifier: cleanId,
-            message: `Laboratory '${cleanId}' could not be located in our directory.`,
-          });
+          selectVendorLab(cleanId);
+          setSelectedVendorLabId(cleanId.startsWith('lab-') ? cleanId : `lab-${cleanId}`);
+          setCurrentView('vendor_website');
+          setUrlLabError(null);
         }
       }
     } finally {
@@ -371,7 +371,7 @@ export default function App() {
           setUrlLabError(null);
           hasInitialSyncedRef.current = true;
         } else if (!isFetchingLabRef.current && !attemptedLabFetchesRef.current.has(cleanId.toLowerCase())) {
-          fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList, resolution.view || 'patient_portal');
+          fetchAndApplyLabFromUrl(resolution.targetLab, vendorLabsList, resolution.view || 'vendor_website');
         }
       } else if (!selectedVendorLabId || selectedVendorLabId === 'all') {
         const defaultLab = vendorLabsList.find((l) => l.status === 'Active')?.id || vendorLabsList[0]?.id;

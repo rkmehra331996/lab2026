@@ -105,14 +105,30 @@ function findMatchingLabId(
 ): string {
   if (!rawTarget) return '';
   const cleanTarget = rawTarget.toLowerCase().trim().replace(/^https?:\/\//, '');
-  if (!vendorLabsList || vendorLabsList.length === 0) {
+
+  let listToCheck = vendorLabsList;
+  if (!listToCheck || listToCheck.length === 0) {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cms_vendor_labs_list') || localStorage.getItem('cms_vendor_labs_directory');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            listToCheck = parsed;
+          }
+        }
+      } catch {}
+    }
+  }
+
+  if (!listToCheck || listToCheck.length === 0) {
     return strict ? '' : cleanTarget;
   }
 
   const targetDigits = cleanTarget.replace(/\D/g, '');
   const target10 = targetDigits.length >= 10 ? targetDigits.slice(-10) : '';
 
-  const match = vendorLabsList.find((l) => {
+  const match = listToCheck.find((l) => {
     const idLower = (l.id || '').toLowerCase();
     const targetLower = cleanTarget.toLowerCase();
     if (idLower === targetLower) return true;
@@ -381,13 +397,12 @@ export function resolveAppRoute(
     };
   }
 
-  // 0d. Direct single slug path: e.g. /apex or /citycare or /lab-1 or /mylabalok (if not reserved)
+  // 0d. Direct single slug path: e.g. /apex or /citycare or /lab-1 or /mylabalok or /1020304050 (if not reserved)
   const singleSlugMatch = effectivePath.match(/^\/([a-zA-Z0-9_\-]+)\/?$/);
   if (singleSlugMatch && singleSlugMatch[1]) {
     const rawSlug = singleSlugMatch[1].toLowerCase().trim();
     if (!RESERVED_PATH_SEGMENTS.includes(rawSlug)) {
-      const matchedId = findMatchingLabId(rawSlug, vendorLabsList, true);
-      // ONLY route to vendor_website if an actual laboratory was explicitly matched in the directory
+      const matchedId = findMatchingLabId(rawSlug, vendorLabsList, false);
       if (matchedId) {
         return {
           view: (viewParam && VALID_VIEWS.includes(viewParam)) ? viewParam : 'vendor_website',
@@ -528,10 +543,11 @@ export function resolveAppRoute(
   }
 
   // 8. Main Root Domain (indianlalaji.com / www.indianlalaji.com) and Default Fallback:
-  // HIGHEST PRIORITY: ALWAYS opens the Main Company Homepage ('website').
-  // NEVER defaults to vendor_website!
+  // ONLY mark isExplicitMainPlatform if path is genuinely the root '/' and no query/hash parameters exist
+  const isPureRoot = (effectivePath === '/' || effectivePath === '') && !params.toString() && !effectiveHash;
+
   return {
     view: 'website',
-    isExplicitMainPlatform: true,
+    isExplicitMainPlatform: isPureRoot && isMainRootDomain,
   };
 }
