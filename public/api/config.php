@@ -65,14 +65,45 @@ $storageMode = 'file';
 $dbError = null;
 $connectedHost = null;
 
-if (defined('DB_USER') && DB_USER) {
-    $hosts = [DB_HOST];
-    if (DB_HOST === 'localhost') $hosts[] = '127.0.0.1';
-    if (DB_HOST === '127.0.0.1') $hosts[] = 'localhost';
+function logMySqlError($context, $message, $query = '') {
+    $errFile = DATA_DIR . '/last_mysql_error.json';
+    $errData = [
+        'timestamp' => date('c'),
+        'context' => $context,
+        'message' => $message,
+        'query' => substr((string)$query, 0, 500),
+    ];
+    @file_put_contents($errFile, json_encode($errData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+}
 
-    foreach ($hosts as $h) {
+function getLastMySqlError() {
+    $errFile = DATA_DIR . '/last_mysql_error.json';
+    if (file_exists($errFile)) {
+        return @json_decode(@file_get_contents($errFile), true);
+    }
+    return null;
+}
+
+if (defined('DB_USER') && DB_USER) {
+    // Attempt standard localhost, 127.0.0.1, Hostinger socket, and configured host
+    $connectionAttempts = [];
+    if (DB_HOST === 'localhost' || DB_HOST === '127.0.0.1') {
+        $connectionAttempts[] = ['type' => 'host', 'value' => 'localhost'];
+        $connectionAttempts[] = ['type' => 'host', 'value' => '127.0.0.1'];
+        if (file_exists('/var/run/mysqld/mysqld.sock')) {
+            $connectionAttempts[] = ['type' => 'socket', 'value' => '/var/run/mysqld/mysqld.sock'];
+        }
+    } else {
+        $connectionAttempts[] = ['type' => 'host', 'value' => DB_HOST];
+    }
+
+    foreach ($connectionAttempts as $attempt) {
         try {
-            $dsn = "mysql:host=" . $h . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            if ($attempt['type'] === 'socket') {
+                $dsn = "mysql:unix_socket=" . $attempt['value'] . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            } else {
+                $dsn = "mysql:host=" . $attempt['value'] . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            }
             $pdo = new PDO($dsn, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -80,7 +111,7 @@ if (defined('DB_USER') && DB_USER) {
                 PDO::ATTR_TIMEOUT => 3
             ]);
             $storageMode = 'mysql';
-            $connectedHost = $h;
+            $connectedHost = $attempt['value'];
             $dbError = null;
             break;
         } catch (Exception $e) {
@@ -91,28 +122,59 @@ if (defined('DB_USER') && DB_USER) {
 
     if ($pdo) {
         autoBootstrapDatabaseTables($pdo);
+    } else {
+        logMySqlError('pdo_connect', $dbError ?: 'Failed to connect to MySQL', DB_USER . '@' . DB_HOST);
     }
 }
 
 function autoBootstrapDatabaseTables($pdoInstance) {
+    if (!$pdoInstance) return;
     try {
-        $chk = $pdoInstance->query("SHOW TABLES LIKE 'vendor_labs'");
-        if ($chk && $chk->rowCount() > 0) {
-            return; // Tables already initialized
+        $requiredTables = [
+            'vendor_labs', 'lab_settings', 'lab_branches', 'lab_staff',
+            'lab_tests', 'lab_packages', 'lab_doctors', 'lab_reception_entries',
+            'lab_reports', 'lab_bookings', 'company_settings', 'portal_sections',
+            'pricing_plans', 'contact_submissions', 'domain_requests',
+            'lab_images', 'lab_plan_requests', 'seo_posts'
+        ];
+
+        $existingTables = [];
+        $tblStmt = $pdoInstance->query("SHOW TABLES");
+        if ($tblStmt) {
+            $existingTables = $tblStmt->fetchAll(PDO::FETCH_COLUMN);
         }
+        $missing = array_diff($requiredTables, $existingTables);
+        if (empty($missing)) {
+            return; // All required tables already present
+        }
+
         $schemaFile = __DIR__ . '/schema.sql';
         if (file_exists($schemaFile)) {
             $sql = file_get_contents($schemaFile);
-            $queries = array_filter(array_map('trim', explode(';', $sql)));
+            // Cleanly strip multi-line comments
+            $sql = preg_replace('!/\*.*?\*/!s', '', $sql);
+            // Cleanly strip line comments
+            $lines = explode("\n", $sql);
+            $cleanSql = '';
+            foreach ($lines as $line) {
+                $t = trim($line);
+                if (strpos($t, '--') === 0 || strpos($t, '#') === 0) continue;
+                $cleanSql .= $line . "\n";
+            }
+            $queries = array_filter(array_map('trim', explode(';', $cleanSql)));
             foreach ($queries as $q) {
                 if (!empty($q)) {
                     try {
                         $pdoInstance->exec($q);
-                    } catch (\Exception $e) {}
+                    } catch (\Exception $e) {
+                        logMySqlError('schemaBootstrapQuery', $e->getMessage(), $q);
+                    }
                 }
             }
         }
-    } catch (\Exception $e) {}
+    } catch (\Exception $e) {
+        logMySqlError('autoBootstrap', $e->getMessage());
+    }
 }
 
 function getDbConnection() {

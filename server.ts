@@ -645,6 +645,31 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
       return;
     }
 
+    if (action === 'push_all_to_mysql') {
+      const store = readDevDb();
+      res.json({
+        status: 'success',
+        success: true,
+        message: 'Dev Emulation: All records are synced in data store. Upload the generated hostinger_public_html.zip to Hostinger to execute direct MySQL PDO inserts.',
+        totalMigrated: (store.receptionEntries?.length || 0) + (store.reports?.length || 0) + (store.vendorLabs?.length || 0),
+        breakdown: {
+          reception_entries: store.receptionEntries?.length || 0,
+          lab_reports: store.reports?.length || 0,
+          vendor_labs: store.vendorLabs?.length || 0,
+          lab_tests: store.tests?.length || 0,
+        }
+      });
+      return;
+    }
+
+    if (action === 'repair_tables') {
+      res.json({
+        status: 'success',
+        message: 'Dev Emulation: Schema tables ready. Full MySQL DDL executes on Hostinger server.',
+      });
+      return;
+    }
+
     const store = readDevDb();
     const lastUpdatedTime = store._lastUpdatedTime || (store._lastUpdated ? new Date(store._lastUpdated).getTime() : 1791800000000);
 

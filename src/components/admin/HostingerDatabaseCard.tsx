@@ -67,6 +67,62 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
     }
   };
 
+  const [isPushing, setIsPushing] = useState(false);
+  const [pushResult, setPushResult] = useState<any>(null);
+
+  const handlePushAllToMySql = async () => {
+    setIsPushing(true);
+    setPushResult(null);
+    showToast('🚀 Pushing all local records into Hostinger MySQL database...');
+    try {
+      let res = await fetch('/api/sync.php?action=push_all_to_mysql', { cache: 'no-store' }).catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch('/api/sync?action=push_all_to_mysql', { credentials: 'omit' }).catch(() => null);
+      }
+      if (res && res.ok) {
+        const data = await res.json();
+        setPushResult(data);
+        if (data.success) {
+          showToast(`✅ ${data.message || 'Records pushed into Hostinger MySQL!'}`);
+          handleTestConnection();
+        } else {
+          showToast(`⚠️ ${data.message || 'Push failed: Check credentials'}`);
+        }
+      } else {
+        showToast('⚠️ Could not connect to /api/sync.php');
+      }
+    } catch (err: any) {
+      showToast(`❌ Error: ${err.message}`);
+    } finally {
+      setIsPushing(false);
+    }
+  };
+
+  const [isRepairing, setIsRepairing] = useState(false);
+
+  const handleRepairTables = async () => {
+    setIsRepairing(true);
+    showToast('🛠️ Verifying and auto-creating MySQL tables...');
+    try {
+      let res = await fetch('/api/sync.php?action=repair_tables', { cache: 'no-store' }).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data.status === 'success') {
+          showToast('✅ All 18 MySQL tables verified & auto-created!');
+          handleTestConnection();
+        } else {
+          showToast(`⚠️ ${data.message || 'Table auto-repair noticed error'}`);
+        }
+      } else {
+        showToast('⚠️ Could not reach /api/sync.php');
+      }
+    } catch (err: any) {
+      showToast(`❌ Error: ${err.message}`);
+    } finally {
+      setIsRepairing(false);
+    }
+  };
+
   const handleDownloadSql = () => {
     try {
       const blob = new Blob([HOSTINGER_SQL_SCHEMA], { type: 'text/sql;charset=utf-8;' });
@@ -324,7 +380,29 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
             <span>Super Admin: <strong className="text-slate-800">rkmehra331996@gmail.com</strong> is pre-seeded in the Hostinger schema.</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRepairTables}
+              disabled={isRepairing}
+              className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-xs active:scale-95 flex items-center gap-1.5"
+              title="Ensure all 18 MySQL tables exist on Hostinger"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRepairing ? 'animate-spin' : ''}`} />
+              <span>{isRepairing ? 'Repairing...' : '🛠️ Auto-Create Tables'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePushAllToMySql}
+              disabled={isPushing}
+              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-xs active:scale-95 flex items-center gap-1.5"
+              title="Push all local JSON/localStorage patient entries, reports, and tests straight into Hostinger MySQL tables"
+            >
+              <Database className={`w-3.5 h-3.5 ${isPushing ? 'animate-bounce' : ''}`} />
+              <span>{isPushing ? 'Pushing Data...' : '🚀 Push All Data to MySQL'}</span>
+            </button>
+
             <button
               type="button"
               onClick={handleTestConnection}
@@ -344,10 +422,29 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
           </div>
         </div>
 
+        {/* Push to MySQL Result Banner */}
+        {pushResult && (
+          <div className={`p-3.5 rounded-xl border text-xs ${pushResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'}`}>
+            <div className="font-bold flex items-center gap-2">
+              {pushResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
+              <span>{pushResult.message}</span>
+            </div>
+            {pushResult.breakdown && (
+              <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] font-mono">
+                {Object.entries(pushResult.breakdown).map(([k, v]) => (
+                  <div key={k} className="bg-white/80 px-2 py-1 rounded border border-slate-200">
+                    <span className="text-slate-600">{k}:</span> <strong className="text-slate-900">{String(v)}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Live Test Diagnostic Output */}
         {testResult && (
           <div
-            className={`p-4 rounded-xl border text-xs animate-in fade-in space-y-2 ${
+            className={`p-4 rounded-xl border text-xs animate-in fade-in space-y-2.5 ${
               testResult.success
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                 : 'bg-rose-50 border-rose-200 text-rose-900'
@@ -368,7 +465,7 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
                 href="/api/status.php"
                 target="_blank"
                 rel="noreferrer"
-                className="text-[11px] underline flex items-center gap-1 hover:opacity-80"
+                className="text-[11px] underline flex items-center gap-1 hover:opacity-80 font-mono"
               >
                 <span>Direct /api/status.php JSON</span>
                 <ExternalLink className="w-3 h-3" />
@@ -379,6 +476,19 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
               {testResult.message}
             </p>
 
+            {/* Diagnosis Helper if connection failed */}
+            {testResult.details?.database?.diagnosis && testResult.details.database.diagnosis.solution_hindi && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 text-xs space-y-1">
+                <div className="font-black flex items-center gap-1.5 text-amber-900">
+                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                  <span>समस्या (Issue): {testResult.details.database.diagnosis.issue}</span>
+                </div>
+                <p className="text-amber-900 text-[11px] font-medium leading-relaxed">
+                  👉 <strong>समाधान (Solution):</strong> {testResult.details.database.diagnosis.solution_hindi}
+                </p>
+              </div>
+            )}
+
             {testResult.details?.database && (
               <div className="pl-6 pt-1 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
                 <div className="bg-white/80 p-2 rounded-lg border border-slate-200">
@@ -387,13 +497,30 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
                 </div>
                 <div className="bg-white/80 p-2 rounded-lg border border-slate-200">
                   <span className="text-slate-500 font-semibold block">Target Database:</span>
-                  <span className="font-bold text-slate-800">{testResult.details.database.databaseName || dbName || 'u873216892_healthcare'}</span>
+                  <span className="font-bold text-slate-800">{testResult.details.database.databaseName || dbName || 'u878081993_newkonhai'}</span>
                 </div>
                 <div className="bg-white/80 p-2 rounded-lg border border-slate-200">
-                  <span className="text-slate-500 font-semibold block">Uploads Storage:</span>
+                  <span className="text-slate-500 font-semibold block">Active Tables:</span>
                   <span className="font-bold text-emerald-700">
-                    {testResult.details.storage?.uploadsDirectoryWritable ? 'Writable (Ready)' : 'Active (Ready)'}
+                    {testResult.details.database.activeTablesCount || 0} Tables Ready
                   </span>
+                </div>
+              </div>
+            )}
+
+            {/* Table Row Counts */}
+            {testResult.details?.database?.tableRowCounts && Object.keys(testResult.details.database.tableRowCounts).length > 0 && (
+              <div className="pl-6 pt-2">
+                <span className="text-[11px] font-bold text-slate-700 block mb-1">
+                  MySQL Tables Live Record Count (phpMyAdmin):
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px] font-mono">
+                  {Object.entries(testResult.details.database.tableRowCounts).slice(0, 8).map(([tbl, cnt]) => (
+                    <div key={tbl} className="bg-white/90 p-1.5 rounded border border-slate-200 flex justify-between">
+                      <span className="text-slate-600 truncate">{tbl}:</span>
+                      <strong className="text-emerald-800">{String(cnt)}</strong>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

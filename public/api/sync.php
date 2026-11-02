@@ -648,7 +648,20 @@ function persistDocToMySql($collection, $id, $data) {
             return true;
         }
     } catch (Exception $e) {
-        // Silently continue with file fallback
+        logMySqlError('persistDocToMySql:' . $collection, $e->getMessage(), 'id:' . $id);
+        // If table doesn't exist (1146), attempt table auto-bootstrap once
+        if (strpos($e->getMessage(), "doesn't exist") !== false || strpos($e->getMessage(), "1146") !== false) {
+            autoBootstrapDatabaseTables($pdo);
+            try {
+                // Retry generic fallback insert if table was created
+                $jsonStr = json_encode($data, JSON_UNESCAPED_UNICODE);
+                $stmt = $pdo->prepare("REPLACE INTO `{$tableName}` (`{$idCol}`, `data`) VALUES (:id, :data)");
+                $stmt->execute([':id' => $id, ':data' => $jsonStr]);
+                return true;
+            } catch (\Exception $retryEx) {
+                logMySqlError('persistRetry:' . $collection, $retryEx->getMessage(), 'id:' . $id);
+            }
+        }
     }
     return false;
 }
@@ -677,6 +690,70 @@ function deleteDocFromMySql($collection, $id) {
 // GET Requests: Check Updates, Get Collection, Get All
 // -----------------------------------------------------------------------------
 if ($method === 'GET') {
+    if ($action === 'push_all_to_mysql' || $action === 'migrate_json_to_mysql') {
+        global $pdo, $TABLE_MAP;
+        if (!$pdo) {
+            echo json_encode([
+                'status' => 'error',
+                'success' => false,
+                'message' => 'Cannot push data to MySQL: Database connection failed.',
+                'dbError' => getDbConnectionError() ?: getLastMySqlError(),
+                'configured' => [
+                    'host' => DB_HOST,
+                    'user' => DB_USER,
+                    'database' => DB_NAME,
+                ],
+                'hint' => 'Verify your database name, user, and password in Hostinger hPanel > MySQL Databases.'
+            ]);
+            exit();
+        }
+
+        // Auto-bootstrap any missing tables
+        autoBootstrapDatabaseTables($pdo);
+
+        $results = [];
+        $totalMigrated = 0;
+        foreach (array_keys($TABLE_MAP) as $col) {
+            $items = readCollectionFile($col);
+            $migrated = 0;
+            if (is_array($items) && count($items) > 0) {
+                foreach ($items as $item) {
+                    $docId = $item['id'] ?? ($item['reportId'] ?? ($item['labId'] ?? ''));
+                    if ($docId) {
+                        $ok = persistDocToMySql($col, (string)$docId, $item);
+                        if ($ok) $migrated++;
+                    }
+                }
+            }
+            $results[$col] = $migrated;
+            $totalMigrated += $migrated;
+        }
+
+        echo json_encode([
+            'status' => 'success',
+            'success' => true,
+            'message' => "Successfully pushed {$totalMigrated} record(s) from JSON files into Hostinger MySQL tables!",
+            'totalMigrated' => $totalMigrated,
+            'breakdown' => $results,
+            'serverTime' => round(microtime(true) * 1000)
+        ]);
+        exit();
+    }
+
+    if ($action === 'repair_tables') {
+        global $pdo;
+        if (!$pdo) {
+            echo json_encode(['status' => 'error', 'message' => 'MySQL not connected: ' . (getDbConnectionError() ?: 'unknown')]);
+            exit();
+        }
+        autoBootstrapDatabaseTables($pdo);
+        $tables = [];
+        $stmt = $pdo->query("SHOW TABLES");
+        if ($stmt) $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        echo json_encode(['status' => 'success', 'message' => 'Tables verified & auto-created', 'tables' => $tables]);
+        exit();
+    }
+
     if ($action === 'check_updates') {
         $since = isset($_GET['since']) ? (float)$_GET['since'] : 0;
         $meta = getSyncMetadata();
@@ -791,7 +868,7 @@ if ($method === 'POST') {
         $itemData['_updatedAt'] = date('c');
 
         // 1. Persist to MySQL
-        persistDocToMySql($collection, $id, $itemData);
+        $mysqlSaved = persistDocToMySql($collection, $id, $itemData);
 
         // 2. Persist to JSON file storage (guaranteed failover)
         $currentList = readCollectionFile($collection);
@@ -818,6 +895,48 @@ if ($method === 'POST') {
             'collection' => $collection,
             'id' => $id,
             'storageMode' => getStorageMode(),
+            'mysqlPersisted' => $mysqlSaved,
+            'mysqlError' => $mysqlSaved ? null : (getDbConnectionError() ?: getLastMySqlError()),
+            'serverTime' => round(microtime(true) * 1000)
+        ]);
+        exit();
+    }
+
+    if ($postAction === 'push_all_to_mysql') {
+        global $pdo, $TABLE_MAP;
+        if (!$pdo) {
+            echo json_encode([
+                'status' => 'error',
+                'success' => false,
+                'message' => 'Cannot push data to MySQL: Database is not connected.',
+                'dbError' => getDbConnectionError() ?: getLastMySqlError()
+            ]);
+            exit();
+        }
+        autoBootstrapDatabaseTables($pdo);
+        $results = [];
+        $totalMigrated = 0;
+        foreach (array_keys($TABLE_MAP) as $col) {
+            $items = readCollectionFile($col);
+            $migrated = 0;
+            if (is_array($items) && count($items) > 0) {
+                foreach ($items as $item) {
+                    $docId = $item['id'] ?? ($item['reportId'] ?? ($item['labId'] ?? ''));
+                    if ($docId) {
+                        $ok = persistDocToMySql($col, (string)$docId, $item);
+                        if ($ok) $migrated++;
+                    }
+                }
+            }
+            $results[$col] = $migrated;
+            $totalMigrated += $migrated;
+        }
+        echo json_encode([
+            'status' => 'success',
+            'success' => true,
+            'message' => "Successfully pushed {$totalMigrated} record(s) into Hostinger MySQL tables!",
+            'totalMigrated' => $totalMigrated,
+            'breakdown' => $results,
             'serverTime' => round(microtime(true) * 1000)
         ]);
         exit();
