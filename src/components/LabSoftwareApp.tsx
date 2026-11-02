@@ -794,24 +794,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
       return;
     }
 
-    // Complete report
-    const stampedReport: LabReport = {
-      ...report,
-      isDraft: false,
-      verified: true,
-      sentToReceptionDesk: true,
-      sentToReceptionAt: `Today, ${timeStr}`,
-    };
-
-    const existing =
-      getReportById(stampedReport.reportId) ||
-      reports.find((r) => r.reportId && r.reportId.toLowerCase() === stampedReport.reportId.toLowerCase());
-    if (existing) {
-      updateLabReport(stampedReport.reportId, stampedReport);
-    } else {
-      addLabReport(stampedReport);
-    }
-
     // Sync with reception entry if applicable and complete report
     const cleanRptId = String(report.reportId || '').trim().toLowerCase();
     const cleanRptUhid = String(report.uhid || '').trim().toLowerCase();
@@ -826,6 +808,26 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
         (cleanRptMobile && cleanRptMobile.length >= 7 && r.mobile && String(r.mobile).replace(/\D/g, '').slice(-10) === cleanRptMobile) ||
         (cleanRptName && r.patientName && String(r.patientName).trim().toLowerCase() === cleanRptName)
     );
+
+    // Complete report with linked tokenNumber and receptionId
+    const stampedReport: LabReport = {
+      ...report,
+      tokenNumber: rec?.tokenNumber || report.tokenNumber,
+      receptionId: rec?.id || report.receptionId,
+      isDraft: false,
+      verified: true,
+      sentToReceptionDesk: true,
+      sentToReceptionAt: `Today, ${timeStr}`,
+    };
+
+    const existing =
+      getReportById(stampedReport.reportId) ||
+      reports.find((r) => r.reportId && r.reportId.toLowerCase() === stampedReport.reportId.toLowerCase());
+    if (existing) {
+      updateLabReport(stampedReport.reportId, stampedReport);
+    } else {
+      addLabReport(stampedReport);
+    }
 
     if (rec) {
       completeTechnicianReport(rec.id, report.reportId);

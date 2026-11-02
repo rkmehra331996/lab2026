@@ -122,7 +122,44 @@ export function isReportAccessibleToTenant(
   const cleanDigits = cleanStr.replace(/\D/g, '');
   const clean10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : '';
 
-  // 1. Static rule check
+  // 1. Live Tenant Records Check: If a matching record belongs to this laboratory, ALWAYS ALLOW!
+  const isDirectTenantMatch = (rec: { reportId?: string; tokenNumber?: string; tokenNo?: string; mobile?: string; uhid?: string; labId?: string }) => {
+    if (!rec) return false;
+    const recTenant = normalizeTenantId(rec.labId || '');
+    if (recTenant !== normTenant) return false;
+
+    const rId = (rec.reportId || '').trim().toLowerCase();
+    const rIdDigits = rId.replace(/\D/g, '');
+    const rToken = (rec.tokenNumber || rec.tokenNo || '').trim().toLowerCase();
+    const rTokenDigits = rToken.replace(/\D/g, '');
+    const rTokenClean = rToken.replace(/^#/, '').replace(/^token\s*/i, '').replace(/^tk\s*-?\s*/i, '').trim();
+    const rUhid = (rec.uhid || '').trim().toLowerCase();
+    const rMobileDigits = (rec.mobile || '').replace(/\D/g, '');
+    const rMobile10 = rMobileDigits.slice(-10);
+
+    return (
+      rId === cleanStr ||
+      rId === `rpt-${cleanStr}` ||
+      `rpt-${rId}` === cleanStr ||
+      rToken === cleanStr ||
+      rToken === `tk-${cleanStr}` ||
+      `tk-${rToken}` === cleanStr ||
+      rTokenClean === cleanStr ||
+      (cleanDigits.length > 0 && rTokenDigits === cleanDigits) ||
+      (cleanDigits.length > 0 && rIdDigits === cleanDigits) ||
+      rUhid === cleanStr ||
+      (clean10.length === 10 && rMobile10 === clean10)
+    );
+  };
+
+  if (Array.isArray(allReportsList) && allReportsList.some(isDirectTenantMatch)) {
+    return true;
+  }
+  if (Array.isArray(allEntriesList) && allEntriesList.some(isDirectTenantMatch)) {
+    return true;
+  }
+
+  // 2. Static rule check for mock demo labs
   for (const rule of LAB_ISOLATION_RULES) {
     const isTargetReport =
       cleanStr === rule.reportId.toLowerCase() ||

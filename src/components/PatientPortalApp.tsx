@@ -782,6 +782,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     }
 
     const cleanDigits = raw.replace(/\D/g, '');
+    const cleanToken = raw.replace(/^#/, '').replace(/^token\s*/i, '').replace(/^tk\s*-?\s*/i, '').trim();
 
     // Strict Tenant Isolation Guard: Multi-tenant report isolation
     const targetLab = activeVendorLab?.id || currentLabIdentifier || selectedVendorLabId;
@@ -791,112 +792,134 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
       return;
     }
 
-    // 1. Direct match in reports - STRICT EXACT MATCH ONLY, NO FUZZY SUBSTRINGS
+    // Flexible token matcher helper
+    const tokenMatches = (targetToken?: string) => {
+      if (!targetToken) return false;
+      const t = targetToken.trim().toLowerCase();
+      const tDigits = t.replace(/\D/g, '');
+      const tClean = t.replace(/^#/, '').replace(/^token\s*/i, '').replace(/^tk\s*-?\s*/i, '').trim();
+      return (
+        t === raw ||
+        t === `tk-${raw}` ||
+        `tk-${t}` === raw ||
+        tClean === raw ||
+        tClean === cleanToken ||
+        `tk-${tClean}` === raw ||
+        `tk-${tClean}` === `tk-${cleanToken}` ||
+        (cleanDigits.length > 0 && tDigits === cleanDigits)
+      );
+    };
+
+    // Flexible report/UHID ID matcher helper
+    const idMatches = (targetId?: string) => {
+      if (!targetId) return false;
+      const id = targetId.trim().toLowerCase();
+      const idDigits = id.replace(/\D/g, '');
+      return (
+        id === raw ||
+        id === `rpt-${raw}` ||
+        `rpt-${id}` === raw ||
+        (cleanDigits.length > 0 && idDigits === cleanDigits)
+      );
+    };
+
+    // 1. Direct match in reports
     const reportMatch =
       scopedReports.find((r) => {
-        const rId = r.reportId.trim().toLowerCase();
-        const rUhid = (r.uhid || '').trim().toLowerCase();
-        const rToken = (r.tokenNumber || '').trim().toLowerCase();
-        const rTokenDigits = rToken.replace(/\D/g, '');
-
         return (
-          rId === raw ||
-          rUhid === raw ||
-          rToken === raw ||
-          rToken === `tk-${raw}` ||
-          `tk-${rToken}` === raw ||
-          (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
+          idMatches(r.reportId) ||
+          idMatches(r.uhid) ||
+          tokenMatches(r.tokenNumber)
         );
       }) ||
       (allReports || []).find((r) => {
-        const rId = r.reportId.trim().toLowerCase();
-        const rUhid = (r.uhid || '').trim().toLowerCase();
-        const rToken = (r.tokenNumber || '').trim().toLowerCase();
-        const rTokenDigits = rToken.replace(/\D/g, '');
-
+        if (!isTenantMatch(r, targetLab, false)) return false;
         return (
-          rId === raw ||
-          rUhid === raw ||
-          rToken === raw ||
-          rToken === `tk-${raw}` ||
-          `tk-${rToken}` === raw ||
-          (cleanDigits.length > 0 && rTokenDigits === cleanDigits)
+          idMatches(r.reportId) ||
+          idMatches(r.uhid) ||
+          tokenMatches(r.tokenNumber)
         );
       });
 
+    // 2. Check in receptionEntries by Token, UHID, or Report ID
+    const receptionMatch =
+      (scopedReceptionEntries || []).find((entry) => {
+        return (
+          tokenMatches(entry.tokenNumber) ||
+          idMatches(entry.tokenNumber) ||
+          idMatches(entry.uhid) ||
+          idMatches(entry.reportId)
+        );
+      }) ||
+      (allReceptionEntries || []).find((entry) => {
+        if (!isTenantMatch(entry, targetLab, false)) return false;
+        return (
+          tokenMatches(entry.tokenNumber) ||
+          idMatches(entry.tokenNumber) ||
+          idMatches(entry.uhid) ||
+          idMatches(entry.reportId)
+        );
+      });
+
+    // If report matched directly:
     if (reportMatch && !reportMatch.isDraft) {
       setSearchedReport(reportMatch);
-      const match = (scopedReceptionEntries || []).find(
-        (e) =>
-          (e.reportId && e.reportId.toLowerCase() === reportMatch.reportId.toLowerCase()) ||
-          (e.uhid && reportMatch.uhid && e.uhid.toLowerCase() === reportMatch.uhid.toLowerCase()) ||
-          (e.tokenNumber && reportMatch.tokenNumber && e.tokenNumber.toLowerCase() === reportMatch.tokenNumber.toLowerCase())
-      );
+      const match =
+        receptionMatch ||
+        (scopedReceptionEntries || []).find(
+          (e) =>
+            (e.reportId && e.reportId.toLowerCase() === reportMatch.reportId.toLowerCase()) ||
+            (e.uhid && reportMatch.uhid && e.uhid.toLowerCase() === reportMatch.uhid.toLowerCase()) ||
+            (e.tokenNumber && reportMatch.tokenNumber && tokenMatches(e.tokenNumber)) ||
+            (e.mobile && reportMatch.mobile && e.mobile.replace(/\D/g, '').slice(-10) === reportMatch.mobile.replace(/\D/g, '').slice(-10))
+        );
       setMatchedEntry(match || null);
       setPendingSampleStatus(null);
       return;
     }
 
-    // 2. Check in receptionEntries by Token or UHID
-    const receptionMatch =
-      (scopedReceptionEntries || []).find((entry) => {
-        const tokenLower = (entry.tokenNumber || '').trim().toLowerCase();
-        const tokenDigits = tokenLower.replace(/\D/g, '');
-        const uhidLower = (entry.uhid || '').trim().toLowerCase();
-        const reportIdLower = (entry.reportId || '').trim().toLowerCase();
-
-        return (
-          tokenLower === raw ||
-          tokenLower === `tk-${raw}` ||
-          `tk-${tokenLower}` === raw ||
-          (cleanDigits.length > 0 && tokenDigits === cleanDigits) ||
-          uhidLower === raw ||
-          reportIdLower === raw
-        );
-      }) ||
-      (allReceptionEntries || []).find((entry) => {
-        const tokenLower = (entry.tokenNumber || '').trim().toLowerCase();
-        const tokenDigits = tokenLower.replace(/\D/g, '');
-        const uhidLower = (entry.uhid || '').trim().toLowerCase();
-        const reportIdLower = (entry.reportId || '').trim().toLowerCase();
-
-        return (
-          tokenLower === raw ||
-          tokenLower === `tk-${raw}` ||
-          `tk-${tokenLower}` === raw ||
-          (cleanDigits.length > 0 && tokenDigits === cleanDigits) ||
-          uhidLower === raw ||
-          reportIdLower === raw
-        );
-      });
-
+    // If reception entry matched, locate its final report (using token, ID, UHID, mobile, or name)
     if (receptionMatch) {
       setMatchedEntry(receptionMatch);
 
-      // Check if report already exists for this entry
+      const recTokenDigits = (receptionMatch.tokenNumber || '').replace(/\D/g, '');
+      const recMobile10 = (receptionMatch.mobile || '').replace(/\D/g, '').slice(-10);
+      const recName = (receptionMatch.patientName || '').trim().toLowerCase();
+
       const foundReport =
         (scopedReports || []).find((r) => {
           const rId = (r.reportId || '').toLowerCase().trim();
           const rUhid = (r.uhid || '').toLowerCase().trim();
           const rToken = (r.tokenNumber || '').toLowerCase().trim();
           const rRecId = (r.receptionId || '').toLowerCase().trim();
+          const rTokenDigits = rToken.replace(/\D/g, '');
+          const rMobile10 = (r.mobile || '').replace(/\D/g, '').slice(-10);
+          const rName = (r.patientName || '').trim().toLowerCase();
 
           if (receptionMatch.reportId && rId === receptionMatch.reportId.toLowerCase().trim()) return true;
           if (receptionMatch.uhid && rUhid === receptionMatch.uhid.toLowerCase().trim()) return true;
-          if (receptionMatch.tokenNumber && rToken === receptionMatch.tokenNumber.toLowerCase().trim()) return true;
+          if (receptionMatch.tokenNumber && rToken && (rToken === receptionMatch.tokenNumber.toLowerCase().trim() || (recTokenDigits && rTokenDigits === recTokenDigits))) return true;
           if (rRecId && rRecId === receptionMatch.id.toLowerCase().trim()) return true;
+          if (recMobile10 && rMobile10 && recMobile10 === rMobile10) return true;
+          if (recName && rName && recName === rName && recMobile10 && rMobile10 === recMobile10) return true;
           return false;
         }) ||
         (allReports || []).find((r) => {
+          if (!isTenantMatch(r, targetLab, false)) return false;
           const rId = (r.reportId || '').toLowerCase().trim();
           const rUhid = (r.uhid || '').toLowerCase().trim();
           const rToken = (r.tokenNumber || '').toLowerCase().trim();
           const rRecId = (r.receptionId || '').toLowerCase().trim();
+          const rTokenDigits = rToken.replace(/\D/g, '');
+          const rMobile10 = (r.mobile || '').replace(/\D/g, '').slice(-10);
+          const rName = (r.patientName || '').trim().toLowerCase();
 
           if (receptionMatch.reportId && rId === receptionMatch.reportId.toLowerCase().trim()) return true;
           if (receptionMatch.uhid && rUhid === receptionMatch.uhid.toLowerCase().trim()) return true;
-          if (receptionMatch.tokenNumber && rToken === receptionMatch.tokenNumber.toLowerCase().trim()) return true;
+          if (receptionMatch.tokenNumber && rToken && (rToken === receptionMatch.tokenNumber.toLowerCase().trim() || (recTokenDigits && rTokenDigits === recTokenDigits))) return true;
           if (rRecId && rRecId === receptionMatch.id.toLowerCase().trim()) return true;
+          if (recMobile10 && rMobile10 && recMobile10 === rMobile10) return true;
+          if (recName && rName && recName === rName && recMobile10 && rMobile10 === recMobile10) return true;
           return false;
         });
 
