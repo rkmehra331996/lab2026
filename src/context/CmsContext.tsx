@@ -7752,9 +7752,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     category?: string;
     subscriptionPlan?: string;
   }): { lab: VendorLabDirectoryItem; adminUser: CmsUser } => {
-    const cleanSlug = payload.labName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'newlab';
-    const newLabId = `lab-${cleanSlug}-${Date.now().toString().slice(-4)}`;
     const cleanPhone = payload.phone.replace(/\D/g, '').slice(-10);
+    const mobileSlug = cleanPhone || '7087033009';
+    const newLabId = `lab-${mobileSlug}`;
+    const finalDirectoryUrl = `indianlalaji.com/shop/${mobileSlug}`;
 
     // Strict Rule: Ek number se ek hi lab register hogi
     const existingLabWithPhone = vendorLabsList.find(
@@ -7766,6 +7767,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newLab: VendorLabDirectoryItem = {
       id: newLabId,
+      slug: mobileSlug,
       name: payload.labName,
       tagline: payload.tagline || `${payload.category || 'Diagnostic Pathology'} & Clinical Hub`,
       city: payload.city || payload.state || 'Punjab',
@@ -7795,8 +7797,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ? 1499
           : 0,
       joinedDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-      domainPreview: `indianlalaji.com/shop/${newLabId}`,
-      websiteUrl: `https://indianlalaji.com/shop/${newLabId}`,
+      domainPreview: finalDirectoryUrl,
+      websiteUrl: `https://${finalDirectoryUrl}`,
       features: ['WhatsApp PDF Reports', 'Barcode Tracking', 'Staff Role Management', 'Due Billing Desk'],
     };
 
@@ -7837,7 +7839,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `staff-rec-${newLabId}`,
       name: `${payload.ownerName.split(' ')[0]} Desk Reception`,
       role: 'reception',
-      username: `reception.${cleanSlug}`,
+      username: `reception.${mobileSlug}`,
       phone: cleanPhone,
       password: payload.password ? `${payload.password}1` : 'reception123',
       status: 'active',
@@ -7853,7 +7855,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `staff-tech-${newLabId}`,
       name: `Senior Lab Technician`,
       role: 'technician',
-      username: `tech.${cleanSlug}`,
+      username: `tech.${mobileSlug}`,
       phone: cleanPhone,
       password: payload.password ? `${payload.password}2` : 'tech123',
       status: 'active',
@@ -7945,7 +7947,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         password: payload.password?.trim() || '',
         pin: payload.pin?.trim() || '',
         email: payload.email || `${cleanPhone}@indianlalaji.com`,
-        slug: cleanSlug,
+        slug: mobileSlug,
         ownerName: payload.ownerName || `${payload.labName} Owner`,
       }, true);
     }

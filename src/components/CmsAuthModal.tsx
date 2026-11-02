@@ -361,8 +361,9 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
     }
 
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://indianlalaji.com';
-    const cleanSlug = lab.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'newlab';
-    const labUrl = `${currentOrigin}/shop/${cleanSlug}`;
+    const cleanPhone = (ph || '').replace(/\D/g, '').slice(-10);
+    const mobileSlug = cleanPhone || '7087033009';
+    const labUrl = `${currentOrigin}/shop/${mobileSlug}`;
     const mainLoginUrl = `${currentOrigin}?view=vendor_dashboard`;
 
     const message = `🏥 *LABORATORY CREDENTIALS*
@@ -386,8 +387,8 @@ ${labUrl}
 ${mainLoginUrl}
 
 👥 *DEFAULT STAFF LOGINS:*
-• Receptionist: reception.${cleanSlug} (Pass: ${pass ? pass + '1' : 'reception123'})
-• Technician: tech.${cleanSlug} (Pass: ${pass ? pass + '2' : 'tech123'})
+• Receptionist: reception.${mobileSlug} (Pass: ${pass ? pass + '1' : 'reception123'})
+• Technician: tech.${mobileSlug} (Pass: ${pass ? pass + '2' : 'tech123'})
 
 ━━━━━━━━━━━━━━━━━━━━━━
 _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
@@ -457,7 +458,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
       });
 
       const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://indianlalaji.com';
-      const domainUrl = `${currentOrigin}/shop/${lab.id}`;
+      const domainUrl = `${currentOrigin}/shop/${cleanPhone}`;
 
       setCreatedLabData({
         labName: lab.name,
@@ -1290,7 +1291,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                           onClose();
                           selectVendorLab(createdLabData.labId);
                           try {
-                            window.history.pushState({}, '', `/shop/${createdLabData.labId}`);
+                            window.history.pushState({}, '', `/shop/${createdLabData.phone || createdLabData.labId.replace(/^lab-/, '')}`);
                           } catch {}
                           onNavigateView('vendor_website');
                         }}
@@ -1504,6 +1505,16 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                             placeholder="Enter 10-digit mobile number"
                             className="w-full pl-12 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono font-bold text-slate-900 placeholder:text-slate-400"
                           />
+                        </div>
+                        {/* Live Lab URL Preview based on Mobile Number */}
+                        <div className="mt-2 p-2.5 bg-blue-50/80 rounded-xl border border-blue-200/80 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-600 font-semibold flex items-center gap-1.5">
+                            <Globe className="w-3.5 h-3.5 text-[#123B6D]" />
+                            <span>Your Dedicated Lab Shop URL:</span>
+                          </span>
+                          <span className="font-mono font-bold text-[#123B6D] text-xs">
+                            indianlalaji.com/shop/{createMobile.replace(/\D/g, '') || '98XXXXXXXX'}
+                          </span>
                         </div>
                       </div>
 
