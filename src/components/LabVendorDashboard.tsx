@@ -786,8 +786,11 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
             </div>
           </div>
 
-          {/* Top Actions: Visit Website and Logout */}
+          {/* Top Actions: Refresh Data + Visit Website and Logout */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* Refresh Data & Clear Cache */}
+            <SyncNowButton variant="blue" label="Refresh" />
+
             {/* Visit Website Button */}
             <button
               type="button"

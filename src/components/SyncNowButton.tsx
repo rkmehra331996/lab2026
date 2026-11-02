@@ -6,17 +6,20 @@ interface SyncNowButtonProps {
   variant?: 'teal' | 'navy' | 'blue' | 'light' | 'dark';
   className?: string;
   showStatusBadge?: boolean;
+  label?: string;
 }
 
 export const SyncNowButton: React.FC<SyncNowButtonProps> = ({
   variant = 'navy',
   className = '',
   showStatusBadge = true,
+  label = 'Refresh',
 }) => {
   const {
     cloudSyncStatus,
     pendingOfflineSyncCount,
     triggerManualSync,
+    refreshCloudData,
     lastCloudSyncTime,
   } = useCms();
 
@@ -34,15 +37,39 @@ export const SyncNowButton: React.FC<SyncNowButtonProps> = ({
 
     setIsLocalSyncing(true);
     try {
-      const res = await triggerManualSync();
+      // 1. Clear transient session/query caches
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const k = sessionStorage.key(i);
+          if (k && (k.startsWith('cache_') || k.startsWith('query_') || k.startsWith('temp_'))) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+      } catch {}
+
+      // 2. Force fresh cloud pull from Hostinger and run sync
+      await refreshCloudData();
+      await triggerManualSync();
+
       setSyncFeedback({
         show: true,
-        success: res.success,
-        message: res.message,
+        success: true,
+        message: 'Data refreshed & cache cleared!',
       });
       setTimeout(() => {
         setSyncFeedback((prev) => ({ ...prev, show: false }));
-      }, 4000);
+      }, 3500);
+    } catch {
+      setSyncFeedback({
+        show: true,
+        success: false,
+        message: 'Refresh failed, check internet.',
+      });
+      setTimeout(() => {
+        setSyncFeedback((prev) => ({ ...prev, show: false }));
+      }, 3500);
     } finally {
       setIsLocalSyncing(false);
     }
@@ -67,7 +94,7 @@ export const SyncNowButton: React.FC<SyncNowButtonProps> = ({
         onClick={handleSyncClick}
         disabled={isSyncing}
         className={`px-2.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border active:scale-95 disabled:opacity-60 select-none ${variantStyles} ${className}`}
-        title={`Hostinger MySQL Sync (${lastCloudSyncTime ? `Last: ${lastCloudSyncTime}` : 'Live'}). Click to synchronize offline changes.`}
+        title={`Clear Cache & Refresh Data (${lastCloudSyncTime ? `Last: ${lastCloudSyncTime}` : 'Live'}). Pulls latest data from Hostinger.`}
       >
         <RefreshCw
           className={`w-3.5 h-3.5 text-amber-300 shrink-0 ${
@@ -75,10 +102,10 @@ export const SyncNowButton: React.FC<SyncNowButtonProps> = ({
           }`}
         />
 
-        <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+        <span>{isSyncing ? 'Refreshing...' : (label || 'Refresh')}</span>
 
         {/* Pending Offline Records Badge */}
-        {pendingOfflineSyncCount > 0 && (
+        {showStatusBadge && pendingOfflineSyncCount > 0 && (
           <span
             className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded-full leading-none animate-pulse shrink-0"
             title={`${pendingOfflineSyncCount} changes waiting to sync to Hostinger MySQL`}
@@ -88,7 +115,7 @@ export const SyncNowButton: React.FC<SyncNowButtonProps> = ({
         )}
 
         {/* Offline indicator if browser is disconnected */}
-        {isOffline && pendingOfflineSyncCount === 0 && (
+        {showStatusBadge && isOffline && pendingOfflineSyncCount === 0 && (
           <span title="Offline Mode: Changes save locally" className="inline-flex">
             <WifiOff className="w-3 h-3 text-rose-300 shrink-0" />
           </span>

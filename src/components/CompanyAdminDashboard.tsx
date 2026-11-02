@@ -52,6 +52,7 @@ import { SeoSettingsTab } from './admin/SeoSettingsTab';
 import { SeoPostsManagement } from './admin/SeoPostsManagement';
 import { forceFreshReload } from '../utils/cacheManager';
 import { IndianLalajiMarquee } from './IndianLalajiMarquee';
+import { SyncNowButton } from './SyncNowButton';
 
 interface CompanyAdminDashboardProps {
   onNavigateView: (view: AppView) => void;
@@ -747,8 +748,11 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
             </button>
           </nav>
 
-          {/* Right Header Actions: Visit Website and Logout */}
+          {/* Right Header Actions: Refresh Data + Visit Website and Logout */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Clear Cache & Refresh Data */}
+            <SyncNowButton variant="navy" label="Refresh" />
+
             {/* Visit Website Button */}
             <button
               type="button"
