@@ -1,4 +1,5 @@
 import { AppView } from '../types';
+import { getRegisteredMobileForLab } from '../constants/domains';
 
 export interface DomainRouteResolution {
   view: AppView;
@@ -11,7 +12,7 @@ export interface DomainRouteResolution {
 
 /**
  * Builds the unique patient report URL for QR codes and instant verification:
- * Format: https://yourdomain.com/shopnumber/report/TK-102
+ * Format: https://yourdomain.com/shop/REGISTERED_MOBILE/report/TK-102
  */
 export function buildPatientReportUrl(
   shopIdentifier?: string,
@@ -27,7 +28,8 @@ export function buildPatientReportUrl(
   const cleanToken = (tokenOrReportId || 'TK-101').trim();
   const cleanShop = (shopIdentifier || '').trim();
   if (cleanShop && cleanShop.toLowerCase() !== 'shop' && cleanShop.toLowerCase() !== 'report') {
-    return `${cleanOrigin}/shop/${encodeURIComponent(cleanShop)}/report/${encodeURIComponent(cleanToken)}`;
+    const mobileSlug = getRegisteredMobileForLab(cleanShop);
+    return `${cleanOrigin}/shop/${encodeURIComponent(mobileSlug || cleanShop)}/report/${encodeURIComponent(cleanToken)}`;
   }
   return `${cleanOrigin}/report/${encodeURIComponent(cleanToken)}`;
 }

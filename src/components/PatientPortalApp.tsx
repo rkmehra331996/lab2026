@@ -40,6 +40,7 @@ import { safePrint } from '../utils/printHelper';
 import { CanonicalPdfViewer } from './CanonicalPdfViewer';
 import { isTenantMatch, isReportAccessibleToTenant, normalizeTenantId } from '../utils/tenantSecurity';
 import { getTenantSubdomain } from '../constants/domains';
+import { buildPatientReportUrl } from '../utils/domainRouting';
 
 interface PatientPortalAppProps {
   onBackToWebsite: () => void;
@@ -1036,10 +1037,10 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
   const handleShareWhatsApp = () => {
     if (!searchedReport) return;
-    const shareUrl =
-      typeof window !== 'undefined'
-        ? `${window.location.origin}/rpt/${searchedReport.reportId}`
-        : `https://report.labportal.online/rpt/${searchedReport.reportId}`;
+    const shareUrl = buildPatientReportUrl(
+      searchedReport.labId || activeVendorLab?.id || selectedVendorLabId,
+      searchedReport.tokenNumber || searchedReport.reportId
+    );
     const text = encodeURIComponent(
       `Here is my authenticated lab report (${searchedReport.reportId}) from ${searchedReport.labName}: ${shareUrl}`
     );

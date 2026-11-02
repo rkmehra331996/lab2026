@@ -1055,6 +1055,104 @@ Consultant Doctors: ${JSON.stringify(vendorContext?.doctors || [])}
     }
   });
 
+// Helper to inject vendor-specific OpenGraph meta tags for WhatsApp & Social link previews
+function injectDynamicMetaTags(html: string, originalUrl: string, hostHeader?: string): string {
+  try {
+    const parsedUrl = new URL(originalUrl, 'http://localhost');
+    const pathname = parsedUrl.pathname;
+    const store = readDevDb();
+    const vendorLabs: any[] = store.vendor_labs || store.vendorLabs || [];
+    const settingsMap = store.lab_settings || store.labSettingsMap || {};
+
+    const reportMatch = pathname.match(/^\/(?:(?:shop|lab|labs|vendor|v)\/)?([a-zA-Z0-9_\-]+)\/(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i);
+    const directReportMatch = pathname.match(/^\/(?:(?:shop|lab|labs|vendor|v)\/)?(?:report|reports)\/([a-zA-Z0-9_\-]+)\/?$/i);
+    const shopMatch = pathname.match(/^\/(?:shop|lab|labs|vendor|v)\/([^/?#]+)/i);
+
+    let rawShop = '';
+    let token = '';
+
+    if (reportMatch && reportMatch[1] && reportMatch[2]) {
+      rawShop = decodeURIComponent(reportMatch[1]).trim();
+      token = decodeURIComponent(reportMatch[2]).trim();
+    } else if (directReportMatch && directReportMatch[1]) {
+      token = decodeURIComponent(directReportMatch[1]).trim();
+      rawShop = parsedUrl.searchParams.get('shop') || parsedUrl.searchParams.get('lab') || '';
+    } else if (shopMatch && shopMatch[1]) {
+      rawShop = decodeURIComponent(shopMatch[1]).trim();
+    } else if (parsedUrl.searchParams.get('lab') || parsedUrl.searchParams.get('shop')) {
+      rawShop = parsedUrl.searchParams.get('lab') || parsedUrl.searchParams.get('shop') || '';
+      token = parsedUrl.searchParams.get('report') || parsedUrl.searchParams.get('token') || '';
+    }
+
+    if (!rawShop && !token) {
+      return html;
+    }
+
+    const cleanShopLower = rawShop.toLowerCase();
+    const cleanDigits = rawShop.replace(/\D/g, '');
+    const clean10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : '';
+
+    const matchedLab = vendorLabs.find((l: any) => {
+      const id = (l.id || '').toLowerCase();
+      const slug = (l.slug || '').toLowerCase();
+      const dp = (l.domainPreview || '').toLowerCase();
+      const phone = (l.phone || '').replace(/\D/g, '');
+      const name = (l.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      return (
+        id === cleanShopLower ||
+        id === `lab-${cleanShopLower}` ||
+        id.replace(/^lab-/, '') === cleanShopLower.replace(/^lab-/, '') ||
+        slug === cleanShopLower ||
+        dp.includes(cleanShopLower) ||
+        (clean10 && phone.slice(-10) === clean10) ||
+        (cleanShopLower && name.includes(cleanShopLower.replace(/[^a-z0-9]/g, '')))
+      );
+    }) || (token ? vendorLabs[0] : null);
+
+    if (matchedLab) {
+      const labId = matchedLab.id;
+      const settings = settingsMap[labId] || {};
+      const labName = settings.labName || matchedLab.name || 'Diagnostic Laboratory';
+      const tagline = settings.tagline || matchedLab.tagline || 'Advanced Clinical Pathology & Digital Reports';
+
+      let featureImage = settings.featureImageUrl || settings.ogImageUrl || settings.logoUrl || matchedLab.logoUrl || '';
+      const host = hostHeader || 'indianlalaji.com';
+      const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+
+      if (featureImage && (featureImage.startsWith('/') || !featureImage.startsWith('http'))) {
+        featureImage = `${protocol}://${host}${featureImage.startsWith('/') ? '' : '/'}${featureImage}`;
+      }
+      if (!featureImage) {
+        featureImage = 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1200&q=80';
+      }
+
+      let title = `${labName} - Official Diagnostic Testing & Pathology Portal`;
+      let desc = `${tagline}. NABL accredited pathology services with automated WhatsApp reports and online booking.`;
+
+      if (token) {
+        title = `${labName} - Verified Diagnostic Report (${token})`;
+        desc = `Official medical diagnostic laboratory report (Token #${token}) by ${labName}. Certified and ready for digital verification & instant PDF download.`;
+      }
+
+      const fullUrl = `${protocol}://${host}${originalUrl}`;
+
+      html = html.replace(/<title>.*?<\/title>/i, `<title>${title}</title>`);
+      html = html.replace(/<meta\s+name=["']description["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="description" content="${desc}" />`);
+      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:title" content="${title}" />`);
+      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:description" content="${desc}" />`);
+      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:image" content="${featureImage}" />`);
+      html = html.replace(/<meta\s+property=["']og:url["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:url" content="${fullUrl}" />`);
+      html = html.replace(/<meta\s+name=["']twitter:title["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:title" content="${title}" />`);
+      html = html.replace(/<meta\s+name=["']twitter:description["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:description" content="${desc}" />`);
+      html = html.replace(/<meta\s+name=["']twitter:image["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:image" content="${featureImage}" />`);
+    }
+  } catch (err) {
+    console.warn('[Dynamic OG Meta Error]:', err);
+  }
+  return html;
+}
+
   // Mount Vite development middlewares
   const isProd = process.env.NODE_ENV === 'production';
   if (!isProd) {
@@ -1074,6 +1172,7 @@ Consultant Doctors: ${JSON.stringify(vendorContext?.doctors || [])}
         template = await vite.transformIndexHtml(url, template);
         // Completely strip /@vite/client so dev server HMR / WebSocket client never executes in browser
         template = template.replace(/<script type="module" src="\/@vite\/client"><\/script>/gi, '');
+        template = injectDynamicMetaTags(template, url, req.get('host'));
         res.status(200).set({
           'Content-Type': 'text/html',
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1101,11 +1200,20 @@ Consultant Doctors: ${JSON.stringify(vendorContext?.doctors || [])}
         }
       }));
     }
-    app.use('*', (_req, res) => {
+    app.use('*', (req, res) => {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
+      try {
+        const htmlPath = path.join(distPath, 'index.html');
+        if (fs.existsSync(htmlPath)) {
+          let html = fs.readFileSync(htmlPath, 'utf-8');
+          html = injectDynamicMetaTags(html, req.originalUrl, req.get('host'));
+          res.setHeader('Content-Type', 'text/html');
+          return res.send(html);
+        }
+      } catch {}
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

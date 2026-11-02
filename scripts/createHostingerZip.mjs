@@ -54,6 +54,13 @@ async function run() {
     fs.copyFileSync(htaccessSrc, htaccessDst);
   }
 
+  // 1b. Ensure fresh public/index.php is copied to dist for dynamic OpenGraph tags on Hostinger
+  const indexPhpSrc = path.join(publicDir, 'index.php');
+  const indexPhpDst = path.join(distDir, 'index.php');
+  if (fs.existsSync(indexPhpSrc)) {
+    fs.copyFileSync(indexPhpSrc, indexPhpDst);
+  }
+
   // 2. Ensure fresh public/api is copied to dist/api
   const apiSrc = path.join(publicDir, 'api');
   const apiDst = path.join(distDir, 'api');

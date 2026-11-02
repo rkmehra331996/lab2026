@@ -431,7 +431,8 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
 
   const handleWhatsAppSend = (patient: Patient) => {
     const labTitle = vendorLabSettings?.labName || 'Apex Diagnostics';
-    const reportUrl = `${window.location.origin}?report=${patient.reportId}`;
+    const targetLabId = patient.labId || activeTenantId || selectedVendorLabId;
+    const reportUrl = buildPatientReportUrl(targetLabId, patient.tokenNumber || patient.reportId);
     const text = encodeURIComponent(
       `Namaste ${patient.name} Ji, your test report (${patient.reportId}) from ${labTitle} is ready. View & download without login: ${reportUrl}`
     );
@@ -2416,8 +2417,9 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
                                 </button>
                                 <button
                                   onClick={() => {
+                                    const reportLink = buildPatientReportUrl(rpt.labId || activeTenantId || selectedVendorLabId, rpt.tokenNumber || rpt.reportId);
                                     const text = encodeURIComponent(
-                                      `Hello ${rpt.patientName}, your authenticated test report (${rpt.reportId}) from ${rpt.labName} is ready. View & download without login: ${window.location.origin}?report=${rpt.reportId}`
+                                      `Hello ${rpt.patientName}, your authenticated test report (${rpt.reportId}) from ${rpt.labName} is ready. View & download without login: ${reportLink}`
                                     );
                                     window.open(`https://wa.me/91${rpt.mobile}?text=${text}`, '_blank');
                                   }}
