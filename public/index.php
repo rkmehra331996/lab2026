@@ -20,13 +20,13 @@ $rawShop = '';
 $token = '';
 
 // 1. Detect /shop/:shop/report/:token or /report/:token
-if (preg_match('#^/(?:shop|lab|labs|vendor|v)/([^/?#]+)/(?:report|reports)/([^/?#]+)#i', $path, $matches)) {
+if (preg_match('~^/(?:shop|lab|labs|vendor|v)/([^/]+)/(?:report|reports)/([^/]+)~i', $path, $matches)) {
     $rawShop = urldecode($matches[1]);
     $token = urldecode($matches[2]);
-} elseif (preg_match('#^/(?:report|reports)/([^/?#]+)#i', $path, $matches)) {
+} elseif (preg_match('~^/(?:report|reports)/([^/]+)~i', $path, $matches)) {
     $token = urldecode($matches[1]);
     $rawShop = $_GET['shop'] ?? $_GET['lab'] ?? '';
-} elseif (preg_match('#^/(?:shop|lab|labs|vendor|v)/([^/?#]+)#i', $path, $matches)) {
+} elseif (preg_match('~^/(?:shop|lab|labs|vendor|v)/([^/]+)~i', $path, $matches)) {
     $rawShop = urldecode($matches[1]);
 } elseif (!empty($_GET['lab']) || !empty($_GET['shop'])) {
     $rawShop = $_GET['lab'] ?? $_GET['shop'];
