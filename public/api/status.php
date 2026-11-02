@@ -10,26 +10,26 @@ $meta = getSyncMetadata();
 $uploadWritable = is_writable(UPLOADS_DIR);
 $dataWritable = is_writable(DATA_DIR);
 
-$dbStatus = 'Active: Using High-Speed Built-in Storage Engine (Zero-Config)';
-$dbConnected = false;
-$mysqlTested = false;
-$dbError = null;
+$conn = getDbConnection();
+$dbConnected = ($conn !== null);
+$dbHostUsed = getConnectedHost() ?: DB_HOST;
+$dbError = getDbConnectionError();
+$tableCount = 0;
+$tablesList = [];
 
-if (defined('DB_USER') && DB_USER) {
-    $mysqlTested = true;
+if ($conn) {
     try {
-        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        $testPdo = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_TIMEOUT => 3
-        ]);
-        $dbConnected = true;
-        $dbStatus = '✅ Successfully Connected to Hostinger MySQL Database (' . DB_NAME . ')';
-    } catch (Exception $e) {
-        $dbConnected = false;
-        $dbStatus = '⚠️ MySQL Error: ' . $e->getMessage() . ' (Auto-Fallback to Built-in Storage active)';
-        $dbError = $e->getMessage();
+        $tblStmt = $conn->query("SHOW TABLES");
+        if ($tblStmt) {
+            $tablesList = $tblStmt->fetchAll(PDO::FETCH_COLUMN);
+            $tableCount = count($tablesList);
+        }
+        $dbStatus = '✅ Successfully Connected to Hostinger MySQL Database (' . DB_NAME . ') on ' . $dbHostUsed . ' (' . $tableCount . ' tables active)';
+    } catch (\Exception $e) {
+        $dbStatus = 'Connected to MySQL: ' . $e->getMessage();
     }
+} else {
+    $dbStatus = '⚠️ Hostinger MySQL Notice: ' . ($dbError ?: 'Not connected') . ' (Auto-Fallback to Built-in Storage Active)';
 }
 
 echo json_encode([
@@ -39,10 +39,14 @@ echo json_encode([
     'database' => [
         'mode' => $dbConnected ? 'Hostinger MySQL' : 'Built-in Auto Storage Engine',
         'mysqlConnected' => $dbConnected,
-        'mysqlConfigured' => $mysqlTested,
+        'mysqlConfigured' => true,
         'statusMessage' => $dbStatus,
         'databaseName' => DB_NAME,
         'databaseUser' => DB_USER,
+        'connectedHost' => $dbHostUsed,
+        'activeTablesCount' => $tableCount,
+        'activeTables' => $tablesList,
+        'lastError' => $dbError,
     ],
     'storage' => [
         'uploadsDirectoryWritable' => $uploadWritable,

@@ -58,25 +58,61 @@ if (!file_exists(UPLOADS_DIR)) {
 }
 
 // -----------------------------------------------------------------------------
-// 2. Database Connection Helper (PDO with Graceful Fallback)
+// 2. Database Connection Helper (PDO with Graceful Fallback & Auto-Bootstrap)
 // -----------------------------------------------------------------------------
 $pdo = null;
 $storageMode = 'file';
+$dbError = null;
+$connectedHost = null;
 
-try {
-    if (defined('DB_USER') && DB_USER) {
-        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-            PDO::ATTR_TIMEOUT => 2
-        ]);
-        $storageMode = 'mysql';
+if (defined('DB_USER') && DB_USER) {
+    $hosts = [DB_HOST];
+    if (DB_HOST === 'localhost') $hosts[] = '127.0.0.1';
+    if (DB_HOST === '127.0.0.1') $hosts[] = 'localhost';
+
+    foreach ($hosts as $h) {
+        try {
+            $dsn = "mysql:host=" . $h . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_TIMEOUT => 3
+            ]);
+            $storageMode = 'mysql';
+            $connectedHost = $h;
+            $dbError = null;
+            break;
+        } catch (Exception $e) {
+            $dbError = $e->getMessage();
+            $pdo = null;
+        }
     }
-} catch (Exception $e) {
-    $pdo = null;
-    $storageMode = 'file';
+
+    if ($pdo) {
+        autoBootstrapDatabaseTables($pdo);
+    }
+}
+
+function autoBootstrapDatabaseTables($pdoInstance) {
+    try {
+        $chk = $pdoInstance->query("SHOW TABLES LIKE 'vendor_labs'");
+        if ($chk && $chk->rowCount() > 0) {
+            return; // Tables already initialized
+        }
+        $schemaFile = __DIR__ . '/schema.sql';
+        if (file_exists($schemaFile)) {
+            $sql = file_get_contents($schemaFile);
+            $queries = array_filter(array_map('trim', explode(';', $sql)));
+            foreach ($queries as $q) {
+                if (!empty($q)) {
+                    try {
+                        $pdoInstance->exec($q);
+                    } catch (\Exception $e) {}
+                }
+            }
+        }
+    } catch (\Exception $e) {}
 }
 
 function getDbConnection() {
@@ -87,6 +123,16 @@ function getDbConnection() {
 function getStorageMode() {
     global $storageMode;
     return $storageMode;
+}
+
+function getDbConnectionError() {
+    global $dbError;
+    return $dbError;
+}
+
+function getConnectedHost() {
+    global $connectedHost;
+    return $connectedHost;
 }
 
 /**
