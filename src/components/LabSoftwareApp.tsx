@@ -41,6 +41,7 @@ import {
   CheckCircle2,
   LayoutGrid,
   List,
+  Mail,
 } from 'lucide-react';
 import { Patient, TestItem, LabReport, ReportItem, ReceptionPatientEntry, AppView } from '../types';
 import { CreateReportModal } from './CreateReportModal';
@@ -56,6 +57,7 @@ import { buildPatientReportUrl } from '../utils/domainRouting';
 import { getTenantDirectUrl } from '../constants/domains';
 import { buildReceiptSlipImage, downloadReceiptImage } from '../utils/receiptImageGenerator';
 import { WebsiteTokenReceiptCard } from './vendor/WebsiteTokenReceiptCard';
+import { buildReportEmailUrl } from '../utils/shareUtils';
 
 interface LabSoftwareAppProps {
   onBackToWebsite: () => void;
@@ -437,6 +439,27 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
       `Namaste ${patient.name} Ji, your test report (${patient.reportId}) from ${labTitle} is ready. View & download without login: ${reportUrl}`
     );
     window.open(`https://wa.me/91${patient.mobile}?text=${text}`, '_blank');
+  };
+
+  const handleEmailSend = (patient: Patient) => {
+    const labTitle = vendorLabSettings?.labName || 'Apex Diagnostics';
+    const targetLabId = patient.labId || activeTenantId || selectedVendorLabId;
+    const mailto = buildReportEmailUrl({
+      reportId: patient.reportId,
+      uhid: patient.uhid,
+      patientName: patient.name,
+      patientAge: patient.age,
+      patientGender: patient.gender,
+      mobile: patient.mobile,
+      email: patient.email || '',
+      referringDoctor: patient.referringDoctor,
+      reportedAt: patient.registeredAt,
+      testsList: patient.tests,
+      labId: targetLabId,
+      labName: labTitle,
+      tokenNumber: patient.tokenNumber,
+    }, patient.email);
+    window.open(mailto, '_blank');
   };
 
   // Workstation parameter loader when workstationPatientId changes
@@ -1829,6 +1852,16 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({
                                         title="Send Report via WhatsApp"
                                       >
                                         <MessageSquare className="w-3.5 h-3.5" />
+                                      </button>
+
+                                      {/* Email Report Share */}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEmailSend(p)}
+                                        className="p-1.5 text-sky-700 hover:text-sky-800 hover:bg-sky-50 rounded-lg cursor-pointer"
+                                        title="Send Report via Email ID"
+                                      >
+                                        <Mail className="w-3.5 h-3.5" />
                                       </button>
                                     </>
                                   )}

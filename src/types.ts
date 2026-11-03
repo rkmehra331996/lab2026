@@ -605,6 +605,7 @@ export interface Patient {
   age: number;
   gender: 'Male' | 'Female' | 'Other';
   mobile: string;
+  email?: string;
   city: string;
   referringDoctor: string;
   registeredAt: string;
@@ -650,6 +651,8 @@ export interface LabReport {
   patientGender?: string;
   mobile: string;
   patientMobile?: string;
+  email?: string;
+  patientEmail?: string;
   doctor: string;
   referringDoctor?: string;
   sampleCollectedAt: string;
@@ -837,6 +840,7 @@ export interface ReceptionPatientEntry {
   age: number | string;
   gender: 'Male' | 'Female' | 'Other';
   mobile: string;
+  email?: string;
   referringDoctor: string;
   tests?: string[];
   sampleType: string;

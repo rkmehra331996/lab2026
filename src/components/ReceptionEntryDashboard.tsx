@@ -45,6 +45,7 @@ import {
   FolderTree,
   Layers,
   ListFilter,
+  Mail,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -60,6 +61,7 @@ import { buildPatientReportUrl } from '../utils/domainRouting';
 import { getTenantDirectUrl } from '../constants/domains';
 import { buildReceiptSlipImage, downloadReceiptImage, uploadReceiptSlipImage } from '../utils/receiptImageGenerator';
 import { WebsiteTokenReceiptCard } from './vendor/WebsiteTokenReceiptCard';
+import { buildReceiptEmailUrl, buildReportEmailUrl, buildReportWhatsAppUrl } from '../utils/shareUtils';
 
 // Format token number to standard format (e.g. "TK-626")
 export const getDisplayTokenNumber = (tokenRaw?: string, fallbackId?: string): string => {
@@ -206,6 +208,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const [showRecentlyRegisteredBanner, setShowRecentlyRegisteredBanner] = useState<boolean>(false);
 
   const [patientName, setPatientName] = useState('');
+  const [patientEmail, setPatientEmail] = useState('');
   const [age, setAge] = useState('32');
   const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>('Male');
   const [mobile, setMobile] = useState('');
@@ -624,6 +627,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     saveCurrentAsSnapshot();
     setEditingEntryId(entry.id);
     setPatientName(entry.patientName);
+    setPatientEmail(entry.email || '');
     setAge(String(entry.age));
     setGender(entry.gender);
     setMobile(entry.mobile);
@@ -687,6 +691,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       age: age || '30',
       gender,
       mobile: mobile || '9876500000',
+      email: patientEmail.trim() || undefined,
       referringDoctor: referringDoctor.trim() || 'Self Walk-in (Direct Patient)',
       tests: selectedTests,
       sampleType,
@@ -740,6 +745,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       age: age || '30',
       gender,
       mobile: mobile || '9876500000',
+      email: patientEmail.trim() || undefined,
       referringDoctor: referringDoctor.trim() || 'Self Walk-in (Direct Patient)',
       tests: selectedTests,
       sampleType,
@@ -1081,6 +1087,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     saveCurrentAsSnapshot();
     setEditingEntryId(null);
     setPatientName('');
+    setPatientEmail('');
     setAge('30');
     setGender('Male');
     setMobile('');
@@ -1835,6 +1842,24 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                       onChange={(e) => setReferringDoctor(e.target.value)}
                       placeholder="e.g. Self Walk-in / Dr. Name / Clinic"
                       className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none truncate"
+                    />
+                  </div>
+                </div>
+
+                {/* Email Address (Optional, for digital report & receipt delivery) */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Email ID (Optional - for Email Receipt &amp; Report)</span>
+                    <span className="text-[10px] text-teal-700 font-medium">Auto-dispatch ready report &amp; receipt</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      type="email"
+                      value={patientEmail}
+                      onChange={(e) => setPatientEmail(e.target.value)}
+                      placeholder="patient@gmail.com (Report & Receipt emailed directly)"
+                      className="w-full pl-8 pr-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none"
                     />
                   </div>
                 </div>
@@ -2935,6 +2960,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
               age: selectedReceipt.age,
               gender: selectedReceipt.gender,
               mobile: selectedReceipt.mobile,
+              email: selectedReceipt.email,
               referringDoctor: selectedReceipt.referringDoctor,
               tests: selectedReceipt.tests,
               totalAmount: selectedReceipt.totalAmount || 0,

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import QRCode from 'qrcode';
 import {
   CheckCircle2,
   AlertCircle,
@@ -21,7 +20,8 @@ import {
   Copy,
   FileText,
   Eye,
-  QrCode as QrCodeIcon,
+  Mail,
+  Send,
 } from 'lucide-react';
 import { generateThermalReceiptPdf } from '../../utils/pdfGenerator';
 import { safePrint } from '../../utils/printHelper';
@@ -32,6 +32,8 @@ import {
   downloadReceiptImage,
   uploadReceiptSlipImage,
 } from '../../utils/receiptImageGenerator';
+import { resolveReceiptTestsWithPrices } from '../../utils/testPriceHelper';
+import { buildReceiptEmailUrl } from '../../utils/shareUtils';
 
 export interface WebsiteTokenReceiptData {
   tokenNumber: string;
@@ -40,6 +42,7 @@ export interface WebsiteTokenReceiptData {
   age: number | string;
   gender: string;
   mobile: string;
+  email?: string;
   referringDoctor?: string;
   tests: Array<{ name: string; price?: number } | string>;
   totalAmount: number;
@@ -82,9 +85,11 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
   const [copySuccess, setCopySuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'slip' | 'image_preview'>('slip');
   const [generatedImageDataUrl, setGeneratedImageDataUrl] = useState<string | null>(null);
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState<string>(receipt.email || '');
+  const [showEmailField, setShowEmailField] = useState<boolean>(false);
 
-  const testNames = receipt.tests.map((t) => (typeof t === 'string' ? t : t.name));
+  const resolvedTests = resolveReceiptTestsWithPrices(receipt.tests, receipt.totalAmount);
+  const testNames = resolvedTests.map((t) => t.name);
   const testNamesStr = testNames.join(', ');
   const dateStr = new Date().toLocaleDateString('en-IN', {
     day: '2-digit',
@@ -104,27 +109,6 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
   const paid = receipt.paidAmount || 0;
   const due = receipt.dueAmount ?? Math.max(0, net - paid);
 
-  // Generate on-screen QR Code on component load
-  useEffect(() => {
-    let isMounted = true;
-    QRCode.toDataURL(reportUrl, {
-      margin: 1,
-      width: 160,
-      color: {
-        dark: '#123B6D',
-        light: '#FFFFFF',
-      },
-    })
-      .then((url) => {
-        if (isMounted) setQrCodeDataUrl(url);
-      })
-      .catch((e) => console.warn('QR code generation error:', e));
-
-    return () => {
-      isMounted = false;
-    };
-  }, [reportUrl]);
-
   // Pre-generate slip image preview when user switches to image preview tab
   useEffect(() => {
     if (activeTab === 'image_preview' && !generatedImageDataUrl) {
@@ -137,7 +121,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
           gender: receipt.gender,
           mobile: receipt.mobile,
           referringDoctor: receipt.referringDoctor,
-          tests: receipt.tests,
+          tests: resolvedTests,
           totalAmount: receipt.totalAmount,
           paidAmount: receipt.paidAmount,
           dueAmount: receipt.dueAmount,
@@ -159,7 +143,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
         .then((res) => setGeneratedImageDataUrl(res.dataUrl))
         .catch((e) => console.warn('Preview generation error:', e));
     }
-  }, [activeTab, generatedImageDataUrl, receipt, showPrices]);
+  }, [activeTab, generatedImageDataUrl, receipt, resolvedTests, showPrices]);
 
   // Generate structured message for WhatsApp (will also include uploaded slip image link)
   const buildSlipTextMessage = (uploadedSlipUrl?: string | null) => {
@@ -182,12 +166,12 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
         ? `• Home Pickup: ${receipt.address}${receipt.timeSlot ? ` (${receipt.timeSlot})` : ''}`
         : '',
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `🧪 *PRESCRIBED INVESTIGATIONS (${testNames.length})*`,
-      ...testNames.map((name, i) => {
-        const item = receipt.tests[i];
-        const price = typeof item === 'object' && item?.price ? item.price : null;
-        return `  ${i + 1}. ${name}${showPrices && price !== null ? ` — ₹${price}` : ''}`;
+      `🧪 *PRESCRIBED INVESTIGATIONS (${resolvedTests.length})*`,
+      ...resolvedTests.map((t, i) => {
+        return `  ${i + 1}. ${t.name}${showPrices ? ` — ₹${t.price}` : ''}`;
       }),
+      showPrices ? `  ────────────────────────────` : '',
+      showPrices ? `  *Grand Total (कुल योग):* *₹${total}*` : '',
       showPrices ? `━━━━━━━━━━━━━━━━━━━━━━━━━━━━` : '',
       showPrices ? `💰 *BILLING SUMMARY*` : '',
       showPrices ? `• Gross Total: ₹${total}` : '',
@@ -220,7 +204,7 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
     gender: receipt.gender,
     mobile: receipt.mobile,
     referringDoctor: receipt.referringDoctor || 'Self / Direct',
-    tests: testNames,
+    tests: resolvedTests,
     totalAmount: showPrices ? receipt.totalAmount : 0,
     discountINR: showPrices ? receipt.discountINR || 0 : 0,
     paidAmount: showPrices ? receipt.paidAmount : 0,
@@ -471,6 +455,47 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
     }
   };
 
+  // Share Receipt via Email ID
+  const handleShareEmail = (targetEmailOverride?: string) => {
+    const target = (targetEmailOverride || emailInput || receipt.email || '').trim();
+    const mailto = buildReceiptEmailUrl(
+      {
+        tokenNumber: receipt.tokenNumber,
+        uhid: receipt.uhid,
+        patientName: receipt.patientName,
+        age: receipt.age,
+        gender: receipt.gender,
+        mobile: receipt.mobile,
+        email: target,
+        referringDoctor: receipt.referringDoctor,
+        tests: resolvedTests,
+        totalAmount: receipt.totalAmount,
+        paidAmount: receipt.paidAmount,
+        dueAmount: receipt.dueAmount,
+        discountINR: receipt.discountINR,
+        paymentMode: receipt.paymentMode,
+        paymentStatus: receipt.paymentStatus,
+        registeredAt: receipt.registeredAt,
+        visitType: receipt.visitType,
+        address: receipt.address,
+        timeSlot: receipt.timeSlot,
+        labId: receipt.labId,
+        labName: receipt.labName,
+        labPhone: receipt.labPhone,
+        labAddress: receipt.labAddress,
+        upiTransactionRef: receipt.upiTransactionRef,
+      },
+      target
+    );
+
+    window.open(mailto, '_blank');
+    setShareNotice(
+      target
+        ? `📧 Email client opened to dispatch receipt to: ${target}`
+        : '📧 Email client opened with complete receipt! Enter recipient email address to send.'
+    );
+  };
+
   return (
     <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xl space-y-3.5 max-w-lg w-full mx-auto text-slate-800 relative max-h-[94vh] overflow-y-auto">
       {/* Close Button */}
@@ -656,36 +681,52 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
             {/* DESIGN 2: PRESCRIBED INVESTIGATIONS SECTION */}
             <div className="border border-slate-200 rounded-2xl p-3.5 bg-white space-y-2 shadow-2xs">
               <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
-                  PRESCRIBED INVESTIGATIONS ({receipt.tests.length})
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                  <span>🧪 Prescribed Investigations</span>
+                  <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-full font-bold">
+                    {resolvedTests.length}
+                  </span>
                 </span>
                 {showPrices && (
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Rate (₹)</span>
                 )}
               </div>
 
-              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 divide-y divide-slate-50">
-                {receipt.tests.map((testItem, i) => {
-                  const name = typeof testItem === 'string' ? testItem : testItem.name;
-                  const price =
-                    typeof testItem === 'object' && testItem.price ? testItem.price : null;
-                  return (
-                    <div
-                      key={i}
-                      className="flex justify-between items-center py-1 text-xs text-slate-800"
-                    >
-                      <span className="font-medium truncate pr-2">
-                        {i + 1}. {name}
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 divide-y divide-slate-100">
+                {resolvedTests.map((t, i) => (
+                  <div
+                    key={i}
+                    className="flex justify-between items-center py-1.5 text-xs text-slate-800"
+                  >
+                    <span className="font-medium text-slate-800 truncate pr-2 flex items-center gap-1.5">
+                      <span className="text-slate-400 font-bold text-[11px]">{i + 1}.</span>
+                      <span>{t.name}</span>
+                    </span>
+                    {showPrices && (
+                      <span className="font-mono font-bold text-slate-800 shrink-0 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                        ₹{t.price}
                       </span>
-                      {showPrices && price !== null && (
-                        <span className="font-mono font-bold text-slate-700 shrink-0">
-                          ₹{price}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                    )}
+                  </div>
+                ))}
               </div>
+
+              {/* GRAND TOTAL / कुल योग ROW DIRECTLY UNDER TESTS */}
+              {showPrices && (
+                <div className="flex justify-between items-center pt-2.5 mt-2 border-t-2 border-dashed border-slate-200 bg-slate-50/80 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
+                  <div>
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
+                      Grand Total (कुल योग)
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium block">
+                      {resolvedTests.length} {resolvedTests.length === 1 ? 'test' : 'tests'} total
+                    </span>
+                  </div>
+                  <span className="font-mono text-sm sm:text-base font-black text-[#123B6D]">
+                    ₹{receipt.totalAmount}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* DESIGN 2: BILLING SUMMARY BOX */}
@@ -749,42 +790,27 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
               </div>
             ) : null}
 
-            {/* DESIGN 2: QR CODE SCAN & ONLINE REPORT SECTION */}
-            <div className="border border-slate-200/90 rounded-2xl p-3 bg-gradient-to-b from-white to-blue-50/40 text-center space-y-2 shadow-2xs">
-              <div className="flex items-center justify-center gap-3">
-                {qrCodeDataUrl ? (
-                  <div className="p-1 bg-white border border-slate-200 rounded-xl shadow-xs shrink-0">
-                    <img
-                      src={qrCodeDataUrl}
-                      alt="Report QR Code"
-                      className="w-18 h-18 sm:w-20 sm:h-20"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-18 h-18 bg-slate-100 rounded-xl flex items-center justify-center">
-                    <QrCodeIcon className="w-8 h-8 text-slate-400" />
-                  </div>
-                )}
-
-                <div className="text-left space-y-1">
+            {/* REPORT COLLECTION & HELPLINE NOTICE (QR removed as requested) */}
+            <div className="border border-slate-200/90 rounded-2xl p-3 bg-gradient-to-b from-white to-blue-50/30 text-center space-y-2 shadow-2xs">
+              <div className="flex items-center justify-between gap-3 text-left">
+                <div className="space-y-0.5">
                   <div className="text-[11px] font-black uppercase tracking-wider text-[#123B6D] flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-amber-500" />
-                    <span>Scan to View &amp; Download Report</span>
+                    <span>Report Collection &amp; Helpline</span>
                   </div>
                   <p className="text-[11px] text-slate-600 leading-snug">
-                    Scan with any phone camera or tap link below to view verified test reports
-                    without login:
+                    Please keep this slip safe. Your verified test report will be delivered via WhatsApp upon pathologist sign-off.
                   </p>
-                  <a
-                    href={reportUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1D4ED8] hover:underline"
-                  >
-                    <span>🔗 View Report Online</span>
-                    <ExternalLink className="w-3 h-3 shrink-0" />
-                  </a>
                 </div>
+                <a
+                  href={reportUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1D4ED8] hover:underline bg-white px-3 py-1.5 rounded-xl border border-blue-200 shadow-2xs shrink-0 whitespace-nowrap"
+                >
+                  <span>🔗 View Online</span>
+                  <ExternalLink className="w-3 h-3 shrink-0" />
+                </a>
               </div>
             </div>
           </>
@@ -840,31 +866,71 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
 
         {/* ACTION BUTTONS */}
         <div className="space-y-2 pt-1">
-          {/* PRIMARY ACTION: Share Slip with Image & Text on WhatsApp Web */}
-          <button
-            type="button"
-            disabled={isSharing}
-            onClick={() => handleShareWhatsApp('web')}
-            className="w-full bg-[#16A34A] hover:bg-[#15803D] active:scale-98 text-white py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm transition flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-md disabled:opacity-60"
-            title="Share slip with image and text on WhatsApp Web"
-          >
-            {isSharing ? (
-              <span className="flex items-center gap-2 py-0.5">
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Preparing WhatsApp Slip &amp; Image...</span>
+          {/* PRIMARY ACTIONS: WhatsApp & Email Sharing */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {/* Share via WhatsApp */}
+            <button
+              type="button"
+              disabled={isSharing}
+              onClick={() => handleShareWhatsApp('web')}
+              className="bg-[#16A34A] hover:bg-[#15803D] active:scale-98 text-white py-3 px-3.5 rounded-2xl font-black text-xs transition flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-md disabled:opacity-60"
+              title="Share slip with image and text on WhatsApp"
+            >
+              {isSharing ? (
+                <span className="flex items-center gap-2 py-0.5">
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs">Preparing WhatsApp...</span>
+                </span>
+              ) : (
+                <>
+                  <span className="flex items-center gap-1.5 text-xs font-bold">
+                    <Globe className="w-4 h-4 text-emerald-100" />
+                    <span>Share on WhatsApp</span>
+                  </span>
+                  <span className="text-[10px] font-normal text-emerald-100 opacity-90">
+                    Slip text &amp; Direct Image Link
+                  </span>
+                </>
+              )}
+            </button>
+
+            {/* Share via Email ID */}
+            <button
+              type="button"
+              onClick={() => handleShareEmail(emailInput)}
+              className="bg-[#123B6D] hover:bg-[#0e2d53] active:scale-98 text-white py-3 px-3.5 rounded-2xl font-black text-xs transition flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-md"
+              title="Share receipt slip via Email ID"
+            >
+              <span className="flex items-center gap-1.5 text-xs font-bold">
+                <Mail className="w-4 h-4 text-sky-200" />
+                <span>Share via Email</span>
               </span>
-            ) : (
-              <>
-                <span className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-emerald-100" />
-                  <span>Share Slip &amp; Image (WhatsApp Web)</span>
-                </span>
-                <span className="text-[10px] font-medium text-emerald-100 opacity-90">
-                  (Attaches Direct Slip Image Link + Copies Image for Ctrl+V Paste)
-                </span>
-              </>
-            )}
-          </button>
+              <span className="text-[10px] font-normal text-sky-200 opacity-90 truncate max-w-[200px]">
+                {emailInput ? `Send to ${emailInput}` : 'Send full receipt to Email ID'}
+              </span>
+            </button>
+          </div>
+
+          {/* Quick Email Input Bar */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 flex items-center gap-2">
+            <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+            <input
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="Patient / attendant email ID..."
+              className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              onClick={() => handleShareEmail(emailInput)}
+              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
+              title="Send receipt to this email"
+            >
+              <Send className="w-3 h-3" />
+              <span>Send</span>
+            </button>
+          </div>
 
           {/* SECONDARY ROW 1: Slip Image (PNG) + Copy Slip Image */}
           <div className="grid grid-cols-2 gap-2">

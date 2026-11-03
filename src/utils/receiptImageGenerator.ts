@@ -1,4 +1,4 @@
-import QRCode from 'qrcode';
+import { resolveReceiptTestsWithPrices } from './testPriceHelper';
 
 export interface ReceiptSlipInput {
   tokenNumber: string;
@@ -41,11 +41,12 @@ export async function buildReceiptSlipImage(
   labTitle: string = 'Diagnostic Laboratory'
 ): Promise<ReceiptSlipImageResult> {
   const width = 640;
-  // Estimate canvas height
+  // Estimate canvas height (without QR code)
   const testItems = Array.isArray(data.tests) ? data.tests : [];
-  const testCount = Math.max(1, testItems.length);
+  const resolvedTests = resolveReceiptTestsWithPrices(testItems, data.totalAmount);
+  const testCount = Math.max(1, resolvedTests.length);
   const hasUtr = Boolean(data.upiTransactionRef);
-  const height = (hasUtr ? 830 : 800) + testCount * 30;
+  const height = (hasUtr ? 710 : 680) + testCount * 30;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -159,23 +160,43 @@ export async function buildReceiptSlipImage(
   ctx.stroke();
 
   y += 24;
-  testItems.forEach((item, idx) => {
-    const testName = typeof item === 'string' ? item : item.name;
-    const testPrice = typeof item === 'string' ? null : item.price;
-
+  resolvedTests.forEach((t, idx) => {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#1E293B';
     ctx.font = '13px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`${idx + 1}. ${testName}`, cardX + 35, y);
+    ctx.fillText(`${idx + 1}. ${t.name}`, cardX + 35, y);
 
-    if (data.showPrices !== false && testPrice !== null && testPrice !== undefined) {
+    if (data.showPrices !== false) {
       ctx.textAlign = 'right';
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = '#0F172A';
       ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-      ctx.fillText(`₹${testPrice}`, cardX + cardW - 35, y);
+      ctx.fillText(`₹${t.price}`, cardX + cardW - 35, y);
     }
-    y += 28;
+    y += 26;
   });
+
+  // Grand Total Line directly below tests
+  if (data.showPrices !== false && data.totalAmount !== undefined) {
+    y += 4;
+    ctx.strokeStyle = '#CBD5E1';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cardX + 35, y);
+    ctx.lineTo(cardX + cardW - 35, y);
+    ctx.stroke();
+
+    y += 22;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#123B6D';
+    ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
+    ctx.fillText('Grand Total (कुल योग):', cardX + 35, y);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#123B6D';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText(`₹${data.totalAmount}`, cardX + cardW - 35, y);
+    y += 8;
+  }
 
   // Billing Summary Box
   if (data.showPrices !== false && data.totalAmount !== undefined) {
@@ -220,48 +241,28 @@ export async function buildReceiptSlipImage(
     y += 20;
   }
 
-  // QR Code Generation
-  const origin = typeof window !== 'undefined' && window.location?.origin
-    ? window.location.origin
-    : 'https://indianlalaji.com';
-  const cleanShop = data.labId || '';
-  const reportUrl = cleanShop
-    ? `${origin}/shop/${encodeURIComponent(cleanShop)}/report/${encodeURIComponent(cleanToken)}`
-    : `${origin}/report/${encodeURIComponent(cleanToken)}`;
+  // Footer Notice & Instructions (QR code removed as requested)
+  y += 14;
+  ctx.strokeStyle = '#E2E8F0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cardX + 35, y);
+  ctx.lineTo(cardX + cardW - 35, y);
+  ctx.stroke();
 
-  try {
-    const qrDataUrl = await QRCode.toDataURL(reportUrl, {
-      margin: 1,
-      width: 120,
-      color: {
-        dark: '#123B6D',
-        light: '#FFFFFF',
-      },
-    });
+  y += 24;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#1E3A8A';
+  ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
+  ctx.fillText('Thank you for choosing our laboratory services.', width / 2, y);
 
-    const qrImg = new Image();
-    qrImg.src = qrDataUrl;
-    await new Promise((resolve) => {
-      qrImg.onload = resolve;
-      qrImg.onerror = resolve;
-    });
-
-    const qrSize = 100;
-    const qrX = cardX + (cardW - qrSize) / 2;
-    ctx.drawImage(qrImg, qrX, y, qrSize, qrSize);
-
-    y += qrSize + 16;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#1E3A8A';
-    ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
-    ctx.fillText('SCAN WITH CAMERA TO VIEW & DOWNLOAD REPORT', width / 2, y);
-
+  y += 18;
+  ctx.fillStyle = '#64748B';
+  ctx.font = '11px system-ui, -apple-system, sans-serif';
+  ctx.fillText('Please keep this receipt safe for collecting your test report.', width / 2, y);
+  if (data.labPhone) {
     y += 18;
-    ctx.fillStyle = '#64748B';
-    ctx.font = '11px system-ui, -apple-system, sans-serif';
-    ctx.fillText('Online reports available on official lab portal', width / 2, y);
-  } catch (err) {
-    console.error('QR code generation failed on slip image:', err);
+    ctx.fillText(`For enquiries or home collection: Helpline ${data.labPhone}`, width / 2, y);
   }
 
   // Convert canvas to Blob & DataURL

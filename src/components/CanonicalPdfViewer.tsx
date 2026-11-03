@@ -14,6 +14,9 @@ import {
   FileText,
   Layers,
   X,
+  Mail,
+  MessageSquare,
+  Share2,
 } from 'lucide-react';
 import { LabReport, ReportItem } from '../types';
 import { determineParameterStatus, EvaluatedParameterResult } from '../utils/statusLogic';
@@ -25,6 +28,7 @@ import {
   resolveLabDetails,
 } from '../utils/pdfGenerator';
 import { renderPdfPages, RenderedPdfPage } from '../utils/canonicalPdfRenderer';
+import { buildReportWhatsAppUrl, buildReportEmailUrl } from '../utils/shareUtils';
 
 interface CanonicalPdfViewerProps {
   report: LabReport;
@@ -314,6 +318,58 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
   const handleZoomOut = () => setZoomLevel((z) => Math.max(z - 15, 60));
   const handleZoomReset = () => setZoomLevel(100);
 
+  // Share authenticated report via WhatsApp
+  const handleShareWhatsApp = () => {
+    const waUrl = buildReportWhatsAppUrl({
+      reportId: report.reportId,
+      uhid: report.uhid,
+      patientName: report.patientName,
+      patientAge: report.patientAge,
+      patientGender: report.patientGender,
+      mobile: report.mobile || report.patientMobile || '',
+      email: report.email || report.patientEmail || '',
+      referringDoctor: report.referringDoctor || report.doctor,
+      reportedAt: report.reportedAt || report.reportDate,
+      testName: report.testName,
+      testsList: Array.from(new Set(rawItems.map((i) => i.testName))),
+      labId: report.labId,
+      labName: labName,
+      labPhone: labPhone,
+      labEmail: labEmail,
+      labAddress: labAddress,
+      tokenNumber: report.tokenNumber,
+    });
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  // Share authenticated report via Email ID
+  const handleShareEmail = () => {
+    const emailTo = (report.email || report.patientEmail || '').trim();
+    const mailto = buildReportEmailUrl(
+      {
+        reportId: report.reportId,
+        uhid: report.uhid,
+        patientName: report.patientName,
+        patientAge: report.patientAge,
+        patientGender: report.patientGender,
+        mobile: report.mobile || report.patientMobile || '',
+        email: emailTo,
+        referringDoctor: report.referringDoctor || report.doctor,
+        reportedAt: report.reportedAt || report.reportDate,
+        testName: report.testName,
+        testsList: Array.from(new Set(rawItems.map((i) => i.testName))),
+        labId: report.labId,
+        labName: labName,
+        labPhone: labPhone,
+        labEmail: labEmail,
+        labAddress: labAddress,
+        tokenNumber: report.tokenNumber,
+      },
+      emailTo
+    );
+    window.open(mailto, '_blank');
+  };
+
   return (
     <div className={`bg-slate-950 text-slate-100 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col w-full ${className}`}>
       {/* Top Bar for View Mode Controls */}
@@ -392,6 +448,28 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
               </button>
             </div>
           )}
+
+          {/* Share Report via WhatsApp */}
+          <button
+            type="button"
+            onClick={handleShareWhatsApp}
+            className="px-2.5 sm:px-3 py-1.5 bg-[#16A34A] hover:bg-[#15803D] text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+            title="Share verified report link on WhatsApp"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-emerald-100" />
+            <span className="hidden sm:inline">WhatsApp</span>
+          </button>
+
+          {/* Share Report via Email */}
+          <button
+            type="button"
+            onClick={handleShareEmail}
+            className="px-2.5 sm:px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+            title="Share verified report via Email ID"
+          >
+            <Mail className="w-3.5 h-3.5 text-sky-200" />
+            <span className="hidden sm:inline">Email</span>
+          </button>
 
           {/* Print Button */}
           <button

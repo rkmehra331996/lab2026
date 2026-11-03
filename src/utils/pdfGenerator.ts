@@ -13,6 +13,7 @@ import {
   DEFAULT_LETTERHEAD_MARGIN_RIGHT,
   DEFAULT_LETTERHEAD_FONT_SCALE,
 } from './letterheadUtils';
+import { resolveReceiptTestsWithPrices } from './testPriceHelper';
 
 // Helper to clean phone number digits
 function cleanPhoneNumber(raw: string): string {
@@ -1252,7 +1253,7 @@ export async function buildReceiptInvoicePdf(
   const resolvedLabName = labNameRaw || 'Apex Diagnostic & Pathology Laboratory';
   const filename = getReceiptPdfFilename(entry, resolvedLabName);
 
-  const tests = Array.isArray(entry?.tests)
+  const rawTests = Array.isArray(entry?.tests)
     ? entry.tests
     : typeof entry?.tests === 'string'
     ? [entry.tests]
@@ -1264,11 +1265,13 @@ export async function buildReceiptInvoicePdf(
   const paid = Number(entry?.paidAmount) || 0;
   const due = entry?.dueAmount !== undefined ? Number(entry.dueAmount) : Math.max(0, net - paid);
 
-  // Dynamic height calculation based on number of tests
-  const baseHeight = 168;
-  const extraTestsHeight = Math.max(0, tests.length - 2) * 5;
+  const resolvedTests = resolveReceiptTestsWithPrices(rawTests, gross);
+
+  // Dynamic height calculation based on number of tests + Grand Total row
+  const baseHeight = 175;
+  const extraTestsHeight = Math.max(0, resolvedTests.length - 2) * 5.5;
   const discountHeight = discount > 0 ? 5 : 0;
-  const pageHeight = Math.max(168, baseHeight + extraTestsHeight + discountHeight);
+  const pageHeight = Math.max(175, baseHeight + extraTestsHeight + discountHeight);
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -1404,19 +1407,37 @@ export async function buildReceiptInvoicePdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
-  doc.text(`PRESCRIBED DIAGNOSTIC TESTS (${tests.length})`, 8, curY);
+  doc.text(`PRESCRIBED DIAGNOSTIC TESTS (${resolvedTests.length})`, 8, curY);
+  doc.text('RATE (Rs.)', 93, curY, { align: 'right' });
   curY += 4.5;
 
-  tests.forEach((t: string, idx: number) => {
+  resolvedTests.forEach((t, idx: number) => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(30, 41, 59);
-    const displayTest = String(t).length > 44 ? String(t).slice(0, 42) + '...' : String(t);
+    const displayTest = t.name.length > 34 ? t.name.slice(0, 32) + '...' : t.name;
     doc.text(`${idx + 1}.  ${displayTest}`, 10, curY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Rs. ${t.price}`, 93, curY, { align: 'right' });
     curY += 4.5;
   });
 
-  curY += 2;
+  // Grand Total Line directly below tests list
+  curY += 1;
+  doc.setDrawColor(203, 213, 225); // #CBD5E1
+  doc.setLineWidth(0.3);
+  doc.line(8, curY, 97, curY);
+  curY += 4.2;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(18, 59, 109);
+  doc.text('Grand Total (कुल योग):', 10, curY);
+  doc.setFontSize(9);
+  doc.text(`Rs. ${gross}`, 93, curY, { align: 'right' });
+  curY += 5;
 
   // 6. Bill Financial Breakdown Box
   const breakdownHeight = discount > 0 ? 37 : 32;
