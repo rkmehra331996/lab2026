@@ -1074,6 +1074,14 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       showToast('⏳ Report abhi process mein hai (In Process). Testing complete hone ke baad view hogi.');
       return;
     }
+    const isPaidInFull =
+      (entry.dueAmount === 0 || entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid') &&
+      (entry.dueAmount ?? 0) <= 0;
+    if (!isPaidInFull) {
+      showToast(`⚠️ Payment pending: Due ₹${entry.dueAmount || 0}. Please collect payment before viewing or downloading report.`);
+      handleOpenCollectPayment(entry);
+      return;
+    }
     const foundReport = getOrBuildReportForEntry(entry);
     setViewingReport(foundReport);
     setIsViewingReportModalOpen(true);

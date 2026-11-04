@@ -1101,16 +1101,43 @@ export async function getCanonicalReportPdfBlob(report: LabReport): Promise<{
  */
 export function isReportPaymentComplete(report: Partial<LabReport> | null | undefined): boolean {
   if (!report) return false;
-  const due = Number(report.dueAmount ?? 0);
-  const paid = Number(report.paidAmount ?? 0);
-  const total = Number(report.totalAmount ?? (report as any).totalCharge ?? 0);
-  const status = String(report.paymentStatus || '').toLowerCase().trim();
+  let due = Number(report.dueAmount ?? 0);
+  let paid = Number(report.paidAmount ?? 0);
+  let total = Number(report.totalAmount ?? (report as any).totalCharge ?? 0);
+  let status = String(report.paymentStatus || '').toLowerCase().trim();
+
+  // Cross-reference with reception entries in localStorage to verify live billing status
+  if (typeof window !== 'undefined') {
+    try {
+      const rawEntries = localStorage.getItem('reception_entries') || localStorage.getItem('cms_reception_entries');
+      if (rawEntries) {
+        const entries = JSON.parse(rawEntries);
+        if (Array.isArray(entries)) {
+          const matched = entries.find((e: any) =>
+            (report.tokenNumber && (e.tokenNumber === report.tokenNumber || e.tokenNo === report.tokenNumber)) ||
+            (report.uhid && e.uhid === report.uhid) ||
+            (report.reportId && (e.reportId === report.reportId || e.tokenNumber === report.reportId))
+          );
+          if (matched) {
+            const entryDue = Number(matched.dueAmount ?? 0);
+            const entryPaid = Number(matched.paidAmount ?? 0);
+            const entryTotal = Number(matched.totalAmount ?? 0);
+            const entryStatus = String(matched.paymentStatus || '').toLowerCase().trim();
+            if (entryDue > 0) due = Math.max(due, entryDue);
+            if (entryPaid > 0 && paid === 0) paid = entryPaid;
+            if (entryTotal > 0 && total === 0) total = entryTotal;
+            if (entryStatus) status = entryStatus;
+          }
+        }
+      }
+    } catch {}
+  }
 
   if (due > 0) return false;
-  if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment') return false;
+  if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment' || status === 'unpaid') return false;
   if (total > 0 && paid < total) return false;
   if (status === 'full payment' || status === 'paid' || status === 'completed') return true;
-  if (due <= 0 && (!status || status !== 'pending')) return true;
+  if (due <= 0 && (!status || (status !== 'pending' && status !== 'unpaid'))) return true;
   return false;
 }
 

@@ -1060,6 +1060,10 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
   const handleShareWhatsApp = () => {
     if (!searchedReport) return;
+    if (isPaymentPending) {
+      setShowPayOnlineModal(true);
+      return;
+    }
     const shareUrl = buildPatientReportUrl(
       searchedReport.labId || activeVendorLab?.id || selectedVendorLabId,
       searchedReport.tokenNumber || searchedReport.reportId

@@ -223,6 +223,17 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
     vendorLabsList.find((l) => l.id === vendorLabSettings.labId) ||
     vendorLabsList[0];
 
+  // Domain feature control: by default HIDDEN. Only visible after Super Admin approval and permission!
+  const isDomainFeatureEnabled = Boolean(
+    currentLab?.isDomainFeatureEnabled ?? vendorLabSettings?.isDomainFeatureEnabled ?? false
+  );
+
+  useEffect(() => {
+    if (!isDomainFeatureEnabled && activeTab === 'domain') {
+      setActiveTab('website');
+    }
+  }, [isDomainFeatureEnabled, activeTab]);
+
   const handleOpenOwnerPasswordModal = () => {
     setOwnerNewPassword(currentLab?.password || 'owner123');
     setOwnerConfirmPassword(currentLab?.password || 'owner123');
@@ -1494,71 +1505,73 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
-              {/* SECTION 5: DOMAIN REQUEST (ADD - REQUEST TO SUPER ADMIN) */}
-              <div className="rounded-xl border border-sky-300/80 bg-sky-50/50 overflow-hidden shadow-2xs">
-                {/* Accordion Header */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('domain');
-                    toggleSidebarSection('domain');
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'domain'
-                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
-                      : 'bg-sky-100/70 text-slate-900 font-bold hover:bg-sky-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Globe className={`w-4 h-4 shrink-0 ${activeTab === 'domain' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
-                    <span className="text-xs font-black truncate">5. Domain Request</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      activeTab === 'domain' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
-                    }`}>
-                      {domainRequests.length} Req
-                    </span>
-                    {isDomainMenuOpen ? (
-                      <ChevronDown className={`w-4 h-4 ${activeTab === 'domain' ? 'text-white' : 'text-slate-800'}`} />
-                    ) : (
-                      <ChevronRight className={`w-4 h-4 ${activeTab === 'domain' ? 'text-white' : 'text-slate-800'}`} />
-                    )}
-                  </div>
-                </button>
-
-                {/* Sub-Item: Add Domain */}
-                {isDomainMenuOpen && (
-                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-sky-200/70">
-                    {/* Add Domain - Request to Super Admin */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('domain');
-                        setDomainSubTab('add');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'domain' && domainSubTab === 'add'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-sky-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'domain' && domainSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
-                        <span className="truncate">Add Domain — Send Request to Super Admin</span>
-                      </div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'domain' && domainSubTab === 'add'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              {/* SECTION 5: DOMAIN REQUEST (ADD - REQUEST TO SUPER ADMIN) - BY DEFAULT HIDDEN, VISIBLE ONLY AFTER SUPER ADMIN PERMISSION & APPROVAL */}
+              {isDomainFeatureEnabled && (
+                <div className="rounded-xl border border-sky-300/80 bg-sky-50/50 overflow-hidden shadow-2xs">
+                  {/* Accordion Header */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('domain');
+                      toggleSidebarSection('domain');
+                    }}
+                    className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                      activeTab === 'domain'
+                        ? 'bg-[#123B6D] text-white font-black shadow-xs'
+                        : 'bg-sky-100/70 text-slate-900 font-bold hover:bg-sky-200/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Globe className={`w-4 h-4 shrink-0 ${activeTab === 'domain' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
+                      <span className="text-xs font-black truncate">5. Domain Request</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        activeTab === 'domain' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
                       }`}>
-                        Request &gt;
+                        {domainRequests.length} Req
                       </span>
-                    </button>
-                  </div>
-                )}
-              </div>
+                      {isDomainMenuOpen ? (
+                        <ChevronDown className={`w-4 h-4 ${activeTab === 'domain' ? 'text-white' : 'text-slate-800'}`} />
+                      ) : (
+                        <ChevronRight className={`w-4 h-4 ${activeTab === 'domain' ? 'text-white' : 'text-slate-800'}`} />
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Sub-Item: Add Domain */}
+                  {isDomainMenuOpen && (
+                    <div className="p-1.5 space-y-1 bg-white/95 border-t border-sky-200/70">
+                      {/* Add Domain - Request to Super Admin */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('domain');
+                          setDomainSubTab('add');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'domain' && domainSubTab === 'add'
+                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                            : 'text-slate-700 hover:bg-sky-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'domain' && domainSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                          <span className="truncate">Add Domain — Send Request to Super Admin</span>
+                        </div>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                          activeTab === 'domain' && domainSubTab === 'add'
+                            ? 'bg-amber-400 text-slate-950 font-black'
+                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        }`}>
+                          Request &gt;
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* SECTION 6: SITE SETTINGS (Logo, Site Name, Site Description, Feature Image, Payment QR, Plan & Pricing) */}
               <div className="rounded-xl border border-indigo-300/80 bg-indigo-50/50 overflow-hidden shadow-2xs">
@@ -2201,8 +2214,8 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
           />
         )}
 
-        {/* 6. DOMAIN REQUEST (ADD - REQUEST TO SUPER ADMIN) */}
-        {activeTab === 'domain' && (
+        {/* 6. DOMAIN REQUEST (ADD - REQUEST TO SUPER ADMIN) - ONLY ACCESSIBLE IF ENABLED BY SUPER ADMIN */}
+        {activeTab === 'domain' && isDomainFeatureEnabled && (
           <VendorDomainRequestTab
             initialSubTab={domainSubTab}
             onNavigateSubTab={(tab) => setDomainSubTab(tab)}

@@ -1307,22 +1307,67 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
   const isInlineReportPaymentIncomplete = React.useMemo(() => {
     if (!inlineSearchedReport) return false;
-    const due = Number(inlineSearchedReport.dueAmount ?? 0);
-    const paid = Number(inlineSearchedReport.paidAmount ?? 0);
-    const total = Number(inlineSearchedReport.totalAmount ?? (inlineSearchedReport as any).totalCharge ?? 0);
-    const status = (inlineSearchedReport.paymentStatus || '').toLowerCase().trim();
+    let due = Number(inlineSearchedReport.dueAmount ?? 0);
+    let paid = Number(inlineSearchedReport.paidAmount ?? 0);
+    let total = Number(inlineSearchedReport.totalAmount ?? (inlineSearchedReport as any).totalCharge ?? 0);
+    let status = (inlineSearchedReport.paymentStatus || '').toLowerCase().trim();
+
+    // Cross-reference with reception entries in localStorage to check live billing status
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('reception_entries') || localStorage.getItem('cms_reception_entries');
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (Array.isArray(list)) {
+            const match = list.find((e: any) =>
+              (inlineSearchedReport.tokenNumber && (e.tokenNumber === inlineSearchedReport.tokenNumber || e.tokenNo === inlineSearchedReport.tokenNumber)) ||
+              (inlineSearchedReport.uhid && e.uhid === inlineSearchedReport.uhid) ||
+              (inlineSearchedReport.reportId && (e.reportId === inlineSearchedReport.reportId || e.tokenNumber === inlineSearchedReport.reportId))
+            );
+            if (match) {
+              const entryDue = Number(match.dueAmount ?? 0);
+              const entryPaid = Number(match.paidAmount ?? 0);
+              const entryTotal = Number(match.totalAmount ?? 0);
+              const entryStatus = String(match.paymentStatus || '').toLowerCase().trim();
+              if (entryDue > 0) due = Math.max(due, entryDue);
+              if (entryPaid > 0 && paid === 0) paid = entryPaid;
+              if (entryTotal > 0 && total === 0) total = entryTotal;
+              if (entryStatus) status = entryStatus;
+            }
+          }
+        }
+      } catch {}
+    }
 
     if (due > 0) return true;
-    if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment') return true;
+    if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment' || status === 'unpaid') return true;
     if (total > 0 && paid < total) return true;
     if (status === 'full payment' || status === 'paid' || status === 'completed') return false;
-    if (due <= 0 && (!status || status !== 'pending')) return false;
+    if (due <= 0 && (!status || (status !== 'pending' && status !== 'unpaid'))) return false;
     return true;
   }, [inlineSearchedReport]);
 
   const inlineReportDueAmount = React.useMemo(() => {
     if (!inlineSearchedReport) return 0;
-    const due = Number(inlineSearchedReport.dueAmount ?? 0);
+    let due = Number(inlineSearchedReport.dueAmount ?? 0);
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('reception_entries') || localStorage.getItem('cms_reception_entries');
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (Array.isArray(list)) {
+            const match = list.find((e: any) =>
+              (inlineSearchedReport.tokenNumber && (e.tokenNumber === inlineSearchedReport.tokenNumber || e.tokenNo === inlineSearchedReport.tokenNumber)) ||
+              (inlineSearchedReport.uhid && e.uhid === inlineSearchedReport.uhid) ||
+              (inlineSearchedReport.reportId && (e.reportId === inlineSearchedReport.reportId || e.tokenNumber === inlineSearchedReport.reportId))
+            );
+            if (match && Number(match.dueAmount ?? 0) > 0) {
+              due = Math.max(due, Number(match.dueAmount));
+            }
+          }
+        }
+      } catch {}
+    }
     if (due > 0) return due;
     if (isInlineReportPaymentIncomplete) {
       return Number(inlineSearchedReport.totalAmount || 500);

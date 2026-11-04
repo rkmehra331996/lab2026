@@ -417,6 +417,7 @@ export interface VendorLabSettings {
   isPayOnSpotEnabled?: boolean; // Separate option, can remain ON in both cases (defaults to true)
   customDomain?: string;
   isCustomDomainActive?: boolean; // Vendor custom domain active status
+  isDomainFeatureEnabled?: boolean; // Domain option in Lab Owner Dashboard: by default hidden, enabled/approved only by Super Admin
   // PhonePe Payment Gateway Credentials
   phonepeMerchantId?: string;
   phonepeSaltKey?: string;
@@ -806,6 +807,7 @@ export interface VendorLabDirectoryItem {
   websiteDomain?: string;
   customDomain?: string;
   isCustomDomainActive?: boolean;
+  isDomainFeatureEnabled?: boolean;
   slug?: string;
   establishedYear?: number;
   reviewsCount?: number;

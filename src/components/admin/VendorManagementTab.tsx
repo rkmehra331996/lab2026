@@ -182,6 +182,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     establishedYear: 2018,
     reviewsCount: 140,
     features: ['WhatsApp Reports', 'Home Collection', 'NABL Format', 'Thermal Barcode'],
+    isDomainFeatureEnabled: false,
   };
 
   const [formState, setFormState] = useState<Omit<VendorLabDirectoryItem, 'id'>>(initialFormState);
@@ -252,6 +253,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       joinedDate: new Date().toISOString().split('T')[0],
       password: 'owner123',
       pin: '123456',
+      isDomainFeatureEnabled: false,
     });
     setIsAddModalOpen(true);
   };
@@ -288,6 +290,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       establishedYear: vendor.establishedYear || 2018,
       reviewsCount: vendor.reviewsCount || 100,
       features: vendor.features || ['WhatsApp Reports', 'Home Collection'],
+      isDomainFeatureEnabled: Boolean(vendor.isDomainFeatureEnabled),
     });
   };
 
@@ -902,6 +905,48 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                         {vendor.subscriptionPlan || '1 Month'}
                       </span>
                     </div>
+
+                    {/* Super Admin Control: Domain Feature in Lab Owner Dashboard */}
+                    <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-100">
+                      <span className="text-slate-500 font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-slate-400" />
+                        Domain Option:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextVal = !vendor.isDomainFeatureEnabled;
+                          updateVendorLab(vendor.id, { isDomainFeatureEnabled: nextVal });
+                          showToast(
+                            nextVal
+                              ? `✅ Domain Feature ENABLED for "${vendor.name}". Lab Owner Dashboard me ab Domain option dikhayi dega.`
+                              : `🔒 Domain Feature DISABLED for "${vendor.name}". Lab Owner Dashboard me Domain option hide ho gaya.`
+                          );
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1.5 transition cursor-pointer border ${
+                          vendor.isDomainFeatureEnabled
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                        }`}
+                        title={
+                          vendor.isDomainFeatureEnabled
+                            ? 'Click to Disable / Hide Domain tab in Lab Owner Dashboard'
+                            : 'Click to Enable / Approve Domain tab in Lab Owner Dashboard'
+                        }
+                      >
+                        {vendor.isDomainFeatureEnabled ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Enabled (दिखाई देगा)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Hidden (डिफ़ॉल्ट बंद)</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Footer: Action Buttons */}
@@ -1490,6 +1535,40 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                   />
                   <label htmlFor="emergency-checkbox" className="font-semibold text-slate-800 cursor-pointer">
                     Enable 24x7 Round-the-Clock Sample Processing badge for this lab
+                  </label>
+                </div>
+
+                {/* Super Admin Control: Domain Option in Lab Owner Dashboard */}
+                <div className="sm:col-span-2 bg-gradient-to-r from-blue-50 via-indigo-50/70 to-blue-50 p-4 rounded-2xl border border-indigo-200 shadow-2xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-[#123B6D] text-white flex items-center justify-center">
+                        <Globe className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-extrabold text-xs text-slate-900">
+                        Domain Feature Control (Super Admin Approval)
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold bg-[#123B6D] text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Super Admin Only
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mb-3 leading-relaxed">
+                    Lab Owner Dashboard में Domain का विकल्प by default <strong>Hidden</strong> रहता है। जब Super Admin यहाँ से अनुमति देगा, तभी संबंधित Vendor Dashboard में Domain Request का ऑप्शन दिखाई देगा।
+                  </p>
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      id="domain-feature-checkbox"
+                      checked={Boolean(formState.isDomainFeatureEnabled)}
+                      onChange={(e) => setFormState({ ...formState, isDomainFeatureEnabled: e.target.checked })}
+                      className="w-4 h-4 text-[#123B6D] rounded border-slate-300 focus:ring-[#123B6D] cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-slate-800">
+                      {formState.isDomainFeatureEnabled
+                        ? '✅ Domain Option ENABLED (Lab Owner Dashboard me dikhayi dega)'
+                        : '🔒 Domain Option HIDDEN (By Default Disabled & Hidden)'}
+                    </span>
                   </label>
                 </div>
               </div>

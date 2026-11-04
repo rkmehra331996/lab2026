@@ -63,16 +63,43 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
   // Payment status calculation: payment must be 100% complete to view report
   const isDuePaymentPending = useMemo(() => {
     if (isPaymentPending !== undefined) return isPaymentPending;
-    const due = Number(report.dueAmount ?? 0);
-    const paid = Number(report.paidAmount ?? 0);
-    const total = Number(report.totalAmount ?? (report as any).totalCharge ?? 0);
-    const status = (report.paymentStatus || '').toLowerCase().trim();
+    let due = Number(report.dueAmount ?? 0);
+    let paid = Number(report.paidAmount ?? 0);
+    let total = Number(report.totalAmount ?? (report as any).totalCharge ?? 0);
+    let status = (report.paymentStatus || '').toLowerCase().trim();
+
+    // Cross-reference with reception entries in localStorage to verify live billing status
+    if (typeof window !== 'undefined') {
+      try {
+        const rawEntries = localStorage.getItem('reception_entries') || localStorage.getItem('cms_reception_entries');
+        if (rawEntries) {
+          const entries = JSON.parse(rawEntries);
+          if (Array.isArray(entries)) {
+            const matched = entries.find((e: any) =>
+              (report.tokenNumber && (e.tokenNumber === report.tokenNumber || e.tokenNo === report.tokenNumber)) ||
+              (report.uhid && e.uhid === report.uhid) ||
+              (report.reportId && (e.reportId === report.reportId || e.tokenNumber === report.reportId))
+            );
+            if (matched) {
+              const entryDue = Number(matched.dueAmount ?? 0);
+              const entryPaid = Number(matched.paidAmount ?? 0);
+              const entryTotal = Number(matched.totalAmount ?? 0);
+              const entryStatus = String(matched.paymentStatus || '').toLowerCase().trim();
+              if (entryDue > 0) due = Math.max(due, entryDue);
+              if (entryPaid > 0 && paid === 0) paid = entryPaid;
+              if (entryTotal > 0 && total === 0) total = entryTotal;
+              if (entryStatus) status = entryStatus;
+            }
+          }
+        }
+      } catch {}
+    }
 
     if (due > 0) return true;
-    if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment') return true;
+    if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment' || status === 'unpaid') return true;
     if (total > 0 && paid < total) return true;
     if (status === 'full payment' || status === 'paid' || status === 'completed') return false;
-    if (due <= 0 && (!status || status !== 'pending')) return false;
+    if (due <= 0 && (!status || (status !== 'pending' && status !== 'unpaid'))) return false;
     return true;
   }, [isPaymentPending, report]);
 
@@ -319,6 +346,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
 
   // Share authenticated report via WhatsApp
   const handleShareWhatsApp = () => {
+    if (isDuePaymentPending) return;
     const waUrl = buildReportWhatsAppUrl({
       reportId: report.reportId,
       uhid: report.uhid,
@@ -423,9 +451,10 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
           {/* Share Report via WhatsApp */}
           <button
             type="button"
+            disabled={isDuePaymentPending}
             onClick={handleShareWhatsApp}
-            className="px-3 py-1.5 bg-[#16A34A] hover:bg-[#15803D] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-            title="Share verified report link on WhatsApp"
+            className="px-3 py-1.5 bg-[#16A34A] hover:bg-[#15803D] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            title={isDuePaymentPending ? 'Payment incomplete: Report locked' : 'Share verified report link on WhatsApp'}
           >
             <MessageSquare className="w-3.5 h-3.5 text-emerald-100" />
             <span className="hidden sm:inline">WhatsApp</span>

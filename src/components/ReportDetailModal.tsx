@@ -34,6 +34,69 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
   if (!isOpen || !report) return null;
 
+  const isPaymentPending = React.useMemo(() => {
+    let due = Number(report.dueAmount ?? 0);
+    let paid = Number(report.paidAmount ?? 0);
+    let total = Number(report.totalAmount ?? (report as any).totalCharge ?? 0);
+    let status = (report.paymentStatus || '').toLowerCase().trim();
+
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('reception_entries') || localStorage.getItem('cms_reception_entries');
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (Array.isArray(list)) {
+            const match = list.find((e: any) =>
+              (report.tokenNumber && (e.tokenNumber === report.tokenNumber || e.tokenNo === report.tokenNumber)) ||
+              (report.uhid && e.uhid === report.uhid) ||
+              (report.reportId && (e.reportId === report.reportId || e.tokenNumber === report.reportId))
+            );
+            if (match) {
+              const entryDue = Number(match.dueAmount ?? 0);
+              const entryPaid = Number(match.paidAmount ?? 0);
+              const entryTotal = Number(match.totalAmount ?? 0);
+              const entryStatus = String(match.paymentStatus || '').toLowerCase().trim();
+              if (entryDue > 0) due = Math.max(due, entryDue);
+              if (entryPaid > 0 && paid === 0) paid = entryPaid;
+              if (entryTotal > 0 && total === 0) total = entryTotal;
+              if (entryStatus) status = entryStatus;
+            }
+          }
+        }
+      } catch {}
+    }
+
+    if (due > 0) return true;
+    if (status === 'pending' || status === 'partial' || status === 'advance' || status === 'due' || status === 'due payment' || status === 'unpaid') return true;
+    if (total > 0 && paid < total) return true;
+    if (status === 'full payment' || status === 'paid' || status === 'completed') return false;
+    if (due <= 0 && (!status || (status !== 'pending' && status !== 'unpaid'))) return false;
+    return true;
+  }, [report]);
+
+  const activeDueAmount = React.useMemo(() => {
+    let due = Number(report.dueAmount ?? 0);
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('reception_entries') || localStorage.getItem('cms_reception_entries');
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (Array.isArray(list)) {
+            const match = list.find((e: any) =>
+              (report.tokenNumber && (e.tokenNumber === report.tokenNumber || e.tokenNo === report.tokenNumber)) ||
+              (report.uhid && e.uhid === report.uhid) ||
+              (report.reportId && (e.reportId === report.reportId || e.tokenNumber === report.reportId))
+            );
+            if (match && Number(match.dueAmount ?? 0) > 0) {
+              due = Math.max(due, Number(match.dueAmount));
+            }
+          }
+        }
+      } catch {}
+    }
+    return due;
+  }, [report]);
+
   const handleEdit = () => {
     if (onEditReport) {
       onClose();
@@ -63,7 +126,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         {/* Top Minimalist Management Header */}
         <div className="bg-slate-900/95 backdrop-blur-xs border-b border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-3 text-xs text-white shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 ring-4 ring-emerald-400/20" />
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ring-4 ${isPaymentPending ? 'bg-amber-400 ring-amber-400/20' : 'bg-emerald-400 ring-emerald-400/20'}`} />
             <div className="flex items-center gap-2 truncate">
               <span className="font-bold text-sm text-slate-100 truncate">
                 {report.patientName}
@@ -79,6 +142,11 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                   Token: {report.tokenNumber}
                 </span>
               )}
+              {isPaymentPending && (
+                <span className="text-[11px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-md shrink-0">
+                  ⚠️ Payment Due: ₹{activeDueAmount} (Report Locked)
+                </span>
+              )}
             </div>
           </div>
 
@@ -86,7 +154,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             {/* Share via WhatsApp */}
             <button
               type="button"
+              disabled={isPaymentPending}
               onClick={() => {
+                if (isPaymentPending) return;
                 const url = buildReportWhatsAppUrl({
                   reportId: report.reportId,
                   uhid: report.uhid,
@@ -105,8 +175,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 });
                 window.open(url, '_blank');
               }}
-              className="bg-[#16A34A] hover:bg-[#15803D] text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-              title="Share report via WhatsApp"
+              className="bg-[#16A34A] hover:bg-[#15803D] text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={isPaymentPending ? 'Payment incomplete: Report locked' : 'Share report via WhatsApp'}
             >
               <MessageSquare className="w-3.5 h-3.5 text-emerald-100" />
               <span className="hidden sm:inline">WhatsApp</span>
@@ -147,6 +217,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         <div className="flex-1 overflow-hidden p-2 sm:p-4 bg-slate-950 flex flex-col">
           <CanonicalPdfViewer
             report={report}
+            isPaymentPending={isPaymentPending}
+            activeDueAmount={activeDueAmount}
             onClose={onClose}
             className="flex-1 border-0 rounded-xl"
             title={`NABL CANONICAL REPORT • ${report.reportId}`}

@@ -7771,6 +7771,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (syncedLab) {
       syncVendorLabToCloud(syncedLab);
     }
+    if (updates.isDomainFeatureEnabled !== undefined) {
+      setVendorLabSettingsMap((prev) => {
+        const existing = prev[id] || (id === vendorLabSettings.labId ? vendorLabSettings : null);
+        if (existing) {
+          const next = { ...existing, isDomainFeatureEnabled: updates.isDomainFeatureEnabled };
+          try {
+            localStorage.setItem('cms_vendor_lab_settings_map', JSON.stringify({ ...prev, [id]: next }));
+          } catch {}
+          syncLabSettingsToCloud(id, next);
+          return { ...prev, [id]: next };
+        }
+        return prev;
+      });
+    }
   };
 
   const updateVendorLabCredentials = (labId: string, password: string, pin?: string) => {
