@@ -57,8 +57,9 @@ import {
   isCategoryMatch,
 } from '../../data/masterClinicalTests';
 import { VendorPackagesTab } from './VendorPackagesTab';
+import { ClinicalCatalogManagement } from '../admin/ClinicalCatalogManagement';
 
-export type TestManagementSubTab = 'list' | 'add' | 'categories' | 'packages';
+export type TestManagementSubTab = 'list' | 'add' | 'categories' | 'packages' | 'clinical_catalog';
 
 interface VendorTestsTabProps {
   initialSubTab?: TestManagementSubTab | 'list' | 'add';
@@ -573,8 +574,29 @@ export const VendorTestsTab: React.FC<VendorTestsTabProps> = ({
             <Package className="w-3.5 h-3.5" />
             <span>Test Packages</span>
           </button>
+
+          {/* Tab 5: Dynamic Clinical Catalog & Formulations */}
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('clinical_catalog')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer whitespace-nowrap shadow-xs ${
+              currentSubTab === 'clinical_catalog'
+                ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                : 'bg-white/10 hover:bg-white/20 text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>⚡ Dynamic Departments &amp; Formulations</span>
+          </button>
         </div>
       </div>
+
+      {/* ======================================================== */}
+      {/* SUBTAB 5: DYNAMIC CLINICAL CATALOG & FORMULATIONS        */}
+      {/* ======================================================== */}
+      {currentSubTab === 'clinical_catalog' && (
+        <ClinicalCatalogManagement />
+      )}
 
       {/* ======================================================== */}
       {/* SUBTAB 1: ALL TESTS (LIST, SEARCH, FILTER & ACTIONS)      */}

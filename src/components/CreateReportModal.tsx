@@ -77,6 +77,8 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
     vendorLabsList,
     vendorTests,
     updateReceptionEntry,
+    recalculateTestFormulas,
+    clinicalParameters,
   } = useCms();
 
   const isTechnician = cmsUser?.role === 'technician';
@@ -621,9 +623,50 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
     loadTemplatesIntoParams(next);
   };
 
+  const getParamCodeKey = (paramName: string): string => {
+    const lower = paramName.toLowerCase().trim();
+    if (lower.includes('total bilirubin') || lower === 'tbil' || lower === 'bilirubin total') return 'TBIL';
+    if (lower.includes('direct bilirubin') || lower === 'dbil' || lower === 'bilirubin direct') return 'DBIL';
+    if (lower.includes('indirect bilirubin') || lower === 'ibil' || lower === 'bilirubin indirect') return 'IBIL';
+    if (lower.includes('total protein') || lower === 'tp' || lower === 'protein total') return 'TP';
+    if (lower.includes('albumin') && !lower.includes('globulin')) return 'ALB';
+    if (lower.includes('globulin') && !lower.includes('ratio')) return 'GLOB';
+    if (lower.includes('a:g') || lower.includes('a/g') || lower.includes('albumin globulin ratio')) return 'AGR';
+    if (lower.includes('triglyceride') || lower === 'tg') return 'TG';
+    if (lower.includes('total cholesterol') || lower === 'tc' || lower === 'cholesterol total') return 'TC';
+    if (lower.includes('hdl') && !lower.includes('ratio')) return 'HDL';
+    if (lower.includes('vldl')) return 'VLDL';
+    if (lower.includes('ldl') && !lower.includes('ratio')) return 'LDL';
+    if (lower.includes('cholesterol / hdl') || lower.includes('tc/hdl') || lower.includes('tc:hdl')) return 'TCHDL';
+    if (lower.includes('ldl / hdl') || lower.includes('ldl/hdl') || lower.includes('ldl:hdl')) return 'LDLHDL';
+    if (lower.includes('urea') && !lower.includes('nitrogen') && !lower.includes('ratio')) return 'UREA';
+    if (lower.includes('creatinine') && !lower.includes('ratio')) return 'CREAT';
+    if (lower.includes('bun') || lower.includes('blood urea nitrogen')) return 'BUN';
+    if (lower.includes('bun / creat') || lower.includes('bun:creat')) return 'BUNCR';
+    if (lower.includes('total leukocyte') || lower.includes('tlc') || lower === 'wbc') return 'WBC';
+    if (lower.includes('neutrophil') && !lower.includes('absolute')) return 'NEUT';
+    if (lower.includes('lymphocyte') && !lower.includes('absolute')) return 'LYMPH';
+    if (lower.includes('eosinophil') && !lower.includes('absolute')) return 'EOS';
+    if (lower.includes('absolute neutrophil') || lower === 'anc') return 'ANC';
+    if (lower.includes('absolute lymphocyte') || lower === 'alc') return 'ALC';
+    if (lower.includes('absolute eosinophil') || lower === 'aec') return 'AEC';
+    if (lower.includes('hemoglobin') || lower === 'hb') return 'HB';
+    if (lower.includes('rbc') || lower.includes('red blood cell')) return 'RBC';
+    if (lower.includes('pcv') || lower.includes('hematocrit')) return 'PCV';
+    if (lower.includes('mcv')) return 'MCV';
+    if (lower.includes('mch') && !lower.includes('mchc')) return 'MCH';
+    if (lower.includes('mchc')) return 'MCHC';
+
+    const match = clinicalParameters?.find(
+      (cp) => cp.code.toLowerCase() === lower || cp.name.toLowerCase() === lower
+    );
+    return match ? match.code.toUpperCase() : paramName.toUpperCase().trim();
+  };
+
   const handleParamValueChange = (id: string, newResult: string) => {
-    setParams((prev) =>
-      prev.map((item) => {
+    setParams((prev) => {
+      // 1. Update the entered parameter
+      const updatedList = prev.map((item) => {
         if (item.id === id) {
           const abnormal = checkIsAbnormal(item.parameter, newResult, {
             name: item.parameter,
@@ -637,8 +680,48 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
           return { ...item, result: newResult, isAbnormal: abnormal };
         }
         return item;
-      })
-    );
+      });
+
+      // 2. Build current parameters value map
+      const valuesMap: Record<string, string> = {};
+      updatedList.forEach((item) => {
+        const tokenKey = getParamCodeKey(item.parameter);
+        if (item.result !== undefined && item.result !== null && String(item.result).trim() !== '') {
+          valuesMap[tokenKey] = String(item.result).trim();
+          valuesMap[item.parameter.toUpperCase()] = String(item.result).trim();
+        }
+      });
+
+      // 3. Compute formulations in real-time
+      const formulaResults = recalculateTestFormulas ? recalculateTestFormulas(valuesMap) : {};
+
+      // 4. Update any calculated/derived parameter in the report
+      return updatedList.map((item) => {
+        const itemToken = getParamCodeKey(item.parameter);
+        const formulaRes = formulaResults[itemToken];
+        if (formulaRes && formulaRes.value !== null && formulaRes.displayValue) {
+          // Only auto-update if this item was not the one directly typed in right now
+          if (item.id !== id) {
+            const abnormal = checkIsAbnormal(item.parameter, formulaRes.displayValue, {
+              name: item.parameter,
+              unit: item.unit,
+              referenceRange: item.referenceRange,
+              defaultNormalValue: '',
+              minNormal: item.minNormal,
+              maxNormal: item.maxNormal,
+              isNumeric: item.isNumeric,
+            });
+            return {
+              ...item,
+              result: formulaRes.displayValue,
+              isAbnormal: abnormal,
+              notes: item.notes || '⚡ Auto-calculated by Formula',
+            };
+          }
+        }
+        return item;
+      });
+    });
   };
 
   const handleParamUnitChange = (id: string, newUnit: string) => {

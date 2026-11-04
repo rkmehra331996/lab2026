@@ -924,3 +924,110 @@ export interface DomainRequest {
   approvedBy?: string;
 }
 
+// ================= CLINICAL CATALOG & FORMULATION ENGINE TYPES =================
+
+export type ParameterDataType = 'numeric' | 'text' | 'range' | 'options';
+
+export interface BiologicalReferenceInterval {
+  id?: string;
+  gender: 'All' | 'Male' | 'Female';
+  ageMinYears?: number;
+  ageMaxYears?: number;
+  minNormal?: number;
+  maxNormal?: number;
+  displayText: string; // e.g. "70 - 100 mg/dL"
+  panicLow?: number;
+  panicHigh?: number;
+}
+
+export interface ClinicalDepartment {
+  id: string;
+  name: string; // e.g., "Clinical Biochemistry", "Hematology & Hemostasis"
+  code: string; // e.g., "BIO", "HEM", "SER", "MIC", "HIS"
+  description?: string;
+  headOfDepartment?: string;
+  accentColor?: string; // e.g., "#0284c7" (sky), "#dc2626" (red), "#7c3aed" (purple)
+  defaultSpecimens: string[]; // e.g. ["Serum", "Plasma", "Whole Blood"]
+  defaultTatHours: number;
+  displayOrder: number;
+  isActive: boolean;
+  labId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ClinicalParameter {
+  id: string;
+  name: string; // e.g., "Total Bilirubin", "Serum Albumin"
+  code: string; // unique code/alias used in formulas e.g., "TBIL", "DBIL", "ALB", "TP"
+  shortName?: string;
+  departmentId: string;
+  departmentName?: string;
+  unit: string; // e.g. "mg/dL", "g/dL", "U/L", "%"
+  dataType: ParameterDataType;
+  options?: string[]; // for select dropdown e.g. ["Negative", "Positive", "Trace"]
+  defaultNormalValue?: string;
+  universalRange: string; // e.g. "0.2 - 1.2 mg/dL"
+  minNormal?: number;
+  maxNormal?: number;
+  panicLow?: number;
+  panicHigh?: number;
+  intervals?: BiologicalReferenceInterval[]; // Gender/Age specific ranges
+  isCalculated: boolean; // Computed via formula?
+  formulaId?: string;
+  formulaExpression?: string;
+  decimalPlaces: number; // 0, 1, 2, 3
+  methodology?: string;
+  clinicalSignificance?: string;
+  isActive: boolean;
+  labId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ClinicalFormula {
+  id: string;
+  name: string; // e.g. "Bilirubin Indirect Calculation"
+  outputParameterCode: string; // e.g. "IBIL"
+  outputParameterName: string; // e.g. "Indirect Bilirubin"
+  testId?: string; // Optional parent test ID (e.g. LFT)
+  testName?: string;
+  expression: string; // Math expression e.g. "[TBIL] - [DBIL]" or "[TC] - [HDL] - ([TG] / 5)"
+  requiredParameterCodes: string[]; // e.g. ["TBIL", "DBIL"]
+  decimalPlaces: number;
+  description: string;
+  clinicalNote?: string;
+  isActive: boolean;
+  labId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ClinicalTestDefinition {
+  id: string;
+  code: string; // e.g. "LFT", "CBC", "KFT", "LIPID"
+  name: string;
+  shortName?: string;
+  departmentId: string;
+  departmentName?: string;
+  testType: 'single' | 'panel'; // Single parameter vs Multi-parameter profile
+  methodology: string;
+  sampleType: string;
+  containerTube: string; // e.g. "SST Gel (Yellow Top)", "EDTA (Lavender Top)"
+  fastingRequired: boolean;
+  fastingInstructions?: string;
+  turnaroundTime: string; // e.g. "2 to 4 Hours"
+  priceINR: number;
+  mrpINR: number;
+  b2bPriceINR?: number;
+  parameterIds: string[]; // ordered list of parameter IDs
+  formulaIds?: string[]; // formulas associated with this test
+  status: 'Active' | 'Inactive';
+  isPopular?: boolean;
+  description?: string;
+  labId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+

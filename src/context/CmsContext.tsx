@@ -29,8 +29,19 @@ import {
   SeoSettings,
   DEFAULT_SEO_SETTINGS,
   SeoPost,
+  ClinicalDepartment,
+  ClinicalParameter,
+  ClinicalFormula,
+  ClinicalTestDefinition,
 } from '../types';
 import { DEFAULT_SEO_POSTS } from '../data/defaultSeoPosts';
+import {
+  DEFAULT_CLINICAL_DEPARTMENTS,
+  DEFAULT_CLINICAL_PARAMETERS,
+  DEFAULT_CLINICAL_FORMULAS,
+  DEFAULT_CLINICAL_TESTS,
+} from '../data/clinicalCatalogSeed';
+import { evaluateFormula } from '../utils/clinicalFormulaEngine';
 import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES, DEFAULT_LAB_MANAGEMENT_FEATURES } from '../data/mockData';
 import { MASTER_CLINICAL_TESTS } from '../data/masterClinicalTests';
 export { VENDOR_LABS_DIRECTORY };
@@ -2493,6 +2504,29 @@ interface CmsContextType {
   setIsCacheModalOpen: (open: boolean) => void;
   openCacheModal: () => void;
   closeCacheModal: () => void;
+
+  // Dynamic Clinical Catalog & Formulation System
+  clinicalDepartments: ClinicalDepartment[];
+  clinicalParameters: ClinicalParameter[];
+  clinicalFormulas: ClinicalFormula[];
+  clinicalTests: ClinicalTestDefinition[];
+  addClinicalDepartment: (dept: Omit<ClinicalDepartment, 'id'>) => ClinicalDepartment;
+  updateClinicalDepartment: (id: string, dept: Partial<ClinicalDepartment>) => void;
+  deleteClinicalDepartment: (id: string) => void;
+  addClinicalParameter: (param: Omit<ClinicalParameter, 'id'>) => ClinicalParameter;
+  updateClinicalParameter: (id: string, param: Partial<ClinicalParameter>) => void;
+  deleteClinicalParameter: (id: string) => void;
+  addClinicalFormula: (formula: Omit<ClinicalFormula, 'id'>) => ClinicalFormula;
+  updateClinicalFormula: (id: string, formula: Partial<ClinicalFormula>) => void;
+  deleteClinicalFormula: (id: string) => void;
+  addClinicalTestDefinition: (test: Omit<ClinicalTestDefinition, 'id'>) => ClinicalTestDefinition;
+  updateClinicalTestDefinition: (id: string, test: Partial<ClinicalTestDefinition>) => void;
+  deleteClinicalTestDefinition: (id: string) => void;
+  resetClinicalCatalogToDefault: () => void;
+  recalculateTestFormulas: (
+    testParamValues: Record<string, string | number | undefined | null>,
+    relevantFormulaIds?: string[]
+  ) => Record<string, { value: number | null; displayValue: string; error?: string }>;
 }
 
 const CmsContext = createContext<CmsContextType | null>(null);
@@ -3681,6 +3715,327 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('cms_vendor_tests', JSON.stringify(allVendorTests));
     } catch {}
   }, [allVendorTests]);
+
+  // Dynamic Clinical Catalog State (Departments, Parameters, Formulas, Tests)
+  const [clinicalDepartments, setClinicalDepartments] = useState<ClinicalDepartment[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_clinical_departments');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return DEFAULT_CLINICAL_DEPARTMENTS;
+    } catch {
+      return DEFAULT_CLINICAL_DEPARTMENTS;
+    }
+  });
+
+  const [clinicalParameters, setClinicalParameters] = useState<ClinicalParameter[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_clinical_parameters');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return DEFAULT_CLINICAL_PARAMETERS;
+    } catch {
+      return DEFAULT_CLINICAL_PARAMETERS;
+    }
+  });
+
+  const [clinicalFormulas, setClinicalFormulas] = useState<ClinicalFormula[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_clinical_formulas');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return DEFAULT_CLINICAL_FORMULAS;
+    } catch {
+      return DEFAULT_CLINICAL_FORMULAS;
+    }
+  });
+
+  const [clinicalTests, setClinicalTests] = useState<ClinicalTestDefinition[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_clinical_tests');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return DEFAULT_CLINICAL_TESTS;
+    } catch {
+      return DEFAULT_CLINICAL_TESTS;
+    }
+  });
+
+  // LocalStorage sync for Clinical Catalog
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_clinical_departments', JSON.stringify(clinicalDepartments));
+    } catch {}
+  }, [clinicalDepartments]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_clinical_parameters', JSON.stringify(clinicalParameters));
+    } catch {}
+  }, [clinicalParameters]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_clinical_formulas', JSON.stringify(clinicalFormulas));
+    } catch {}
+  }, [clinicalFormulas]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_clinical_tests', JSON.stringify(clinicalTests));
+    } catch {}
+  }, [clinicalTests]);
+
+  // --- Clinical Department Handlers ---
+  const addClinicalDepartment = (dept: Omit<ClinicalDepartment, 'id'>): ClinicalDepartment => {
+    const id = `dep-${Date.now().toString(36)}`;
+    const newDept: ClinicalDepartment = {
+      ...dept,
+      id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setClinicalDepartments((prev) => [...prev, newDept]);
+    return newDept;
+  };
+
+  const updateClinicalDepartment = (id: string, updates: Partial<ClinicalDepartment>) => {
+    setClinicalDepartments((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d))
+    );
+  };
+
+  const deleteClinicalDepartment = (id: string) => {
+    setClinicalDepartments((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  // --- Clinical Parameter Handlers ---
+  const addClinicalParameter = (param: Omit<ClinicalParameter, 'id'>): ClinicalParameter => {
+    const id = `param-${Date.now().toString(36)}`;
+    const newParam: ClinicalParameter = {
+      ...param,
+      id,
+      code: param.code.toUpperCase().trim(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setClinicalParameters((prev) => [...prev, newParam]);
+    return newParam;
+  };
+
+  const updateClinicalParameter = (id: string, updates: Partial<ClinicalParameter>) => {
+    setClinicalParameters((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          return {
+            ...p,
+            ...updates,
+            code: updates.code ? updates.code.toUpperCase().trim() : p.code,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return p;
+      })
+    );
+  };
+
+  const deleteClinicalParameter = (id: string) => {
+    setClinicalParameters((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  // --- Clinical Formula Handlers ---
+  const addClinicalFormula = (formula: Omit<ClinicalFormula, 'id'>): ClinicalFormula => {
+    const id = `form-${Date.now().toString(36)}`;
+    const newFormula: ClinicalFormula = {
+      ...formula,
+      id,
+      outputParameterCode: formula.outputParameterCode.toUpperCase().trim(),
+      requiredParameterCodes: (formula.requiredParameterCodes || []).map((c) => c.toUpperCase().trim()),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setClinicalFormulas((prev) => [...prev, newFormula]);
+    return newFormula;
+  };
+
+  const updateClinicalFormula = (id: string, updates: Partial<ClinicalFormula>) => {
+    setClinicalFormulas((prev) =>
+      prev.map((f) => {
+        if (f.id === id) {
+          return {
+            ...f,
+            ...updates,
+            outputParameterCode: updates.outputParameterCode
+              ? updates.outputParameterCode.toUpperCase().trim()
+              : f.outputParameterCode,
+            requiredParameterCodes: updates.requiredParameterCodes
+              ? updates.requiredParameterCodes.map((c) => c.toUpperCase().trim())
+              : f.requiredParameterCodes,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return f;
+      })
+    );
+  };
+
+  const deleteClinicalFormula = (id: string) => {
+    setClinicalFormulas((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  // --- Clinical Test Definition Handlers ---
+  const addClinicalTestDefinition = (test: Omit<ClinicalTestDefinition, 'id'>): ClinicalTestDefinition => {
+    const id = `ctest-${Date.now().toString(36)}`;
+    const newTest: ClinicalTestDefinition = {
+      ...test,
+      id,
+      code: test.code.toUpperCase().trim(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setClinicalTests((prev) => [...prev, newTest]);
+
+    // Also register in allVendorTests so it's instantly usable across Reception Billing, Reports & Online Booking
+    const dept = clinicalDepartments.find((d) => d.id === test.departmentId);
+    const mappedParameters = (test.parameterIds || []).map((pId) => {
+      const p = clinicalParameters.find((cp) => cp.id === pId);
+      return p
+        ? {
+            id: p.id,
+            name: p.name,
+            unit: p.unit,
+            normalRange: p.universalRange,
+            method: p.methodology,
+            criticalLow: p.panicLow,
+            criticalHigh: p.panicHigh,
+          }
+        : pId;
+    });
+
+    const vendorTestItem: TestItem = {
+      id: newTest.id,
+      name: newTest.name,
+      code: newTest.code,
+      category: dept?.name || 'Biochemistry',
+      sampleType: newTest.sampleType,
+      unit: '',
+      normalRange: 'See Parameter Reference Intervals',
+      priceINR: newTest.priceINR,
+      mrpINR: newTest.mrpINR,
+      costPriceINR: newTest.b2bPriceINR,
+      turnaroundTime: newTest.turnaroundTime,
+      testMethod: newTest.methodology,
+      status: newTest.status,
+      isPopular: newTest.isPopular,
+      fastingRequired: newTest.fastingRequired,
+      instructions: newTest.fastingInstructions,
+      parameters: mappedParameters,
+      labId: activeTenantId === 'all' ? (selectedVendorLabId || 'lab-apex') : activeTenantId,
+    };
+    setAllVendorTests((prev) => [vendorTestItem, ...prev]);
+    syncTestToCloud(vendorTestItem);
+
+    return newTest;
+  };
+
+  const updateClinicalTestDefinition = (id: string, updates: Partial<ClinicalTestDefinition>) => {
+    setClinicalTests((prev) =>
+      prev.map((t) => {
+        if (t.id === id) {
+          return {
+            ...t,
+            ...updates,
+            code: updates.code ? updates.code.toUpperCase().trim() : t.code,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return t;
+      })
+    );
+
+    // Update in allVendorTests if exists
+    setAllVendorTests((prev) =>
+      prev.map((vt) => {
+        if (vt.id === id) {
+          return {
+            ...vt,
+            name: updates.name || vt.name,
+            code: updates.code || vt.code,
+            priceINR: updates.priceINR !== undefined ? updates.priceINR : vt.priceINR,
+            mrpINR: updates.mrpINR !== undefined ? updates.mrpINR : vt.mrpINR,
+            sampleType: updates.sampleType || vt.sampleType,
+            turnaroundTime: updates.turnaroundTime || vt.turnaroundTime,
+            status: updates.status || vt.status,
+            isPopular: updates.isPopular !== undefined ? updates.isPopular : vt.isPopular,
+          };
+        }
+        return vt;
+      })
+    );
+  };
+
+  const deleteClinicalTestDefinition = (id: string) => {
+    setClinicalTests((prev) => prev.filter((t) => t.id !== id));
+    setAllVendorTests((prev) => prev.filter((vt) => vt.id !== id));
+    deleteTestFromCloud(id);
+  };
+
+  const resetClinicalCatalogToDefault = () => {
+    setClinicalDepartments(DEFAULT_CLINICAL_DEPARTMENTS);
+    setClinicalParameters(DEFAULT_CLINICAL_PARAMETERS);
+    setClinicalFormulas(DEFAULT_CLINICAL_FORMULAS);
+    setClinicalTests(DEFAULT_CLINICAL_TESTS);
+    try {
+      localStorage.setItem('cms_clinical_departments', JSON.stringify(DEFAULT_CLINICAL_DEPARTMENTS));
+      localStorage.setItem('cms_clinical_parameters', JSON.stringify(DEFAULT_CLINICAL_PARAMETERS));
+      localStorage.setItem('cms_clinical_formulas', JSON.stringify(DEFAULT_CLINICAL_FORMULAS));
+      localStorage.setItem('cms_clinical_tests', JSON.stringify(DEFAULT_CLINICAL_TESTS));
+    } catch {}
+  };
+
+  // Recalculates all active formulas for given parameter values
+  const recalculateTestFormulas = useCallback(
+    (
+      testParamValues: Record<string, string | number | undefined | null>,
+      relevantFormulaIds?: string[]
+    ): Record<string, { value: number | null; displayValue: string; error?: string }> => {
+      const results: Record<string, { value: number | null; displayValue: string; error?: string }> = {};
+      const activeFormulas = clinicalFormulas.filter((f) => {
+        if (!f.isActive) return false;
+        if (relevantFormulaIds && relevantFormulaIds.length > 0) {
+          return relevantFormulaIds.includes(f.id);
+        }
+        return true;
+      });
+
+      // Pass 1 & Pass 2 for chained formulas (e.g., Globulin = TP - ALB, then A:G = ALB / Globulin)
+      const currentValues = { ...testParamValues };
+
+      for (let pass = 0; pass < 2; pass++) {
+        activeFormulas.forEach((formula) => {
+          const evalResult = evaluateFormula(formula.expression, currentValues, formula.decimalPlaces);
+          if (evalResult.value !== null) {
+            results[formula.outputParameterCode] = evalResult;
+            currentValues[formula.outputParameterCode] = evalResult.value;
+          } else if (evalResult.error) {
+            results[formula.outputParameterCode] = evalResult;
+          }
+        });
+      }
+
+      return results;
+    },
+    [clinicalFormulas]
+  );
+
 
   // Real-Time Hostinger Server & MySQL Multi-Device Sync
   // Subscribes All Devices (Client Phone, Reception, Technician, Pathologist, Admin) to Live Updates
@@ -8658,6 +9013,26 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsCacheModalOpen,
         openCacheModal,
         closeCacheModal,
+
+        // Dynamic Clinical Catalog & Formulation System
+        clinicalDepartments,
+        clinicalParameters,
+        clinicalFormulas,
+        clinicalTests,
+        addClinicalDepartment,
+        updateClinicalDepartment,
+        deleteClinicalDepartment,
+        addClinicalParameter,
+        updateClinicalParameter,
+        deleteClinicalParameter,
+        addClinicalFormula,
+        updateClinicalFormula,
+        deleteClinicalFormula,
+        addClinicalTestDefinition,
+        updateClinicalTestDefinition,
+        deleteClinicalTestDefinition,
+        resetClinicalCatalogToDefault,
+        recalculateTestFormulas,
       }}
     >
       {children}

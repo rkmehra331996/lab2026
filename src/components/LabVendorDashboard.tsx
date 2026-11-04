@@ -141,7 +141,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const [websiteSubTab, setWebsiteSubTab] = useState<
     'banners' | 'about' | 'founder' | 'team' | 'contact' | 'social' | 'legal' | 'sections' | 'section_content'
   >('banners');
-  const [testSubTab, setTestSubTab] = useState<'list' | 'add' | 'categories' | 'packages'>('list');
+  const [testSubTab, setTestSubTab] = useState<'list' | 'add' | 'categories' | 'packages' | 'clinical_catalog'>('list');
   const [packageSubTab, setPackageSubTab] = useState<'list' | 'add'>('list');
   const [formSubTab, setFormSubTab] = useState<'bookings' | 'contacts'>('contacts');
   const [dashboardSubTab, setDashboardSubTab] = useState<'reception' | 'technician' | 'overview'>('reception');
@@ -1303,6 +1303,33 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           : 'bg-amber-50 text-amber-800 border border-amber-200'
                       }`}>
                         Bundles
+                      </span>
+                    </button>
+
+                    {/* 5. Clinical Catalog & Formulations (NABL) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('tests');
+                        setTestSubTab('clinical_catalog');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'tests' && testSubTab === 'clinical_catalog'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-teal-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'clinical_catalog' ? 'text-amber-400' : 'text-rose-600'}`} />
+                        <span className="truncate">5. Departments &amp; Formulas</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'tests' && testSubTab === 'clinical_catalog'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-rose-50 text-rose-800 border border-rose-200 font-semibold'
+                      }`}>
+                        ⚡ NABL
                       </span>
                     </button>
                   </div>
