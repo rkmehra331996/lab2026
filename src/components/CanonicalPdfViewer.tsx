@@ -344,17 +344,17 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
   return (
     <div className={`bg-slate-950 text-slate-100 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col w-full ${className}`}>
       {/* Top Bar for View Mode Controls */}
-      <div className="bg-[#0B2545] border-b border-slate-800 px-3 sm:px-4 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs text-white shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="bg-slate-900/95 backdrop-blur-xs border-b border-slate-800 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs text-white shrink-0 select-none">
+        <div className="flex items-center gap-2.5 min-w-0">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span className="font-extrabold text-xs sm:text-sm text-slate-100 truncate max-w-[220px] sm:max-w-none">
+          <span className="font-bold text-xs sm:text-sm text-slate-100 truncate max-w-[200px] sm:max-w-none">
             {title}
           </span>
-          <span className="hidden md:inline px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">
-            Official PDF Design
+          <span className="hidden md:inline px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+            NABL Standard Master
           </span>
           {renderedPages.length > 0 && (
-            <span className="hidden sm:inline px-2 py-0.5 rounded bg-sky-900/60 text-sky-200 text-[10px] font-mono border border-sky-700/60">
+            <span className="hidden sm:inline px-2 py-0.5 rounded-md bg-sky-950/70 text-sky-300 text-[10px] font-mono border border-sky-800/60 font-semibold">
               {renderedPages.length} {renderedPages.length === 1 ? 'Page' : 'Pages'}
             </span>
           )}
@@ -364,11 +364,11 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
         <div className="flex items-center gap-2 sm:gap-2.5 ml-auto">
           {/* Zoom Controls (Active when rendering pages) */}
           {renderedPages.length > 0 && viewMode === 'pages' && (
-            <div className="hidden sm:flex items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5">
+            <div className="hidden sm:flex items-center bg-slate-950 border border-slate-800 rounded-xl p-0.5">
               <button
                 type="button"
                 onClick={handleZoomOut}
-                className="p-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded cursor-pointer"
+                className="p-1 text-slate-400 hover:text-white hover:bg-slate-800/70 rounded-lg cursor-pointer transition"
                 title="Zoom Out"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
@@ -376,7 +376,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
               <button
                 type="button"
                 onClick={handleZoomReset}
-                className="px-1.5 py-0.5 text-[11px] font-mono font-bold text-slate-300 hover:text-white cursor-pointer"
+                className="px-2 py-0.5 text-[11px] font-mono font-bold text-slate-300 hover:text-white cursor-pointer transition"
                 title="Reset Zoom (100%)"
               >
                 {zoomLevel}%
@@ -384,7 +384,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
               <button
                 type="button"
                 onClick={handleZoomIn}
-                className="p-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded cursor-pointer"
+                className="p-1 text-slate-400 hover:text-white hover:bg-slate-800/70 rounded-lg cursor-pointer transition"
                 title="Zoom In"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -394,11 +394,11 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
 
           {/* Toggle between Exact PDF Pages and Native Browser PDF Embed */}
           {pdfBlobUrl && !isDuePaymentPending && (
-            <div className="hidden lg:flex items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5 text-[11px]">
+            <div className="hidden lg:flex items-center bg-slate-950 border border-slate-800 rounded-xl p-0.5 text-[11px]">
               <button
                 type="button"
                 onClick={() => setViewMode('pages')}
-                className={`px-2 py-1 rounded font-bold transition cursor-pointer flex items-center gap-1 ${
+                className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
                   viewMode === 'pages' ? 'bg-[#123B6D] text-white shadow-xs' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Rendered PDF Page View"
@@ -409,7 +409,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('embed')}
-                className={`px-2 py-1 rounded font-bold transition cursor-pointer flex items-center gap-1 ${
+                className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
                   viewMode === 'embed' ? 'bg-[#123B6D] text-white shadow-xs' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Native PDF Embed Viewer"
@@ -424,7 +424,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
           <button
             type="button"
             onClick={handleShareWhatsApp}
-            className="px-2.5 sm:px-3 py-1.5 bg-[#16A34A] hover:bg-[#15803D] text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+            className="px-3 py-1.5 bg-[#16A34A] hover:bg-[#15803D] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
             title="Share verified report link on WhatsApp"
           >
             <MessageSquare className="w-3.5 h-3.5 text-emerald-100" />
@@ -436,7 +436,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
             type="button"
             disabled={isPrinting || isDuePaymentPending}
             onClick={handlePrint}
-            className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+            className="px-3 py-1.5 bg-slate-800/90 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 active:scale-95"
             title="Print Official Medical Report"
           >
             <Printer className="w-3.5 h-3.5 text-sky-400" />
@@ -448,7 +448,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
             type="button"
             disabled={isDownloading || isDuePaymentPending}
             onClick={handleDownload}
-            className="px-3 py-1.5 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 shadow-xs active:scale-95"
+            className="px-3.5 py-1.5 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 shadow-xs active:scale-95"
             title="Download PDF"
           >
             <Download className="w-3.5 h-3.5 text-amber-400" />
@@ -459,7 +459,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer"
               title="Close Report"
             >
               <X className="w-4 h-4" />
@@ -472,7 +472,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
       <div className="flex-1 overflow-auto bg-slate-950 p-2 sm:p-6 flex flex-col items-center justify-start min-h-[500px]">
         {/* VIEW MODE 1: NATIVE BROWSER PDF EMBED */}
         {viewMode === 'embed' && pdfBlobUrl && !isDuePaymentPending && (
-          <div className="w-full max-w-[900px] h-[82vh] bg-white rounded-xl shadow-2xl border border-slate-700 overflow-hidden">
+          <div className="w-full max-w-[1040px] h-[84vh] bg-white rounded-xl shadow-2xl border border-slate-700 overflow-hidden">
             <iframe
               src={`${pdfBlobUrl}#toolbar=0&navpanes=0`}
               title="Diagnostic PDF Report"
@@ -490,7 +490,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
                 className="relative bg-white shadow-2xl rounded-sm border border-slate-300 overflow-hidden transition-all duration-150 origin-top select-none"
                 style={{
                   width: `${zoomLevel}%`,
-                  maxWidth: zoomLevel <= 100 ? '820px' : `${Math.round(8.2 * zoomLevel)}px`,
+                  maxWidth: zoomLevel <= 100 ? '900px' : `${Math.round(9.0 * zoomLevel)}px`,
                   aspectRatio: '210 / 297',
                 }}
               >
