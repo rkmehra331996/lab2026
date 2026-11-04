@@ -4,13 +4,12 @@ import {
   Edit3,
   Trash2,
   MessageSquare,
-  Mail,
 } from 'lucide-react';
 import { LabReport } from '../types';
 import { CanonicalPdfViewer } from './CanonicalPdfViewer';
 import { useCms } from '../context/CmsContext';
 import { CreateReportModal } from './CreateReportModal';
-import { buildReportWhatsAppUrl, buildReportEmailUrl } from '../utils/shareUtils';
+import { buildReportWhatsAppUrl } from '../utils/shareUtils';
 
 interface ReportDetailModalProps {
   report: LabReport | null;
@@ -148,36 +147,6 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             >
               <MessageSquare className="w-3.5 h-3.5" />
               <span>WhatsApp</span>
-            </button>
-
-            {/* Share via Email */}
-            <button
-              type="button"
-              onClick={() => {
-                const emailTo = (report.email || report.patientEmail || '').trim();
-                const mailto = buildReportEmailUrl({
-                  reportId: report.reportId,
-                  uhid: report.uhid,
-                  patientName: report.patientName,
-                  patientAge: report.patientAge,
-                  patientGender: report.patientGender,
-                  mobile: report.mobile || report.patientMobile || '',
-                  email: emailTo,
-                  referringDoctor: report.referringDoctor || report.doctor,
-                  reportedAt: report.reportedAt || report.reportDate,
-                  testName: report.testName,
-                  labId: report.labId,
-                  labName: report.labName,
-                  labPhone: report.labPhone,
-                  tokenNumber: report.tokenNumber,
-                }, emailTo);
-                window.open(mailto, '_blank');
-              }}
-              className="bg-[#123B6D] hover:bg-[#0e2d53] text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-              title="Share report via Email ID"
-            >
-              <Mail className="w-3.5 h-3.5 text-sky-200" />
-              <span>Email</span>
             </button>
 
             <button

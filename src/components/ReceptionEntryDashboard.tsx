@@ -45,7 +45,6 @@ import {
   FolderTree,
   Layers,
   ListFilter,
-  Mail,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -53,6 +52,7 @@ import { AppView, ReceptionPatientEntry, LabReport } from '../types';
 import { EditReceptionEntryModal } from './EditReceptionEntryModal';
 import { CollectRemainingPaymentModal } from './CollectRemainingPaymentModal';
 import { DayEndCashClosingModal } from './reception/DayEndCashClosingModal';
+import { TestSelectionModal } from './reception/TestSelectionModal';
 import { ReportDetailModal } from './ReportDetailModal';
 import { SyncNowButton } from './SyncNowButton';
 import { generateThermalReceiptPdf, buildReceiptInvoicePdf, getReceiptPdfFilename, downloadReportPdf } from '../utils/pdfGenerator';
@@ -61,7 +61,7 @@ import { buildPatientReportUrl } from '../utils/domainRouting';
 import { getTenantDirectUrl } from '../constants/domains';
 import { buildReceiptSlipImage, downloadReceiptImage, uploadReceiptSlipImage } from '../utils/receiptImageGenerator';
 import { WebsiteTokenReceiptCard } from './vendor/WebsiteTokenReceiptCard';
-import { buildReceiptEmailUrl, buildReportEmailUrl, buildReportWhatsAppUrl } from '../utils/shareUtils';
+import { buildReportWhatsAppUrl } from '../utils/shareUtils';
 
 // Format token number to standard format (e.g. "TK-626")
 export const getDisplayTokenNumber = (tokenRaw?: string, fallbackId?: string): string => {
@@ -208,7 +208,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const [showRecentlyRegisteredBanner, setShowRecentlyRegisteredBanner] = useState<boolean>(false);
 
   const [patientName, setPatientName] = useState('');
-  const [patientEmail, setPatientEmail] = useState('');
   const [age, setAge] = useState('32');
   const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>('Male');
   const [mobile, setMobile] = useState('');
@@ -329,6 +328,9 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   // View Patient Lab Report Modal
   const [viewingReport, setViewingReport] = useState<LabReport | null>(null);
   const [isViewingReportModalOpen, setIsViewingReportModalOpen] = useState(false);
+
+  // Two-Panel Test Selection Modal
+  const [isTestSelectionModalOpen, setIsTestSelectionModalOpen] = useState(false);
 
   // Success Toast
   const [toastMessage, setToastMessage] = useState('');
@@ -627,7 +629,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     saveCurrentAsSnapshot();
     setEditingEntryId(entry.id);
     setPatientName(entry.patientName);
-    setPatientEmail(entry.email || '');
     setAge(String(entry.age));
     setGender(entry.gender);
     setMobile(entry.mobile);
@@ -691,7 +692,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       age: age || '30',
       gender,
       mobile: mobile || '9876500000',
-      email: patientEmail.trim() || undefined,
       referringDoctor: referringDoctor.trim() || 'Self Walk-in (Direct Patient)',
       tests: selectedTests,
       sampleType,
@@ -745,7 +745,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       age: age || '30',
       gender,
       mobile: mobile || '9876500000',
-      email: patientEmail.trim() || undefined,
       referringDoctor: referringDoctor.trim() || 'Self Walk-in (Direct Patient)',
       tests: selectedTests,
       sampleType,
@@ -1087,7 +1086,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     saveCurrentAsSnapshot();
     setEditingEntryId(null);
     setPatientName('');
-    setPatientEmail('');
     setAge('30');
     setGender('Male');
     setMobile('');
@@ -1845,36 +1843,15 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                     />
                   </div>
                 </div>
-
-                {/* Email Address (Optional, for digital report & receipt delivery) */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                    <span>Email ID (Optional - for Email Receipt &amp; Report)</span>
-                    <span className="text-[10px] text-teal-700 font-medium">Auto-dispatch ready report &amp; receipt</span>
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
-                    <input
-                      type="email"
-                      value={patientEmail}
-                      onChange={(e) => setPatientEmail(e.target.value)}
-                      placeholder="patient@gmail.com (Report & Receipt emailed directly)"
-                      className="w-full pl-8 pr-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none"
-                    />
-                  </div>
-                </div>
               </div>
 
-              {/* 2. Test Selection: Parent Category -> Child Tests OR Direct Search */}
+              {/* 2. Test Selection: Two-Panel Modal Trigger + Quick Popular Pills + Selected List */}
               <div className="space-y-2.5 pt-1">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-black text-[#123B6D] uppercase tracking-wider flex items-center gap-1.5">
                       <FolderTree className="w-3.5 h-3.5 text-[#0F766E]" />
-                      <span>2. Test Selection</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
-                      (Parent Category → Child Tests or Direct Search)
+                      <span>2. Prescribed Tests Selection</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1887,187 +1864,35 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   </div>
                 </div>
 
-                {/* Direct Search Input */}
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                  <input
-                    type="text"
-                    value={testSearch}
-                    onChange={(e) => setTestSearch(e.target.value)}
-                    placeholder="Search diagnostic tests directly by name, code, or sample (e.g. Sugar, CBC, KFT, LFT, Lipid, HbA1c)..."
-                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none bg-white shadow-2xs"
-                  />
-                  {testSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setTestSearch('')}
-                      className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                      title="Clear search"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Parent Category Selector Tabs */}
-                <div>
-                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 px-0.5 flex items-center justify-between">
-                    <span className="flex items-center gap-1">
-                      <Layers className="w-3 h-3 text-teal-600" />
-                      <span>Parent Categories ({PARENT_CATEGORIES.length - 1} Clinical Departments):</span>
+                {/* Primary Action Button: Open Two-Panel Department & Test Selection Modal */}
+                <button
+                  type="button"
+                  onClick={() => setIsTestSelectionModalOpen(true)}
+                  className="w-full bg-[#0F766E] hover:bg-[#0d655e] active:scale-98 text-white p-3 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-between shadow-xs border border-teal-700 cursor-pointer group"
+                  title="Click to open department-wise test selection popup"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center text-amber-300 group-hover:scale-110 transition shadow-2xs">
+                      <FlaskConical className="w-4 h-4" />
                     </span>
-                    {testSearch && (
-                      <span className="text-[10px] text-amber-600 font-bold">
-                        Filtering via direct search
+                    <span className="text-left flex flex-col">
+                      <span className="font-black text-xs sm:text-sm text-white">
+                        + Browse &amp; Select Tests from Departments
                       </span>
-                    )}
-                  </div>
-
-                  <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-slate-300">
-                    {PARENT_CATEGORIES.map((cat) => {
-                      const stats = categoryStats[cat.key] || { total: 0, selected: 0 };
-                      const isActive = selectedParentCategory === cat.key && !testSearch;
-                      return (
-                        <button
-                          type="button"
-                          key={cat.key}
-                          onClick={() => {
-                            setSelectedParentCategory(cat.key);
-                            if (testSearch) setTestSearch('');
-                          }}
-                          className={`text-[11px] px-2.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
-                            isActive
-                              ? 'bg-[#0F766E] text-white border-teal-700 shadow-sm'
-                              : 'bg-white text-slate-700 border-slate-200 hover:border-teal-400 hover:bg-teal-50/50'
-                          }`}
-                        >
-                          <span>{cat.icon}</span>
-                          <span>{cat.shortName}</span>
-                          <span
-                            className={`text-[10px] font-mono px-1 rounded ${
-                              isActive ? 'bg-teal-800 text-teal-100' : 'bg-slate-100 text-slate-500'
-                            }`}
-                          >
-                            {stats.total}
-                          </span>
-                          {stats.selected > 0 && (
-                            <span
-                              className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
-                                isActive ? 'bg-amber-300 text-amber-950' : 'bg-teal-600 text-white'
-                              }`}
-                              title={`${stats.selected} test(s) selected from this category`}
-                            >
-                              +{stats.selected}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Child Tests Display Area */}
-                <div>
-                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 px-0.5 flex items-center justify-between">
-                    {testSearch.trim() ? (
-                      <span className="flex items-center gap-1 text-teal-800">
-                        <Search className="w-3 h-3 text-teal-600" />
-                        <span>Matching Child Tests ({filteredAvailableTests.length}):</span>
+                      <span className="text-[10px] font-normal text-teal-100 opacity-90">
+                        {PARENT_CATEGORIES.length} Clinical Departments • {allAvailableTests.length} Tests Catalog
                       </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-slate-700">
-                        <ListFilter className="w-3 h-3 text-teal-600" />
-                        <span>
-                          {PARENT_CATEGORIES.find((c) => c.key === selectedParentCategory)?.label || selectedParentCategory} — Child Tests ({activeCategoryChildTests.length}):
-                        </span>
-                      </span>
-                    )}
+                    </span>
+                  </span>
 
-                    {!testSearch.trim() && activeCategoryChildTests.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleSelectAllCategoryTests(activeCategoryChildTests)}
-                          className="text-[10px] font-bold text-teal-700 hover:text-teal-900 hover:underline cursor-pointer"
-                        >
-                          + Select All in Category
-                        </button>
-                        <span className="text-slate-300">|</span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeselectCategoryTests(activeCategoryChildTests)}
-                          className="text-[10px] font-medium text-slate-500 hover:text-rose-600 hover:underline cursor-pointer"
-                        >
-                          Deselect Category
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-2.5 bg-slate-50/90 rounded-xl border border-slate-200">
-                    {filteredAvailableTests.length > 0 ? (
-                      filteredAvailableTests.map((test) => {
-                        const isSelected = selectedTests.includes(test.name);
-                        return (
-                          <button
-                            type="button"
-                            key={test.name}
-                            onClick={() => handleToggleTest(test.name, test.sample)}
-                            className={`text-[11px] px-2.5 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer border ${
-                              isSelected
-                                ? 'bg-[#0F766E] text-white shadow-2xs border-teal-700'
-                                : 'bg-white text-slate-800 border-slate-200 hover:border-teal-400 hover:shadow-2xs'
-                            }`}
-                          >
-                            {isSelected ? (
-                              <Check className="w-3.5 h-3.5 text-teal-200 shrink-0" />
-                            ) : (
-                              <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            )}
-                            <span className="truncate max-w-[200px]">{test.name}</span>
-                            {testSearch && test.category && (
-                              <span
-                                className={`text-[9px] px-1.5 py-0.2 rounded font-normal ${
-                                  isSelected ? 'bg-teal-800 text-teal-100' : 'bg-slate-100 text-slate-500'
-                                }`}
-                              >
-                                {test.category.split(' ')[0]}
-                              </span>
-                            )}
-                            {/* Test Price: ALWAYS VISIBLE IN RECEPTION DASHBOARD */}
-                            <span
-                              className={`text-[11px] font-mono font-black ml-1 ${
-                                isSelected ? 'text-amber-200' : 'text-[#123B6D]'
-                              }`}
-                            >
-                              ₹{test.price}
-                            </span>
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div className="w-full py-3 px-2 text-center space-y-2">
-                        <p className="text-xs text-slate-500">
-                          No clinical test found matching "{testSearch}".
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleToggleTest(testSearch.trim());
-                            setTestSearch('');
-                          }}
-                          className="text-xs font-bold text-teal-700 hover:text-teal-800 bg-white border border-teal-300 px-3 py-1.5 rounded-lg shadow-2xs inline-flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Add "{testSearch.trim()}" as custom test (₹300)</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  <span className="bg-white/20 text-teal-100 text-[11px] font-mono px-2.5 py-1 rounded-lg flex items-center gap-1 font-bold shrink-0">
+                    <span>{selectedTests.length} Selected</span>
+                    <span>→</span>
+                  </span>
+                </button>
 
                 {/* Multiple Added Tests List */}
-                {selectedTests.length > 0 && (
+                {selectedTests.length > 0 ? (
                   <div className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 px-0.5">
                       <span className="flex items-center gap-1.5">
@@ -2077,15 +1902,25 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                           Total: ₹{grossAmount}
                         </span>
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTests([])}
-                        className="text-[10px] font-semibold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
-                      >
-                        Clear All
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsTestSelectionModalOpen(true)}
+                          className="text-[10px] font-bold text-teal-700 hover:text-teal-900 hover:underline cursor-pointer"
+                        >
+                          + Add More
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTests([])}
+                          className="text-[10px] font-semibold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                        >
+                          Clear All
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1.5 bg-slate-50/60 rounded-lg border border-slate-200">
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 bg-slate-50/80 rounded-xl border border-slate-200">
                       {selectedTests.map((testName) => {
                         const testObj = allAvailableTests.find((t) => t.name === testName);
                         const price = testObj ? testObj.price : 300;
@@ -2115,6 +1950,17 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                         );
                       })}
                     </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => setIsTestSelectionModalOpen(true)}
+                    className="p-3.5 rounded-xl border-2 border-dashed border-teal-300 bg-teal-50/40 text-center cursor-pointer hover:bg-teal-50/80 hover:border-teal-500 transition group"
+                  >
+                    <FlaskConical className="w-5 h-5 text-teal-600 mx-auto mb-1 group-hover:scale-110 transition" />
+                    <p className="text-xs font-black text-slate-800">No tests selected yet</p>
+                    <p className="text-[11px] text-teal-700 font-bold mt-0.5">
+                      Click here to open the Department-Wise Test Selection Popup →
+                    </p>
                   </div>
                 )}
               </div>
@@ -3093,6 +2939,21 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
           }}
         />
       )}
+
+      {/* 10. Two-Panel Clinical Departments Test Selection Modal */}
+      <TestSelectionModal
+        isOpen={isTestSelectionModalOpen}
+        onClose={() => setIsTestSelectionModalOpen(false)}
+        selectedTests={selectedTests}
+        onToggleTest={handleToggleTest}
+        onSelectAllCategoryTests={handleSelectAllCategoryTests}
+        onDeselectCategoryTests={handleDeselectCategoryTests}
+        onClearAllTests={() => setSelectedTests([])}
+        allAvailableTests={allAvailableTests}
+        parentCategories={PARENT_CATEGORIES}
+        categoryStats={categoryStats}
+        grossAmount={grossAmount}
+      />
     </div>
   );
 };

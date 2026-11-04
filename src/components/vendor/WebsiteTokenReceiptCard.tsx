@@ -20,8 +20,6 @@ import {
   Copy,
   FileText,
   Eye,
-  Mail,
-  Send,
 } from 'lucide-react';
 import { generateThermalReceiptPdf } from '../../utils/pdfGenerator';
 import { safePrint } from '../../utils/printHelper';
@@ -33,7 +31,6 @@ import {
   uploadReceiptSlipImage,
 } from '../../utils/receiptImageGenerator';
 import { resolveReceiptTestsWithPrices } from '../../utils/testPriceHelper';
-import { buildReceiptEmailUrl } from '../../utils/shareUtils';
 
 export interface WebsiteTokenReceiptData {
   tokenNumber: string;
@@ -85,8 +82,6 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
   const [copySuccess, setCopySuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'slip' | 'image_preview'>('slip');
   const [generatedImageDataUrl, setGeneratedImageDataUrl] = useState<string | null>(null);
-  const [emailInput, setEmailInput] = useState<string>(receipt.email || '');
-  const [showEmailField, setShowEmailField] = useState<boolean>(false);
 
   const resolvedTests = resolveReceiptTestsWithPrices(receipt.tests, receipt.totalAmount);
   const testNames = resolvedTests.map((t) => t.name);
@@ -453,47 +448,6 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
     } finally {
       setIsSharing(false);
     }
-  };
-
-  // Share Receipt via Email ID
-  const handleShareEmail = (targetEmailOverride?: string) => {
-    const target = (targetEmailOverride || emailInput || receipt.email || '').trim();
-    const mailto = buildReceiptEmailUrl(
-      {
-        tokenNumber: receipt.tokenNumber,
-        uhid: receipt.uhid,
-        patientName: receipt.patientName,
-        age: receipt.age,
-        gender: receipt.gender,
-        mobile: receipt.mobile,
-        email: target,
-        referringDoctor: receipt.referringDoctor,
-        tests: resolvedTests,
-        totalAmount: receipt.totalAmount,
-        paidAmount: receipt.paidAmount,
-        dueAmount: receipt.dueAmount,
-        discountINR: receipt.discountINR,
-        paymentMode: receipt.paymentMode,
-        paymentStatus: receipt.paymentStatus,
-        registeredAt: receipt.registeredAt,
-        visitType: receipt.visitType,
-        address: receipt.address,
-        timeSlot: receipt.timeSlot,
-        labId: receipt.labId,
-        labName: receipt.labName,
-        labPhone: receipt.labPhone,
-        labAddress: receipt.labAddress,
-        upiTransactionRef: receipt.upiTransactionRef,
-      },
-      target
-    );
-
-    window.open(mailto, '_blank');
-    setShareNotice(
-      target
-        ? `📧 Email client opened to dispatch receipt to: ${target}`
-        : '📧 Email client opened with complete receipt! Enter recipient email address to send.'
-    );
   };
 
   return (
@@ -866,14 +820,14 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
 
         {/* ACTION BUTTONS */}
         <div className="space-y-2 pt-1">
-          {/* PRIMARY ACTIONS: WhatsApp & Email Sharing */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* PRIMARY ACTION: WhatsApp Sharing */}
+          <div>
             {/* Share via WhatsApp */}
             <button
               type="button"
               disabled={isSharing}
               onClick={() => handleShareWhatsApp('web')}
-              className="bg-[#16A34A] hover:bg-[#15803D] active:scale-98 text-white py-3 px-3.5 rounded-2xl font-black text-xs transition flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-md disabled:opacity-60"
+              className="w-full bg-[#16A34A] hover:bg-[#15803D] active:scale-98 text-white py-3 px-3.5 rounded-2xl font-black text-xs transition flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-md disabled:opacity-60"
               title="Share slip with image and text on WhatsApp"
             >
               {isSharing ? (
@@ -892,43 +846,6 @@ export const WebsiteTokenReceiptCard: React.FC<WebsiteTokenReceiptCardProps> = (
                   </span>
                 </>
               )}
-            </button>
-
-            {/* Share via Email ID */}
-            <button
-              type="button"
-              onClick={() => handleShareEmail(emailInput)}
-              className="bg-[#123B6D] hover:bg-[#0e2d53] active:scale-98 text-white py-3 px-3.5 rounded-2xl font-black text-xs transition flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-md"
-              title="Share receipt slip via Email ID"
-            >
-              <span className="flex items-center gap-1.5 text-xs font-bold">
-                <Mail className="w-4 h-4 text-sky-200" />
-                <span>Share via Email</span>
-              </span>
-              <span className="text-[10px] font-normal text-sky-200 opacity-90 truncate max-w-[200px]">
-                {emailInput ? `Send to ${emailInput}` : 'Send full receipt to Email ID'}
-              </span>
-            </button>
-          </div>
-
-          {/* Quick Email Input Bar */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 flex items-center gap-2">
-            <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
-            <input
-              type="email"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="Patient / attendant email ID..."
-              className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <button
-              type="button"
-              onClick={() => handleShareEmail(emailInput)}
-              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
-              title="Send receipt to this email"
-            >
-              <Send className="w-3 h-3" />
-              <span>Send</span>
             </button>
           </div>
 

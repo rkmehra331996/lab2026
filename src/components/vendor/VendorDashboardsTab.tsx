@@ -138,32 +138,29 @@ export const VendorDashboardsTab: React.FC<VendorDashboardsTabProps> = ({
           </div>
 
           {/* Expert Member Dashboard Banner: Reception & Technician Department Management */}
-          <div className="bg-gradient-to-r from-[#0F284E] via-[#123B6D] to-[#2E1065] text-white p-5 rounded-2xl shadow-md border border-indigo-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-1">
+          <div className="bg-slate-900 text-white p-4 rounded-xl border border-slate-800 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xl">⭐</span>
-                <h3 className="font-black text-sm sm:text-base text-white">
-                  Expert Member Dashboard – Reception &amp; Technician Department Management
-                </h3>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
-                  Dual Department
+                <span className="font-semibold text-xs sm:text-sm text-white">
+                  Expert Vendor Console
+                </span>
+                <span className="text-slate-400">·</span>
+                <span className="text-[11px] text-teal-400 font-medium">
+                  Dual Department (Front Desk + Lab Tech)
                 </span>
               </div>
               <p className="text-xs text-slate-300 max-w-2xl">
-                Manage and monitor both the Reception Department (patient billing, tokens, receipts, dues) and Technician Department (analyzers, parameter findings, abnormal flags, TAT handover) from one unified dashboard.
+                Unified real-time management of reception tokens, patient billing, cash reconciliation, and technician analyzer queues.
               </p>
-              <div className="flex items-center gap-2 text-[11px] text-amber-300 font-medium pt-0.5">
-                <span>🔑 Expert Member Login ID &amp; Password can be added, edited, or changed anytime in <strong>10. Staff Management</strong>.</span>
-              </div>
             </div>
 
             <button
               type="button"
               onClick={() => onNavigateView('expert_dashboard')}
-              className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs transition shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+              className="shrink-0 px-3.5 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
             >
-              <Sparkles className="w-4 h-4 text-slate-950" />
-              <span>Launch Expert Dashboard →</span>
+              <span>Open Expert Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
