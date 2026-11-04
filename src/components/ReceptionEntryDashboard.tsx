@@ -522,23 +522,20 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const effectiveDiscount = hasDiscount ? (discountINR || 0) : 0;
   const netPayable = Math.max(0, grossAmount - effectiveDiscount);
 
-  // Calculate actual paid amount based on payment choice & manual inputs
+  // Calculate actual paid amount based on manual inputs & defaults
   const paidAmount = useMemo(() => {
-    if (paymentChoice === 'Full Payment') {
-      return netPayable;
-    }
-    if (paymentChoice === 'Due') {
-      return 0;
-    }
-    // Advance %
     if (customPaidAmount !== '') {
       const parsed = Number(customPaidAmount);
       if (!isNaN(parsed)) {
         return Math.min(netPayable, Math.max(0, parsed));
       }
+      return 0;
     }
-    return Math.min(netPayable, Math.max(0, Math.round((netPayable * advancePercent) / 100)));
-  }, [paymentChoice, netPayable, customPaidAmount, advancePercent]);
+    if (paymentChoice === 'Due') {
+      return 0;
+    }
+    return netPayable;
+  }, [customPaidAmount, netPayable, paymentChoice]);
 
   const dueAmount = Math.max(0, netPayable - paidAmount);
 
@@ -2045,99 +2042,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   <span className="text-sm font-black font-mono">₹{netPayable}</span>
                 </div>
 
-                {/* Payment Options: Full | Advance | Due Payment — inline */}
-                <div className="pt-1 border-t border-slate-200 space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
-                    <span>Payment Options:</span>
-                    <span className="text-[10px] font-semibold text-teal-700">
-                      {paymentChoice === 'Full Payment'
-                        ? '100% Paid'
-                        : paymentChoice === 'Advance'
-                        ? `Advance (${advancePercent}%)`
-                        : '0% Paid (Due)'}
-                    </span>
-                  </div>
-
-                  {/* Inline Segmented Buttons: Full | Advance | Due Payment */}
-                  <div className="inline-flex w-full items-center p-1 bg-white rounded-lg border border-slate-200 shadow-2xs gap-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPaymentChoice('Full Payment');
-                        setCustomPaidAmount('');
-                      }}
-                      className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
-                        paymentChoice === 'Full Payment'
-                          ? 'bg-emerald-700 text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Full</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPaymentChoice('Advance');
-                        setCustomPaidAmount('');
-                      }}
-                      className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
-                        paymentChoice === 'Advance'
-                          ? 'bg-amber-600 text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>Advance</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPaymentChoice('Due');
-                        setCustomPaidAmount('0');
-                      }}
-                      className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
-                        paymentChoice === 'Due'
-                          ? 'bg-rose-700 text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>Due Payment</span>
-                    </button>
-                  </div>
-
-                  {/* Advance % selector if Advance is selected */}
-                  {paymentChoice === 'Advance' && (
-                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-amber-900">
-                        <span>Advance Percentage:</span>
-                        <span className="text-amber-800 font-bold">
-                          {advancePercent}% = ₹{Math.round((netPayable * advancePercent) / 100)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {[25, 50, 75].map((pct) => (
-                          <button
-                            type="button"
-                            key={pct}
-                            onClick={() => {
-                              setAdvancePercent(pct);
-                              setCustomPaidAmount('');
-                            }}
-                            className={`flex-1 py-1 text-xs font-bold rounded-md border transition cursor-pointer ${
-                              advancePercent === pct && customPaidAmount === ''
-                                ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
-                                : 'bg-white text-amber-900 border-amber-200 hover:bg-amber-100'
-                            }`}
-                          >
-                            {pct}% (₹{Math.round((netPayable * pct) / 100)})
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
 
                 {/* Amount Paid & Due Details */}
                 <div className="grid grid-cols-2 gap-2 pt-0.5">
@@ -2147,12 +2051,20 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                       type="number"
                       min="0"
                       max={netPayable}
-                      value={paidAmount}
+                      value={customPaidAmount !== '' ? customPaidAmount : (netPayable > 0 ? netPayable : 0)}
                       onChange={(e) => {
-                        setPaymentChoice('Advance');
-                        setCustomPaidAmount(e.target.value);
+                        let val = e.target.value;
+                        if (val === '') {
+                          setCustomPaidAmount('0');
+                        } else {
+                          if (val.length > 1 && val.startsWith('0')) {
+                            val = val.replace(/^0+/, '') || '0';
+                          }
+                          setCustomPaidAmount(val);
+                        }
                       }}
-                      placeholder={`₹${paidAmount}`}
+                      onFocus={(e) => e.target.select()}
+                      placeholder="0"
                       className="w-full px-2.5 py-1 text-xs font-bold text-emerald-700 rounded-lg border border-slate-300 bg-white outline-none"
                     />
                   </div>
