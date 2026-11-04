@@ -223,7 +223,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const [paymentChoice, setPaymentChoice] = useState<'Full Payment' | 'Advance' | 'Due'>('Full Payment');
   const [advancePercent, setAdvancePercent] = useState<number>(50);
   const [customPaidAmount, setCustomPaidAmount] = useState<string>('');
-  const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Card'>('UPI');
+  const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Card'>('Cash');
   const [upiTransactionRef, setUpiTransactionRef] = useState('');
   const [notes, setNotes] = useState('');
   const [testSearch, setTestSearch] = useState('');
@@ -651,7 +651,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       setCustomPaidAmount(String(entry.paidAmount));
     }
 
-    setPaymentMode(entry.paymentMode === 'Cash' || entry.paymentMode === 'Card' ? entry.paymentMode : 'UPI');
+    setPaymentMode(entry.paymentMode === 'UPI' ? 'UPI' : entry.paymentMode === 'Card' ? 'Card' : 'Cash');
     setUpiTransactionRef(entry.upiTransactionRef || '');
     setNotes(entry.notes || '');
 
@@ -1096,6 +1096,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     setPaymentChoice('Full Payment');
     setAdvancePercent(50);
     setCustomPaidAmount('');
+    setPaymentMode('Cash');
     setUpiTransactionRef('');
     setNotes('');
     try {
@@ -2170,21 +2171,10 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   </div>
                 </div>
 
-                {/* Payment Method: UPI | Cash — inline */}
+                {/* Payment Method: Cash | UPI — inline */}
                 <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-2">
                   <label className="text-xs font-bold text-slate-700 shrink-0">Payment Method:</label>
                   <div className="inline-flex items-center p-0.5 bg-white rounded-lg border border-slate-200 shadow-2xs gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMode('UPI')}
-                      className={`py-1 px-3.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                        paymentMode === 'UPI'
-                          ? 'bg-[#123B6D] text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>📱 UPI</span>
-                    </button>
                     <button
                       type="button"
                       onClick={() => setPaymentMode('Cash')}
@@ -2195,6 +2185,17 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                       }`}
                     >
                       <span>💵 Cash</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMode('UPI')}
+                      className={`py-1 px-3.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                        paymentMode === 'UPI'
+                          ? 'bg-[#123B6D] text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>📱 UPI</span>
                     </button>
                   </div>
                 </div>

@@ -123,7 +123,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   const [discountINR, setDiscountINR] = useState<number>(entry.discountINR || 0);
   const [paidAmount, setPaidAmount] = useState<number>(entry.paidAmount);
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>(
-    entry.paymentMode === 'Cash' ? 'Cash' : 'UPI'
+    entry.paymentMode === 'UPI' ? 'UPI' : 'Cash'
   );
   const [upiTransactionRef, setUpiTransactionRef] = useState(entry.upiTransactionRef || '');
   const [paymentStatus, setPaymentStatus] = useState<ReceptionPatientEntry['paymentStatus']>(
@@ -953,7 +953,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             {/* Payment Mode */}
             <div className="flex items-center gap-2 pt-1 border-t border-slate-200">
               <span className="text-xs font-bold text-slate-700">Payment Mode:</span>
-              {(['UPI', 'Cash'] as const).map((m) => (
+              {(['Cash', 'UPI'] as const).map((m) => (
                 <button
                   type="button"
                   key={m}
@@ -964,7 +964,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                       : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
                   }`}
                 >
-                  {m === 'UPI' ? '📱 UPI' : '💵 Cash'}
+                  {m === 'Cash' ? '💵 Cash' : '📱 UPI'}
                 </button>
               ))}
             </div>
