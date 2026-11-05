@@ -65,56 +65,72 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
   };
 
   // Helper to get formatted duration / billing cycle subtitle
-  const getBillingSubtitle = (name: string, price: number) => {
+  const getBillingSubtitle = (plan: PricingPlan) => {
+    const name = plan.name || '';
+    const price = plan.priceINR ?? plan.monthlyPriceINR ?? 0;
     const lower = name.toLowerCase();
-    if (lower.includes('demo') || lower.includes('free') || price === 0) {
+
+    if (lower.includes('demo') || lower.includes('free') || lower.includes('2 day') || price === 0) {
       return {
-        rateText: `/ 1 Day`,
-        breakdownText: 'Full software access for 1 day • Zero commitment',
-        badge: 'Free Demo Plan',
-        ribbon: 'Free Demo (₹0)',
+        rateText: `/ 2 Days`,
+        originalPrice: plan.originalPriceINR ?? 0,
+        savingsText: 'Savings: ₹0',
+        discountBadge: 'FREE',
+        breakdownText: 'Full software access for 2 days • Zero commitment',
+        badge: '2 Days Free Demo',
+        ribbon: '2 Days Demo (FREE)',
         isDemo: true,
         isPopular: false,
         isBestValue: false,
       };
     }
-    if (lower.includes('1 month') || lower.includes('1mopnth') || lower.includes('monthly')) {
+    if (lower.includes('1 month') || lower.includes('monthly') || price === 899) {
       return {
         rateText: `/ 1 Month`,
+        originalPrice: plan.originalPriceINR ?? 899,
+        savingsText: 'Savings: ₹0',
+        discountBadge: null,
         breakdownText: 'Full software access for 1 month • Billed monthly',
-        badge: 'Flexible Monthly',
+        badge: 'Starter Monthly',
         ribbon: null,
         isDemo: false,
         isPopular: false,
         isBestValue: false,
       };
     }
-    if (lower.includes('3 month') || lower.includes('quarterly')) {
-      const perMonth = Math.round(price / 3);
+    if (lower.includes('6 month') || lower.includes('semi') || price === 4315) {
       return {
-        rateText: `/ 3 Months`,
-        breakdownText: `Full software access for 3 months • ₹${perMonth.toLocaleString('en-IN')}/mo`,
-        badge: 'Most Popular Choice',
-        ribbon: 'Most Popular Choice',
+        rateText: `/ 6 Months`,
+        originalPrice: plan.originalPriceINR ?? 5394,
+        savingsText: 'You Save ₹1,079',
+        discountBadge: '20% OFF',
+        breakdownText: 'Full software access for 6 months • ₹719/mo',
+        badge: '20% OFF',
+        ribbon: '20% OFF',
         isDemo: false,
-        isPopular: true,
+        isPopular: false,
         isBestValue: false,
       };
     }
-    if (lower.includes('year') || lower.includes('annual') || lower.includes('1 year')) {
-      const perMonth = Math.round(price / 12);
+    if (lower.includes('12 month') || lower.includes('year') || lower.includes('annual') || price === 5933) {
       return {
-        rateText: `/ 1 Year`,
-        breakdownText: `Full software access for 1 year • ₹${perMonth.toLocaleString('en-IN')}/mo`,
-        badge: 'Best Value',
-        ribbon: 'Best Value',
+        rateText: `/ 12 Months`,
+        originalPrice: plan.originalPriceINR ?? 10788,
+        savingsText: 'You Save ₹4,855',
+        discountBadge: 'BEST VALUE · 45% OFF',
+        breakdownText: 'Full software access for 12 months • ₹494/mo',
+        badge: 'BEST VALUE · 45% OFF',
+        ribbon: 'BEST VALUE · 45% OFF',
         isDemo: false,
-        isPopular: false,
+        isPopular: true,
         isBestValue: true,
       };
     }
     return {
       rateText: `/ period`,
+      originalPrice: plan.originalPriceINR ?? price,
+      savingsText: plan.savingsINR ? `You Save ₹${plan.savingsINR.toLocaleString('en-IN')}` : 'Savings: ₹0',
+      discountBadge: plan.discountBadge || null,
       breakdownText: 'Full software access with all features',
       badge: 'Standard Plan',
       ribbon: null,
@@ -136,10 +152,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
             Simple, All-Inclusive Plans for Every Laboratory
           </h2>
           <p className="text-xs sm:text-base text-slate-600 mt-3 leading-relaxed">
-            Choose your plan: <span className="font-semibold text-slate-900">Free Demo Plan</span> (₹0),{' '}
-            <span className="font-semibold text-slate-900">1 Month Plan</span> (₹1,499),{' '}
-            <span className="font-semibold text-slate-900">3 Months Plan</span> (₹3,999), or{' '}
-            <span className="font-semibold text-slate-900">1 Year Plan</span> (₹11,999). Full software access, test catalog, WhatsApp PDF reports, and Indian support included.
+            Choose your plan: <span className="font-semibold text-slate-900">2 Days</span> (FREE),{' '}
+            <span className="font-semibold text-slate-900">1 Month</span> (₹899),{' '}
+            <span className="font-semibold text-slate-900">6 Months</span> (₹4,315 • 20% OFF), or{' '}
+            <span className="font-semibold text-slate-900">12 Months</span> (₹5,933 • 45% OFF). Full software access, test catalog, WhatsApp PDF reports, and Indian support included.
           </p>
 
           <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] sm:text-xs font-semibold">
@@ -156,7 +172,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
           <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200 mb-5 text-center">
             {pricingPlans.map((p, idx) => {
               const isCurrent = validActiveIndex === idx;
-              const isPopular = p.isPopular || p.name.includes('3 Month');
+              const tag = p.name.includes('12') ? '★ 45% OFF' : p.name.includes('6') ? '20% OFF' : p.name.includes('2') ? 'FREE' : null;
               return (
                 <button
                   key={p.id || idx}
@@ -168,9 +184,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                   }`}
                 >
                   <span className="block truncate">{p.name}</span>
-                  {isPopular && (
-                    <span className={`block text-[8px] font-extrabold leading-none mt-0.5 truncate ${isCurrent ? 'text-amber-300' : 'text-amber-600'}`}>
-                      ★ Popular
+                  {tag && (
+                    <span className={`block text-[8px] font-extrabold leading-none mt-0.5 truncate ${isCurrent ? 'text-amber-300' : 'text-emerald-600'}`}>
+                      {tag}
                     </span>
                   )}
                 </button>
@@ -180,14 +196,12 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
 
           {/* Carousel Card with Swipe Handlers & Arrows */}
           {activeMobilePlan && (() => {
-            const price = activeMobilePlan.priceINR ?? activeMobilePlan.monthlyPriceINR;
-            const meta = getBillingSubtitle(activeMobilePlan.name, price);
+            const price = activeMobilePlan.priceINR ?? activeMobilePlan.monthlyPriceINR ?? 0;
+            const meta = getBillingSubtitle(activeMobilePlan);
             const isHighlighted = meta.isPopular;
             const isBestValue = meta.isBestValue;
             const isDemo = meta.isDemo;
-            const planDisplayName = activeMobilePlan.name.toLowerCase().includes('plan')
-              ? activeMobilePlan.name
-              : `${activeMobilePlan.name} Plan`;
+            const planDisplayName = activeMobilePlan.name;
 
             return (
               <div
@@ -212,16 +226,16 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                   {meta.ribbon && (
                     <div
                       className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-extrabold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md flex items-center gap-1 whitespace-nowrap ${
-                        isHighlighted
+                        isBestValue || isHighlighted
                           ? 'bg-[#123B6D] text-amber-300'
-                          : isBestValue
-                          ? 'bg-emerald-700 text-white'
-                          : 'bg-teal-700 text-white'
+                          : isDemo
+                          ? 'bg-teal-700 text-white'
+                          : 'bg-emerald-700 text-white'
                       }`}
                     >
-                      {isHighlighted && <Sparkles className="w-3 h-3 text-amber-300" />}
-                      {isBestValue && <Award className="w-3 h-3 text-amber-300" />}
-                      {isDemo && <Zap className="w-3 h-3 text-amber-300" />}
+                      {isBestValue && <Sparkles className="w-3 h-3 text-amber-300" />}
+                      {!isBestValue && isDemo && <Zap className="w-3 h-3 text-amber-300" />}
+                      {!isBestValue && !isDemo && <Award className="w-3 h-3 text-amber-300" />}
                       <span>{meta.ribbon}</span>
                     </div>
                   )}
@@ -230,13 +244,11 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <span
                         className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
-                          isHighlighted
+                          isBestValue || isHighlighted
                             ? 'bg-amber-50 text-amber-900 border-amber-200'
-                            : isBestValue
-                            ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
                             : isDemo
                             ? 'bg-teal-50 text-teal-900 border-teal-200'
-                            : 'bg-blue-50 text-[#123B6D] border-blue-200'
+                            : 'bg-emerald-50 text-emerald-900 border-emerald-200'
                         }`}
                       >
                         {activeMobilePlan.target || meta.badge}
@@ -254,13 +266,32 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
 
                     {/* Price Block */}
                     <div className="my-5 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-3xl font-black text-[#123B6D]">
-                          ₹{price.toLocaleString('en-IN')}
-                        </span>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        {price === 0 ? (
+                          <span className="text-3xl font-black text-[#123B6D]">FREE</span>
+                        ) : (
+                          <span className="text-3xl font-black text-[#123B6D]">
+                            ₹{price.toLocaleString('en-IN')}
+                          </span>
+                        )}
                         <span className="text-xs text-slate-500 font-semibold">{meta.rateText}</span>
+                        {meta.discountBadge && (
+                          <span className="ml-auto text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full">
+                            {meta.discountBadge}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[11px] text-slate-600 font-medium mt-1">
+
+                      <div className="flex items-center gap-2.5 mt-2 text-xs flex-wrap">
+                        <span className="text-slate-400 font-mono">
+                          Original: <span className={meta.originalPrice > price ? 'line-through text-slate-400' : ''}>₹{meta.originalPrice.toLocaleString('en-IN')}</span>
+                        </span>
+                        <span className={`text-[11px] font-bold ${meta.savingsText.includes('Save') ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md' : 'text-slate-500'}`}>
+                          {meta.savingsText}
+                        </span>
+                      </div>
+
+                      <div className="text-[11px] text-slate-600 font-medium mt-1.5">
                         {meta.breakdownText}
                       </div>
                     </div>
@@ -291,7 +322,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                         className="w-full py-3 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-98"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                        <span>Start Free Demo • 1 Day Access</span>
+                        <span>Start Free Demo • 2 Days Access</span>
                       </button>
                     ) : (
                       <button
@@ -363,23 +394,19 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
             ========================================================================= */}
         <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
           {pricingPlans.map((plan, idx) => {
-            const price = plan.priceINR ?? plan.monthlyPriceINR;
-            const meta = getBillingSubtitle(plan.name, price);
+            const price = plan.priceINR ?? plan.monthlyPriceINR ?? 0;
+            const meta = getBillingSubtitle(plan);
             const isHighlighted = meta.isPopular;
             const isBestValue = meta.isBestValue;
             const isDemo = meta.isDemo;
-            const planDisplayName = plan.name.toLowerCase().includes('plan')
-              ? plan.name
-              : `${plan.name} Plan`;
+            const planDisplayName = plan.name;
 
             return (
               <div
                 key={plan.id || idx}
                 className={`rounded-3xl transition-all duration-200 flex flex-col justify-between relative ${
-                  isHighlighted
+                  isBestValue || isHighlighted
                     ? 'border-2 border-[#123B6D] bg-white shadow-xl ring-4 ring-[#123B6D]/5 -translate-y-1'
-                    : isBestValue
-                    ? 'border-2 border-emerald-500 bg-white shadow-lg -translate-y-0.5'
                     : isDemo
                     ? 'border-2 border-teal-500 bg-white shadow-sm'
                     : 'border border-slate-200 bg-white shadow-xs hover:shadow-md hover:border-slate-300'
@@ -389,16 +416,16 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                 {meta.ribbon && (
                   <div
                     className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-[11px] font-extrabold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md flex items-center gap-1.5 whitespace-nowrap ${
-                      isHighlighted
+                      isBestValue || isHighlighted
                         ? 'bg-[#123B6D] text-amber-300'
-                        : isBestValue
-                        ? 'bg-emerald-700 text-white'
-                        : 'bg-teal-700 text-white'
+                        : isDemo
+                        ? 'bg-teal-700 text-white'
+                        : 'bg-emerald-700 text-white'
                     }`}
                   >
-                    {isHighlighted && <Sparkles className="w-3 h-3 text-amber-300" />}
-                    {isBestValue && <Award className="w-3 h-3 text-amber-300" />}
-                    {isDemo && <Zap className="w-3 h-3 text-amber-300" />}
+                    {isBestValue && <Sparkles className="w-3 h-3 text-amber-300" />}
+                    {!isBestValue && isDemo && <Zap className="w-3 h-3 text-amber-300" />}
+                    {!isBestValue && !isDemo && <Award className="w-3 h-3 text-amber-300" />}
                     <span>{meta.ribbon}</span>
                   </div>
                 )}
@@ -407,13 +434,11 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                   <div className="flex items-center justify-between gap-2 mb-4">
                     <span
                       className={`text-[11px] font-bold px-2.5 py-1 rounded-full border truncate ${
-                        isHighlighted
+                        isBestValue || isHighlighted
                           ? 'bg-amber-50 text-amber-900 border-amber-200'
-                          : isBestValue
-                          ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
                           : isDemo
                           ? 'bg-teal-50 text-teal-900 border-teal-200'
-                          : 'bg-blue-50 text-[#123B6D] border-blue-200'
+                          : 'bg-emerald-50 text-emerald-900 border-emerald-200'
                       }`}
                     >
                       {plan.target || meta.badge}
@@ -421,10 +446,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
 
                     <div
                       className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                        isHighlighted
+                        isBestValue || isHighlighted
                           ? 'bg-[#123B6D] text-amber-400'
-                          : isBestValue
-                          ? 'bg-emerald-100 text-emerald-800'
                           : isDemo
                           ? 'bg-teal-100 text-teal-800'
                           : 'bg-slate-100 text-slate-700'
@@ -432,8 +455,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                     >
                       {isDemo && <Zap className="w-4 h-4" />}
                       {!isDemo && idx === 1 && <Smartphone className="w-4 h-4" />}
-                      {!isDemo && isHighlighted && <Sparkles className="w-4 h-4" />}
-                      {!isDemo && isBestValue && <Award className="w-4 h-4" />}
+                      {!isDemo && idx === 2 && <Award className="w-4 h-4" />}
+                      {!isDemo && isBestValue && <Sparkles className="w-4 h-4" />}
                     </div>
                   </div>
 
@@ -444,13 +467,32 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
 
                   {/* Price Block */}
                   <div className="my-5 p-3.5 rounded-2xl bg-slate-50/80 border border-slate-100">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl sm:text-3xl font-black text-[#123B6D]">
-                        ₹{price.toLocaleString('en-IN')}
-                      </span>
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      {price === 0 ? (
+                        <span className="text-2xl sm:text-3xl font-black text-[#123B6D]">FREE</span>
+                      ) : (
+                        <span className="text-2xl sm:text-3xl font-black text-[#123B6D]">
+                          ₹{price.toLocaleString('en-IN')}
+                        </span>
+                      )}
                       <span className="text-xs text-slate-500 font-semibold">{meta.rateText}</span>
+                      {meta.discountBadge && (
+                        <span className="ml-auto text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full">
+                          {meta.discountBadge}
+                        </span>
+                      )}
                     </div>
-                    <div className="text-[11px] text-slate-600 font-medium mt-1">
+
+                    <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
+                      <span className="text-slate-400 font-mono text-[11px]">
+                        Original: <span className={meta.originalPrice > price ? 'line-through text-slate-400' : ''}>₹{meta.originalPrice.toLocaleString('en-IN')}</span>
+                      </span>
+                      <span className={`text-[11px] font-bold ${meta.savingsText.includes('Save') ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded' : 'text-slate-500'}`}>
+                        {meta.savingsText}
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] text-slate-600 font-medium mt-1.5">
                       {meta.breakdownText}
                     </div>
                   </div>
@@ -483,7 +525,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                       className="w-full py-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-98"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Start Free Demo (1 Day)</span>
+                      <span>Start Free Demo (2 Days)</span>
                     </button>
                   ) : (
                     <button

@@ -252,6 +252,9 @@ export interface PricingPlan {
   target: string;
   duration?: string;
   priceINR?: number;
+  originalPriceINR?: number;
+  savingsINR?: number;
+  discountBadge?: string;
   monthlyPriceINR: number;
   yearlyPriceINR: number;
   billingCycle?: string;

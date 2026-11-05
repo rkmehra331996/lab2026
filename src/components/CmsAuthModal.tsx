@@ -77,40 +77,40 @@ export const INDIAN_STATES = [
 
 export const REGISTRATION_PACKAGES = [
   {
-    id: 'free-demo',
-    name: 'Free Demo Plan',
+    id: '2-days',
+    name: '2 Days',
     priceINR: 0,
-    duration: '1 Day',
-    badge: 'Free Demo (₹0)',
+    duration: '2 Days',
+    badge: '2 Days Free (₹0)',
     badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-    description: 'Full software access for 1 day',
+    description: 'Full software access for 2 days',
   },
   {
     id: '1-month',
     name: '1 Month',
-    priceINR: 1499,
+    priceINR: 899,
     duration: '30 Days',
-    badge: 'Starter & Flexible',
+    badge: 'Starter (₹899)',
     badgeColor: 'bg-blue-100 text-[#123B6D] border-blue-200',
     description: 'Full software access for 1 month',
   },
   {
-    id: '3-months',
-    name: '3 Months',
-    priceINR: 3999,
-    duration: '90 Days',
-    badge: 'Most Popular Choice',
+    id: '6-months',
+    name: '6 Months',
+    priceINR: 4315,
+    duration: '180 Days',
+    badge: '20% OFF (₹4,315)',
     badgeColor: 'bg-amber-100 text-amber-900 border-amber-300',
-    description: 'Full software access for 3 months',
+    description: 'Full software access for 6 months • Save ₹1,079',
   },
   {
-    id: '1-year',
-    name: '1 Year',
-    priceINR: 11999,
+    id: '12-months',
+    name: '12 Months',
+    priceINR: 5933,
     duration: '365 Days',
-    badge: 'Best Value',
+    badge: 'BEST VALUE · 45% OFF (₹5,933)',
     badgeColor: 'bg-indigo-100 text-indigo-900 border-indigo-200',
-    description: 'Full software access for 1 year',
+    description: 'Full software access for 12 months • Save ₹4,855',
   },
 ];
 
@@ -173,7 +173,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
   // -------------------------------------------------------------
   const [createLabName, setCreateLabName] = useState('');
   const [createState, setCreateState] = useState('Punjab');
-  const [createPackage, setCreatePackage] = useState<string>('Free Demo Plan');
+  const [createPackage, setCreatePackage] = useState<string>('2 Days');
   const [createMobile, setCreateMobile] = useState('');
   const [createPassword, setCreatePassword] = useState('');
   const [createPin, setCreatePin] = useState('');
@@ -197,14 +197,14 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
   useEffect(() => {
     if (selectedRegistrationPackage) {
       const lower = selectedRegistrationPackage.toLowerCase();
-      if (lower.includes('demo') || lower.includes('free')) {
-        setCreatePackage('Free Demo Plan');
+      if (lower.includes('demo') || lower.includes('free') || lower.includes('2 day')) {
+        setCreatePackage('2 Days');
       } else if (lower.includes('1 month') || lower.includes('starter') || lower.includes('monthly')) {
         setCreatePackage('1 Month');
-      } else if (lower.includes('year') || lower.includes('annual') || lower.includes('12')) {
-        setCreatePackage('1 Year');
-      } else if (lower.includes('3 month') || lower.includes('quarterly')) {
-        setCreatePackage('3 Months');
+      } else if (lower.includes('12') || lower.includes('year') || lower.includes('annual')) {
+        setCreatePackage('12 Months');
+      } else if (lower.includes('6 month') || lower.includes('semi')) {
+        setCreatePackage('6 Months');
       } else {
         setCreatePackage(selectedRegistrationPackage);
       }
