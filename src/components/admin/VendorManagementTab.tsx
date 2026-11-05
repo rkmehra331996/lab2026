@@ -908,9 +908,9 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
 
                     {/* Super Admin Control: Domain Feature in Lab Owner Dashboard */}
                     <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-100">
-                      <span className="text-slate-500 font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                        <Globe className="w-3.5 h-3.5 text-slate-400" />
-                        Domain Option:
+                      <span className="text-slate-600 font-extrabold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                        Custom Domain Option:
                       </span>
                       <button
                         type="button"
@@ -919,30 +919,30 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                           updateVendorLab(vendor.id, { isDomainFeatureEnabled: nextVal });
                           showToast(
                             nextVal
-                              ? `✅ Domain Feature ENABLED for "${vendor.name}". Lab Owner Dashboard me ab Domain option dikhayi dega.`
-                              : `🔒 Domain Feature DISABLED for "${vendor.name}". Lab Owner Dashboard me Domain option hide ho gaya.`
+                              ? `✅ Custom Domain option SHOW kar diya gaya hai for "${vendor.name}". Lab Owner Dashboard me ab Domain option dikhayi dega.`
+                              : `🔒 Custom Domain option HIDE kar diya gaya hai for "${vendor.name}". Lab Owner Dashboard me Domain option hide ho gaya.`
                           );
                         }}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1.5 transition cursor-pointer border ${
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1.5 transition cursor-pointer border shadow-2xs ${
                           vendor.isDomainFeatureEnabled
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 ring-1 ring-emerald-200'
+                            : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'
                         }`}
                         title={
                           vendor.isDomainFeatureEnabled
-                            ? 'Click to Disable / Hide Domain tab in Lab Owner Dashboard'
-                            : 'Click to Enable / Approve Domain tab in Lab Owner Dashboard'
+                            ? 'Click to HIDE Domain option from this vendor dashboard'
+                            : 'Click to SHOW Domain option in this vendor dashboard'
                         }
                       >
                         {vendor.isDomainFeatureEnabled ? (
                           <>
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Enabled (दिखाई देगा)</span>
+                            <span>SHOW (दिखाई देगा)</span>
                           </>
                         ) : (
                           <>
                             <Ban className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Hidden (डिफ़ॉल्ट बंद)</span>
+                            <span>HIDE (छुपा हुआ)</span>
                           </>
                         )}
                       </button>

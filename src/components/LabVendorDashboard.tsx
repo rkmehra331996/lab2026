@@ -132,6 +132,8 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
     contactSubmissions,
     domainRequests,
     reports,
+    vendorLabSettingsMap,
+    updateVendorLab,
   } = useCms();
 
   const [activeTab, setActiveTab] = useState<
@@ -218,14 +220,25 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const [showOwnerPassword, setShowOwnerPassword] = useState(false);
   const [showOwnerPin, setShowOwnerPin] = useState(false);
 
+  const effectiveLabId =
+    (selectedVendorLabId && selectedVendorLabId !== 'all')
+      ? selectedVendorLabId
+      : (activeTenantId && activeTenantId !== 'all')
+      ? activeTenantId
+      : (vendorLabSettings?.labId || vendorLabsList[0]?.id);
+
   const currentLab =
-    vendorLabsList.find((l) => l.id === activeTenantId) ||
-    vendorLabsList.find((l) => l.id === vendorLabSettings.labId) ||
+    vendorLabsList.find((l) => l.id === effectiveLabId) ||
+    vendorLabsList.find((l) => l.id === vendorLabSettings?.labId) ||
     vendorLabsList[0];
+
+  const currentSettings = currentLab
+    ? (vendorLabSettingsMap?.[currentLab.id] || (currentLab.id === vendorLabSettings?.labId ? vendorLabSettings : null))
+    : vendorLabSettings;
 
   // Domain feature control: by default HIDDEN. Only visible after Super Admin approval and permission!
   const isDomainFeatureEnabled = Boolean(
-    currentLab?.isDomainFeatureEnabled ?? vendorLabSettings?.isDomainFeatureEnabled ?? false
+    currentLab?.isDomainFeatureEnabled ?? currentSettings?.isDomainFeatureEnabled ?? false
   );
 
   useEffect(() => {
@@ -748,10 +761,10 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800">
       {/* Header: Vendor Company Logo + Dashboard Name + Vendor Home Website + Log Out Button */}
-      <header className="bg-[#123B6D] text-white px-4 sm:px-8 py-3 border-b border-white/10 shadow-sm sticky top-0 z-40">
+      <header className="bg-[#0e294b] text-white px-4 sm:px-8 py-3 border-b border-slate-700/60 shadow-xs sticky top-0 z-40 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           {/* Back Button + Vendor Company Logo + Active Dashboard Name */}
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
             {/* Back Button */}
             <button
               type="button"
@@ -763,10 +776,10 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 } catch {}
                 onNavigateView('vendor_website');
               }}
-              className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
+              className="bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 hover:text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border border-white/15 cursor-pointer shrink-0"
               title="Back to Laboratory Website"
             >
-              <ArrowLeft className="w-4 h-4 text-amber-300" />
+              <ArrowLeft className="w-3.5 h-3.5 text-amber-300" />
               <span>Back</span>
             </button>
 
@@ -775,23 +788,26 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 src={vendorLabSettings.logoUrl}
                 alt={vendorLabSettings.labName}
                 referrerPolicy="no-referrer"
-                className="w-10 h-10 rounded-xl object-contain bg-white border border-white/20 p-0.5 shadow-sm shrink-0"
+                className="w-9 h-9 rounded-lg object-contain bg-white border border-white/20 p-0.5 shadow-2xs shrink-0"
               />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-white/15 text-white flex items-center justify-center font-black text-sm shadow-sm border border-white/20 shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-white/15 text-white flex items-center justify-center font-bold text-xs shadow-2xs border border-white/20 shrink-0">
                 <span className="text-amber-300">{vendorLabSettings.labName.charAt(0) || 'A'}</span>
                 <span>{vendorLabSettings.labName.split(' ')[1]?.charAt(0) || 'L'}</span>
               </div>
             )}
 
             <div className="flex flex-col min-w-0">
-              <span className="font-extrabold text-sm sm:text-base tracking-tight text-white leading-tight truncate">
+              <span className="font-bold text-sm sm:text-base tracking-tight text-white leading-tight truncate">
                 {vendorLabSettings.labName}
               </span>
-              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                <span className="bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
-                  <span>👑</span>
-                  <span>Lab Owner & Admin Dashboard</span>
+              <div className="flex items-center gap-2 flex-wrap text-xs text-slate-300 mt-0.5">
+                <span className="font-medium text-[11px] text-amber-300">
+                  Lab Owner &amp; Admin Console
+                </span>
+                <span className="text-slate-500 font-mono hidden sm:inline">•</span>
+                <span className="text-[11px] text-slate-300 font-mono hidden sm:inline">
+                  ID: {vendorLabSettings.labId || activeTenantId || 'apex'}
                 </span>
               </div>
             </div>
@@ -814,7 +830,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 onNavigateView('vendor_website');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-emerald-400/30 cursor-pointer shrink-0"
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs border border-emerald-400/30 cursor-pointer shrink-0"
               title="Visit Laboratory Website"
             >
               <Globe className="w-3.5 h-3.5 text-emerald-200" />
@@ -830,7 +846,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 onNavigateView('vendor_website');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="bg-white/15 hover:bg-rose-600 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border border-white/20 hover:border-rose-400 cursor-pointer shrink-0"
+              className="bg-white/10 hover:bg-rose-600 active:scale-95 text-slate-200 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shadow-2xs border border-white/15 hover:border-rose-400 cursor-pointer shrink-0"
               title="Logout from Lab Owner Dashboard"
             >
               <LogOut className="w-3.5 h-3.5 text-amber-300" />
@@ -911,17 +927,15 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
             </div>
 
             {/* Sidebar Navigation Container */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-3 shadow-2xs space-y-4">
-              {/* SECTION 1: WEBSITE SECTION (Accordion with sub-items) */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2">
-                    CMS Management
-                  </span>
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-2.5 shadow-2xs space-y-3">
+              {/* GROUP: WEBSITE & CONTENT */}
+              <div className="space-y-1.5">
+                <div className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Website &amp; CMS
                 </div>
 
-                <div className="rounded-xl border border-amber-300/80 bg-amber-50/50 overflow-hidden shadow-2xs">
-                  {/* Website Section Header Button */}
+                {/* SECTION 1: WEBSITE SECTION */}
+                <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
                   <button
                     type="button"
                     onClick={() => {
@@ -930,30 +944,30 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                     }}
                     className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
                       activeTab === 'website'
-                        ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
-                        : 'bg-amber-100/70 text-slate-900 font-bold hover:bg-amber-200/60'
+                        ? 'bg-[#0e294b] text-white font-semibold'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <Globe className="w-4 h-4 text-[#123B6D] shrink-0" />
-                      <span className="text-xs font-black truncate">1. Website Section</span>
+                      <Globe className={`w-4 h-4 shrink-0 ${activeTab === 'website' ? 'text-sky-300' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold truncate">1. Website Section</span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/80 text-slate-800">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                        activeTab === 'website' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
+                      }`}>
                         7 Tools
                       </span>
                       {isWebsiteMenuOpen ? (
-                        <ChevronDown className="w-4 h-4 text-slate-800" />
+                        <ChevronDown className={`w-4 h-4 ${activeTab === 'website' ? 'text-white/80' : 'text-slate-400'}`} />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-slate-800" />
+                        <ChevronRight className={`w-4 h-4 ${activeTab === 'website' ? 'text-white/80' : 'text-slate-400'}`} />
                       )}
                     </div>
                   </button>
 
-                  {/* Website Section Sub-Items (The exact items specified by user) */}
                   {isWebsiteMenuOpen && (
-                    <div className="p-1.5 space-y-1 bg-white/95 border-t border-amber-200/70">
-                      {/* 1. banner Section : change/delete */}
+                    <div className="p-1 space-y-0.5 bg-slate-50/60 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={() => {
@@ -961,26 +975,23 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           setWebsiteSubTab('banners');
                           setIsMobileSidebarOpen(false);
                         }}
-                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
                           activeTab === 'website' && websiteSubTab === 'banners'
-                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                            : 'text-slate-700 hover:bg-amber-50'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <ImageIcon className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'banners' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
+                          <ImageIcon className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'banners' ? 'text-sky-300' : 'text-slate-400'}`} />
                           <span className="truncate">Banner Section</span>
                         </div>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          activeTab === 'website' && websiteSubTab === 'banners'
-                            ? 'bg-white/20 text-white'
-                            : 'bg-slate-100 text-slate-600'
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'banners' ? 'text-white/70' : 'text-slate-400'
                         }`}>
                           change/delete
                         </span>
                       </button>
 
-                      {/* 2. about us Section : Edit */}
                       <button
                         type="button"
                         onClick={() => {
@@ -988,26 +999,23 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           setWebsiteSubTab('about');
                           setIsMobileSidebarOpen(false);
                         }}
-                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
                           activeTab === 'website' && websiteSubTab === 'about'
-                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                            : 'text-slate-700 hover:bg-amber-50'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'about' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'about' ? 'text-sky-300' : 'text-slate-400'}`} />
                           <span className="truncate">About Us Section</span>
                         </div>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          activeTab === 'website' && websiteSubTab === 'about'
-                            ? 'bg-white/20 text-white'
-                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'about' ? 'text-white/70' : 'text-slate-400'
                         }`}>
                           Edit
                         </span>
                       </button>
 
-                      {/* 3. Founder Section : edit */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1015,26 +1023,23 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           setWebsiteSubTab('founder');
                           setIsMobileSidebarOpen(false);
                         }}
-                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
                           activeTab === 'website' && websiteSubTab === 'founder'
-                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                            : 'text-slate-700 hover:bg-amber-50'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <Award className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'founder' ? 'text-amber-400' : 'text-amber-600'}`} />
+                          <Award className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'founder' ? 'text-sky-300' : 'text-slate-400'}`} />
                           <span className="truncate">Founder Section</span>
                         </div>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          activeTab === 'website' && websiteSubTab === 'founder'
-                            ? 'bg-white/20 text-white'
-                            : 'bg-amber-50 text-amber-800 border border-amber-200'
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'founder' ? 'text-white/70' : 'text-slate-400'
                         }`}>
                           edit
                         </span>
                       </button>
 
-                      {/* 4. team Section : add /edit/delete */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1042,26 +1047,23 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           setWebsiteSubTab('team');
                           setIsMobileSidebarOpen(false);
                         }}
-                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
                           activeTab === 'website' && websiteSubTab === 'team'
-                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                            : 'text-slate-700 hover:bg-amber-50'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'team' ? 'text-amber-400' : 'text-blue-600'}`} />
+                          <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'team' ? 'text-sky-300' : 'text-slate-400'}`} />
                           <span className="truncate">Team Section</span>
                         </div>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          activeTab === 'website' && websiteSubTab === 'team'
-                            ? 'bg-white/20 text-white'
-                            : 'bg-blue-50 text-blue-800 border border-blue-200'
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'team' ? 'text-white/70' : 'text-slate-400'
                         }`}>
-                          add /edit/delete
+                          add/edit/delete
                         </span>
                       </button>
 
-                      {/* 5. Contact us : Edit */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1069,26 +1071,23 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           setWebsiteSubTab('contact');
                           setIsMobileSidebarOpen(false);
                         }}
-                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
                           activeTab === 'website' && websiteSubTab === 'contact'
-                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                            : 'text-slate-700 hover:bg-amber-50'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <Phone className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'contact' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                          <Phone className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'contact' ? 'text-sky-300' : 'text-slate-400'}`} />
                           <span className="truncate">Contact Us</span>
                         </div>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          activeTab === 'website' && websiteSubTab === 'contact'
-                            ? 'bg-white/20 text-white'
-                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'contact' ? 'text-white/70' : 'text-slate-400'
                         }`}>
                           Edit
                         </span>
                       </button>
 
-                      {/* 6. Social Media : Edit, disable */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1096,26 +1095,23 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           setWebsiteSubTab('social');
                           setIsMobileSidebarOpen(false);
                         }}
-                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
                           activeTab === 'website' && websiteSubTab === 'social'
-                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                            : 'text-slate-700 hover:bg-amber-50'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <Share2 className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'social' ? 'text-amber-400' : 'text-indigo-600'}`} />
+                          <Share2 className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'social' ? 'text-sky-300' : 'text-slate-400'}`} />
                           <span className="truncate">Social Media</span>
                         </div>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          activeTab === 'website' && websiteSubTab === 'social'
-                            ? 'bg-white/20 text-white'
-                            : 'bg-indigo-50 text-indigo-800 border border-indigo-200'
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'social' ? 'text-white/70' : 'text-slate-400'
                         }`}>
                           Edit, disable
                         </span>
                       </button>
 
-                      {/* 7. Legal page : T&C, P&P, Refund : edit */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1123,26 +1119,23 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           setWebsiteSubTab('legal');
                           setIsMobileSidebarOpen(false);
                         }}
-                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
                           activeTab === 'website' && websiteSubTab === 'legal'
-                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                            : 'text-slate-700 hover:bg-amber-50'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <FileText className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'legal' ? 'text-amber-400' : 'text-slate-600'}`} />
+                          <FileText className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'legal' ? 'text-sky-300' : 'text-slate-400'}`} />
                           <span className="truncate">Legal Pages</span>
                         </div>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          activeTab === 'website' && websiteSubTab === 'legal'
-                            ? 'bg-white/20 text-white'
-                            : 'bg-slate-100 text-slate-700'
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'legal' ? 'text-white/70' : 'text-slate-400'
                         }`}>
-                          T&C, P&P, Refund
+                          T&amp;C, P&amp;P, Refund
                         </span>
                       </button>
 
-                      {/* 8. Section Titles & Para : Edit */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1150,20 +1143,18 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           setWebsiteSubTab('section_content');
                           setIsMobileSidebarOpen(false);
                         }}
-                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
                           activeTab === 'website' && websiteSubTab === 'section_content'
-                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                            : 'text-slate-700 hover:bg-amber-50'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <Type className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'section_content' ? 'text-amber-400' : 'text-purple-600'}`} />
+                          <Type className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'section_content' ? 'text-sky-300' : 'text-slate-400'}`} />
                           <span className="truncate">Section Titles &amp; Para</span>
                         </div>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          activeTab === 'website' && websiteSubTab === 'section_content'
-                            ? 'bg-white/20 text-white'
-                            : 'bg-purple-100 text-purple-800 border border-purple-200'
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'section_content' ? 'text-white/70' : 'text-slate-400'
                         }`}>
                           Edit Titles &amp; Text
                         </span>
@@ -1173,977 +1164,926 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 </div>
               </div>
 
-              {/* SECTION 2: ONLINE TEST (1. ADD >, 2. LIST > EDIT / DELETE) */}
-              <div className="rounded-xl border border-teal-300/80 bg-teal-50/50 overflow-hidden shadow-2xs">
-                {/* Accordion Header */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('tests');
-                    toggleSidebarSection('tests');
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'tests'
-                      ? 'bg-teal-700 text-white font-black shadow-xs'
-                      : 'bg-teal-100/70 text-slate-900 font-bold hover:bg-teal-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FlaskConical className={`w-4 h-4 shrink-0 ${activeTab === 'tests' ? 'text-amber-300' : 'text-teal-700'}`} />
-                    <span className="text-xs font-black truncate">2. Lab Test Management</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      activeTab === 'tests' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
-                    }`}>
-                      {vendorTests.length} Tests
-                    </span>
-                    {isTestsMenuOpen ? (
-                      <ChevronDown className={`w-4 h-4 ${activeTab === 'tests' ? 'text-white' : 'text-slate-800'}`} />
-                    ) : (
-                      <ChevronRight className={`w-4 h-4 ${activeTab === 'tests' ? 'text-white' : 'text-slate-800'}`} />
-                    )}
-                  </div>
-                </button>
+              {/* GROUP: TESTS & PACKAGES */}
+              <div className="space-y-1.5">
+                <div className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Tests &amp; Catalog
+                </div>
 
-                {/* Sub-Items: 1. All Tests, 2. Add Test, 3. Test Categories, 4. Test Packages */}
-                {isTestsMenuOpen && (
-                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-teal-200/70">
-                    {/* 1. All Tests */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('tests');
-                        setTestSubTab('list');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'tests' && testSubTab === 'list'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <ListFilter className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'list' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
-                        <span className="truncate">1. All Tests</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'tests' && testSubTab === 'list'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-blue-50 text-blue-800 border border-blue-200'
-                      }`}>
-                        View / Edit
-                      </span>
-                    </button>
-
-                    {/* 2. Add Test */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('tests');
-                        setTestSubTab('add');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'tests' && testSubTab === 'add'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
-                        <span className="truncate">2. Add Test</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'tests' && testSubTab === 'add'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      }`}>
-                        + New
-                      </span>
-                    </button>
-
-                    {/* 3. Test Categories */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('tests');
-                        setTestSubTab('categories');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'tests' && testSubTab === 'categories'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Layers className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'categories' ? 'text-amber-400' : 'text-indigo-600'}`} />
-                        <span className="truncate">3. Test Categories</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'tests' && testSubTab === 'categories'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-indigo-50 text-indigo-800 border border-indigo-200'
-                      }`}>
-                        13 Types
-                      </span>
-                    </button>
-
-                    {/* 4. Test Packages */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('tests');
-                        setTestSubTab('packages');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'tests' && testSubTab === 'packages'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Package className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'packages' ? 'text-amber-400' : 'text-amber-600'}`} />
-                        <span className="truncate">4. Test Packages</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'tests' && testSubTab === 'packages'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-amber-50 text-amber-800 border border-amber-200'
-                      }`}>
-                        Bundles
-                      </span>
-                    </button>
-
-                    {/* 5. Clinical Catalog & Formulations (NABL) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('tests');
-                        setTestSubTab('clinical_catalog');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'tests' && testSubTab === 'clinical_catalog'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'clinical_catalog' ? 'text-amber-400' : 'text-rose-600'}`} />
-                        <span className="truncate">5. Departments &amp; Formulas</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'tests' && testSubTab === 'clinical_catalog'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-rose-50 text-rose-800 border border-rose-200 font-semibold'
-                      }`}>
-                        ⚡ NABL
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* SECTION 3: TEST PACKAGE (1. ADD, 2. LIST > EDIT / DELETE) */}
-              <div className="rounded-xl border border-amber-300/80 bg-amber-50/50 overflow-hidden shadow-2xs">
-                {/* Accordion Header */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('packages');
-                    toggleSidebarSection('packages');
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'packages'
-                      ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
-                      : 'bg-amber-100/70 text-slate-900 font-bold hover:bg-amber-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Package className="w-4 h-4 text-[#123B6D] shrink-0" />
-                    <span className="text-xs font-black truncate">3. Test Package</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/80 text-slate-800">
-                      {vendorPackages.length} Pkgs
-                    </span>
-                    {isPackagesMenuOpen ? (
-                      <ChevronDown className="w-4 h-4 text-slate-800" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-slate-800" />
-                    )}
-                  </div>
-                </button>
-
-                {/* Sub-Items: 1. add, 2. list > edit/delete */}
-                {isPackagesMenuOpen && (
-                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-amber-200/70">
-                    {/* 1. add */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('packages');
-                        setPackageSubTab('add');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'packages' && packageSubTab === 'add'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-amber-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'packages' && packageSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
-                        <span className="truncate">1. Add Package</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'packages' && packageSubTab === 'add'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      }`}>
-                        Add &gt;
-                      </span>
-                    </button>
-
-                    {/* 2. list > edit/delete */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('packages');
-                        setPackageSubTab('list');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'packages' && packageSubTab === 'list'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-amber-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <ListFilter className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'packages' && packageSubTab === 'list' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
-                        <span className="truncate">2. Package List</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'packages' && packageSubTab === 'list'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-blue-50 text-blue-800 border border-blue-200'
-                      }`}>
-                        Edit / Delete
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* SECTION 4: FORM (CONTACT FORM > READ / DELETE) */}
-              <div className="rounded-xl border border-sky-300/80 bg-sky-50/50 overflow-hidden shadow-2xs">
-                {/* Accordion Header */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('forms');
-                    setFormSubTab('contacts');
-                    toggleSidebarSection('forms');
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'forms'
-                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
-                      : 'bg-sky-100/70 text-slate-900 font-bold hover:bg-sky-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileText className={`w-4 h-4 shrink-0 ${activeTab === 'forms' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
-                    <span className="text-xs font-black truncate">4. Form</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      activeTab === 'forms' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
-                    }`}>
-                      {contactSubmissions.length} Inquiries
-                    </span>
-                    {isFormsMenuOpen ? (
-                      <ChevronDown className={`w-4 h-4 ${activeTab === 'forms' ? 'text-white' : 'text-slate-800'}`} />
-                    ) : (
-                      <ChevronRight className={`w-4 h-4 ${activeTab === 'forms' ? 'text-white' : 'text-slate-800'}`} />
-                    )}
-                  </div>
-                </button>
-
-                {/* Sub-Items: Contact form > read/ delete */}
-                {isFormsMenuOpen && (
-                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-sky-200/70">
-                    {/* Contact form > read/ delete */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('forms');
-                        setFormSubTab('contacts');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'forms' && formSubTab === 'contacts'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-sky-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'forms' && formSubTab === 'contacts' ? 'text-amber-400' : 'text-blue-600'}`} />
-                        <span className="truncate">Contact Form Inquiries</span>
-                      </div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'forms' && formSubTab === 'contacts'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-blue-50 text-blue-800 border border-blue-200'
-                      }`}>
-                        Read / Delete
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* SECTION 5: DOMAIN REQUEST (ADD - REQUEST TO SUPER ADMIN) - BY DEFAULT HIDDEN, VISIBLE ONLY AFTER SUPER ADMIN PERMISSION & APPROVAL */}
-              {isDomainFeatureEnabled && (
-                <div className="rounded-xl border border-sky-300/80 bg-sky-50/50 overflow-hidden shadow-2xs">
-                  {/* Accordion Header */}
+                {/* SECTION 2: ONLINE TEST */}
+                <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
                   <button
                     type="button"
                     onClick={() => {
-                      setActiveTab('domain');
-                      toggleSidebarSection('domain');
+                      setActiveTab('tests');
+                      toggleSidebarSection('tests');
                     }}
                     className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                      activeTab === 'domain'
-                        ? 'bg-[#123B6D] text-white font-black shadow-xs'
-                        : 'bg-sky-100/70 text-slate-900 font-bold hover:bg-sky-200/60'
+                      activeTab === 'tests'
+                        ? 'bg-[#0e294b] text-white font-semibold'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <Globe className={`w-4 h-4 shrink-0 ${activeTab === 'domain' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
-                      <span className="text-xs font-black truncate">5. Domain Request</span>
+                      <FlaskConical className={`w-4 h-4 shrink-0 ${activeTab === 'tests' ? 'text-sky-300' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold truncate">2. Lab Test Management</span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                        activeTab === 'domain' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                        activeTab === 'tests' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
                       }`}>
-                        {domainRequests.length} Req
+                        {vendorTests.length} Tests
                       </span>
-                      {isDomainMenuOpen ? (
-                        <ChevronDown className={`w-4 h-4 ${activeTab === 'domain' ? 'text-white' : 'text-slate-800'}`} />
+                      {isTestsMenuOpen ? (
+                        <ChevronDown className={`w-4 h-4 ${activeTab === 'tests' ? 'text-white/80' : 'text-slate-400'}`} />
                       ) : (
-                        <ChevronRight className={`w-4 h-4 ${activeTab === 'domain' ? 'text-white' : 'text-slate-800'}`} />
+                        <ChevronRight className={`w-4 h-4 ${activeTab === 'tests' ? 'text-white/80' : 'text-slate-400'}`} />
                       )}
                     </div>
                   </button>
 
-                  {/* Sub-Item: Add Domain */}
-                  {isDomainMenuOpen && (
-                    <div className="p-1.5 space-y-1 bg-white/95 border-t border-sky-200/70">
-                      {/* Add Domain - Request to Super Admin */}
+                  {isTestsMenuOpen && (
+                    <div className="p-1 space-y-0.5 bg-slate-50/60 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={() => {
-                          setActiveTab('domain');
-                          setDomainSubTab('add');
+                          setActiveTab('tests');
+                          setTestSubTab('list');
                           setIsMobileSidebarOpen(false);
                         }}
-                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                          activeTab === 'domain' && domainSubTab === 'add'
-                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                            : 'text-slate-700 hover:bg-sky-50'
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'tests' && testSubTab === 'list'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'domain' && domainSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
-                          <span className="truncate">Add Domain — Send Request to Super Admin</span>
+                          <ListFilter className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'list' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">1. All Tests</span>
                         </div>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          activeTab === 'domain' && domainSubTab === 'add'
-                            ? 'bg-amber-400 text-slate-950 font-black'
-                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'tests' && testSubTab === 'list' ? 'text-white/70' : 'text-slate-400'
                         }`}>
-                          Request &gt;
+                          View / Edit
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('tests');
+                          setTestSubTab('add');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'tests' && testSubTab === 'add'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'add' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">2. Add Test</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'tests' && testSubTab === 'add' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          + New
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('tests');
+                          setTestSubTab('categories');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'tests' && testSubTab === 'categories'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Layers className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'categories' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">3. Test Categories</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'tests' && testSubTab === 'categories' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          13 Types
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('tests');
+                          setTestSubTab('packages');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'tests' && testSubTab === 'packages'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Package className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'packages' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">4. Test Packages</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'tests' && testSubTab === 'packages' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Bundles
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('tests');
+                          setTestSubTab('clinical_catalog');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'tests' && testSubTab === 'clinical_catalog'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'clinical_catalog' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">5. Departments &amp; Formulas</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'tests' && testSubTab === 'clinical_catalog' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          NABL
                         </span>
                       </button>
                     </div>
                   )}
                 </div>
-              )}
 
-              {/* SECTION 6: SITE SETTINGS (Logo, Site Name, Site Description, Feature Image, Payment QR, Plan & Pricing) */}
-              <div className="rounded-xl border border-indigo-300/80 bg-indigo-50/50 overflow-hidden shadow-2xs">
-                {/* Accordion Header */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('settings');
-                    if (openSidebarSection !== 'settings') {
-                      setOpenSidebarSection('settings');
-                      if (!settingsSubTab || settingsSubTab === 'all') {
-                        setSettingsSubTab('logo');
-                      }
-                    } else {
-                      toggleSidebarSection('settings');
-                    }
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'settings'
-                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
-                      : 'bg-indigo-100/70 text-slate-900 font-bold hover:bg-indigo-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Settings className={`w-4 h-4 shrink-0 ${activeTab === 'settings' ? 'text-amber-400' : 'text-indigo-700'}`} />
-                    <span className="text-xs font-black truncate">6. Site Settings</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      activeTab === 'settings' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
-                    }`}>
-                      6 Tools
-                    </span>
-                    {isSettingsMenuOpen ? (
-                      <ChevronDown className={`w-4 h-4 ${activeTab === 'settings' ? 'text-white' : 'text-slate-800'}`} />
-                    ) : (
-                      <ChevronRight className={`w-4 h-4 ${activeTab === 'settings' ? 'text-white' : 'text-slate-800'}`} />
-                    )}
-                  </div>
-                </button>
-
-                {/* Sub-Items: Logo, Site Name, Site Description, Feature Image, Payment QR, Plan & Pricing */}
-                {isSettingsMenuOpen && (
-                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-indigo-200/70">
-                    {/* 1. Logo */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('settings');
-                        setSettingsSubTab('logo');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'settings' && settingsSubTab === 'logo'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-indigo-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <ImageIcon className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'logo' ? 'text-amber-400' : 'text-indigo-600'}`} />
-                        <span className="truncate">Logo</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'settings' && settingsSubTab === 'logo'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                {/* SECTION 3: TEST PACKAGE */}
+                <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('packages');
+                      toggleSidebarSection('packages');
+                    }}
+                    className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                      activeTab === 'packages'
+                        ? 'bg-[#0e294b] text-white font-semibold'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Package className={`w-4 h-4 shrink-0 ${activeTab === 'packages' ? 'text-sky-300' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold truncate">3. Test Package</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                        activeTab === 'packages' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
                       }`}>
-                        Upload
+                        {vendorPackages.length} Pkgs
                       </span>
-                    </button>
+                      {isPackagesMenuOpen ? (
+                        <ChevronDown className={`w-4 h-4 ${activeTab === 'packages' ? 'text-white/80' : 'text-slate-400'}`} />
+                      ) : (
+                        <ChevronRight className={`w-4 h-4 ${activeTab === 'packages' ? 'text-white/80' : 'text-slate-400'}`} />
+                      )}
+                    </div>
+                  </button>
 
-                    {/* PDF Letterhead (A4 Header + Footer) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('settings');
-                        setSettingsSubTab('letterhead');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'settings' && settingsSubTab === 'letterhead'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-indigo-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Printer className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'letterhead' ? 'text-amber-400' : 'text-sky-600'}`} />
-                        <span className="truncate">PDF Letterhead</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'settings' && settingsSubTab === 'letterhead'
-                          ? 'bg-white/20 text-white'
-                          : vendorLabSettings.enableStaticPdfLetterhead
-                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold'
-                          : 'bg-sky-50 text-sky-700 border border-sky-200'
+                  {isPackagesMenuOpen && (
+                    <div className="p-1 space-y-0.5 bg-slate-50/60 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('packages');
+                          setPackageSubTab('add');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'packages' && packageSubTab === 'add'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'packages' && packageSubTab === 'add' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">1. Add Package</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'packages' && packageSubTab === 'add' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Add &gt;
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('packages');
+                          setPackageSubTab('list');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'packages' && packageSubTab === 'list'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <ListFilter className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'packages' && packageSubTab === 'list' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">2. Package List</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'packages' && packageSubTab === 'list' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Edit / Delete
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* GROUP: INQUIRIES & FORMS */}
+              <div className="space-y-1.5">
+                <div className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Inquiries &amp; Contacts
+                </div>
+
+                {/* SECTION 4: FORM */}
+                <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('forms');
+                      setFormSubTab('contacts');
+                      toggleSidebarSection('forms');
+                    }}
+                    className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                      activeTab === 'forms'
+                        ? 'bg-[#0e294b] text-white font-semibold'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className={`w-4 h-4 shrink-0 ${activeTab === 'forms' ? 'text-sky-300' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold truncate">4. Form Inquiries</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                        activeTab === 'forms' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
                       }`}>
-                        {vendorLabSettings.enableStaticPdfLetterhead ? 'Active' : 'A4 PDF'}
+                        {contactSubmissions.length}
                       </span>
-                    </button>
+                      {isFormsMenuOpen ? (
+                        <ChevronDown className={`w-4 h-4 ${activeTab === 'forms' ? 'text-white/80' : 'text-slate-400'}`} />
+                      ) : (
+                        <ChevronRight className={`w-4 h-4 ${activeTab === 'forms' ? 'text-white/80' : 'text-slate-400'}`} />
+                      )}
+                    </div>
+                  </button>
 
-                    {/* 2. Site Name */}
+                  {isFormsMenuOpen && (
+                    <div className="p-1 space-y-0.5 bg-slate-50/60 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('forms');
+                          setFormSubTab('contacts');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'forms' && formSubTab === 'contacts'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'forms' && formSubTab === 'contacts' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">Contact Form Inquiries</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'forms' && formSubTab === 'contacts' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Read / Delete
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* GROUP: SETTINGS & DOMAIN */}
+              <div className="space-y-1.5">
+                <div className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Settings &amp; Preferences
+                </div>
+
+                {/* SECTION 5: DOMAIN REQUEST (ADD - REQUEST TO SUPER ADMIN) - ONLY SHOWN IF ENABLED BY SUPER ADMIN */}
+                {isDomainFeatureEnabled && (
+                  <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
                     <button
                       type="button"
                       onClick={() => {
-                        setActiveTab('settings');
-                        setSettingsSubTab('name');
-                        setIsMobileSidebarOpen(false);
+                        setActiveTab('domain');
+                        toggleSidebarSection('domain');
                       }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'settings' && settingsSubTab === 'name'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-indigo-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Type className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'name' ? 'text-amber-400' : 'text-blue-600'}`} />
-                        <span className="truncate">Site Name</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'settings' && settingsSubTab === 'name'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}>
-                        Edit
-                      </span>
-                    </button>
-
-                    {/* 3. Site Description */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('settings');
-                        setSettingsSubTab('description');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'settings' && settingsSubTab === 'description'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-indigo-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <FileText className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'description' ? 'text-amber-400' : 'text-emerald-600'}`} />
-                        <span className="truncate">Site Description</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'settings' && settingsSubTab === 'description'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      }`}>
-                        Summary
-                      </span>
-                    </button>
-
-                    {/* 4. Feature Image */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('settings');
-                        setSettingsSubTab('feature');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'settings' && settingsSubTab === 'feature'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-indigo-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'feature' ? 'text-amber-400' : 'text-amber-600'}`} />
-                        <span className="truncate">Feature Image</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'settings' && settingsSubTab === 'feature'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-amber-50 text-amber-800 border border-amber-200'
-                      }`}>
-                        Banner
-                      </span>
-                    </button>
-
-                    {/* 5. Payment Settings */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('settings');
-                        setSettingsSubTab('payment_settings' as any);
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'settings' && (settingsSubTab === 'payment_qr' || (settingsSubTab as any) === 'payment_settings')
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-indigo-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <CreditCard className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && (settingsSubTab === 'payment_qr' || (settingsSubTab as any) === 'payment_settings') ? 'text-amber-400' : 'text-purple-600'}`} />
-                        <span className="truncate">Payment Settings</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'settings' && (settingsSubTab === 'payment_qr' || (settingsSubTab as any) === 'payment_settings')
-                          ? 'bg-white/20 text-white'
-                          : 'bg-purple-50 text-purple-700 border border-purple-200'
-                      }`}>
-                        UPI / Gateway
-                      </span>
-                    </button>
-
-                    {/* 6. Plan & Pricing (Remaining Visibility Days) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('settings');
-                        setSettingsSubTab('plan');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'settings' && settingsSubTab === 'plan'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-amber-900 bg-amber-50/70 hover:bg-amber-100 border border-amber-200/60'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Zap className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'plan' ? 'text-amber-400' : 'text-amber-600 fill-amber-500'}`} />
-                        <span className="truncate">Plan &amp; Pricing</span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'settings' && settingsSubTab === 'plan'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-amber-100 text-amber-900 font-extrabold'
-                      }`}>
-                        {vendorLabSettings.remainingVisibilityDays ?? 24}d left
-                      </span>
-                    </button>
-
-                    {/* Subitem 7: Website Prices */}
-                    <button
-                      type="button"
-                      id="sidebar-sub-settings-prices"
-                      onClick={() => {
-                        setActiveTab('settings');
-                        setSettingsSubTab('prices');
-                      }}
-                      className={`w-full px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-between gap-2 cursor-pointer ${
-                        activeTab === 'settings' && settingsSubTab === 'prices'
-                          ? 'bg-[#123B6D] text-white shadow-xs font-black'
-                          : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                        activeTab === 'domain'
+                          ? 'bg-[#0e294b] text-white font-semibold'
+                          : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <IndianRupee className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'prices' ? 'text-amber-400' : 'text-emerald-600'}`} />
-                        <span className="truncate">Website Price Display</span>
+                        <Globe className={`w-4 h-4 shrink-0 ${activeTab === 'domain' ? 'text-sky-300' : 'text-slate-500'}`} />
+                        <span className="text-xs font-semibold truncate">5. Domain Request</span>
                       </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'settings' && settingsSubTab === 'prices'
-                          ? 'bg-white/20 text-white'
-                          : vendorLabSettings.showPricesOnWebsite !== false
-                          ? 'bg-emerald-100 text-emerald-900 font-extrabold'
-                          : 'bg-amber-100 text-amber-900 font-extrabold'
-                      }`}>
-                        {vendorLabSettings.showPricesOnWebsite !== false ? 'Show' : 'Hide'}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                          activeTab === 'domain' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
+                        }`}>
+                          {domainRequests.length} Req
+                        </span>
+                        {isDomainMenuOpen ? (
+                          <ChevronDown className={`w-4 h-4 ${activeTab === 'domain' ? 'text-white/80' : 'text-slate-400'}`} />
+                        ) : (
+                          <ChevronRight className={`w-4 h-4 ${activeTab === 'domain' ? 'text-white/80' : 'text-slate-400'}`} />
+                        )}
+                      </div>
                     </button>
-                  </div>
-                )}
-              </div>
 
-              {/* SECTION 7: ADMIN SETTINGS (PIN Code & Password — Edit) */}
-              <div className="rounded-xl border border-rose-300/80 bg-rose-50/50 overflow-hidden shadow-2xs">
-                {/* Accordion Header */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('admin_settings');
-                    toggleSidebarSection('admin_settings');
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'admin_settings'
-                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
-                      : 'bg-rose-100/70 text-slate-900 font-bold hover:bg-rose-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <ShieldAlert className={`w-4 h-4 shrink-0 ${activeTab === 'admin_settings' ? 'text-amber-400' : 'text-rose-700'}`} />
-                    <span className="text-xs font-black truncate">7. Admin Settings</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      activeTab === 'admin_settings' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
-                    }`}>
-                      PIN &amp; Pass
-                    </span>
-                    {isAdminSettingsMenuOpen ? (
-                      <ChevronDown className={`w-4 h-4 ${activeTab === 'admin_settings' ? 'text-white' : 'text-slate-800'}`} />
-                    ) : (
-                      <ChevronRight className={`w-4 h-4 ${activeTab === 'admin_settings' ? 'text-white' : 'text-slate-800'}`} />
+                    {isDomainMenuOpen && (
+                      <div className="p-1 space-y-0.5 bg-slate-50/60 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTab('domain');
+                            setDomainSubTab('add');
+                            setIsMobileSidebarOpen(false);
+                          }}
+                          className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                            activeTab === 'domain' && domainSubTab === 'add'
+                              ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'domain' && domainSubTab === 'add' ? 'text-sky-300' : 'text-slate-400'}`} />
+                            <span className="truncate">Add Domain — Super Admin Request</span>
+                          </div>
+                          <span className={`text-[10px] font-mono shrink-0 ${
+                            activeTab === 'domain' && domainSubTab === 'add' ? 'text-white/70' : 'text-slate-400'
+                          }`}>
+                            Request &gt;
+                          </span>
+                        </button>
+                      </div>
                     )}
                   </div>
-                </button>
-
-                {/* Sub-Item: PIN Code & Password — Edit */}
-                {isAdminSettingsMenuOpen && (
-                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-rose-200/70">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('admin_settings');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'admin_settings'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-rose-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <KeyRound className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'admin_settings' ? 'text-amber-400' : 'text-rose-600'}`} />
-                        <span className="truncate">PIN Code &amp; Password — Edit</span>
-                      </div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'admin_settings'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-rose-50 text-rose-800 border border-rose-200'
-                      }`}>
-                        Edit &gt;
-                      </span>
-                    </button>
-                  </div>
                 )}
+
+                {/* SECTION 6: SITE SETTINGS */}
+                <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('settings');
+                      if (openSidebarSection !== 'settings') {
+                        setOpenSidebarSection('settings');
+                        if (!settingsSubTab || settingsSubTab === 'all') {
+                          setSettingsSubTab('logo');
+                        }
+                      } else {
+                        toggleSidebarSection('settings');
+                      }
+                    }}
+                    className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                      activeTab === 'settings'
+                        ? 'bg-[#0e294b] text-white font-semibold'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Settings className={`w-4 h-4 shrink-0 ${activeTab === 'settings' ? 'text-sky-300' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold truncate">6. Site Settings</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                        activeTab === 'settings' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
+                      }`}>
+                        6 Tools
+                      </span>
+                      {isSettingsMenuOpen ? (
+                        <ChevronDown className={`w-4 h-4 ${activeTab === 'settings' ? 'text-white/80' : 'text-slate-400'}`} />
+                      ) : (
+                        <ChevronRight className={`w-4 h-4 ${activeTab === 'settings' ? 'text-white/80' : 'text-slate-400'}`} />
+                      )}
+                    </div>
+                  </button>
+
+                  {isSettingsMenuOpen && (
+                    <div className="p-1 space-y-0.5 bg-slate-50/60 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('settings');
+                          setSettingsSubTab('logo');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'settings' && settingsSubTab === 'logo'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <ImageIcon className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'logo' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">Logo</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'settings' && settingsSubTab === 'logo' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Upload
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('settings');
+                          setSettingsSubTab('letterhead');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'settings' && settingsSubTab === 'letterhead'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Printer className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'letterhead' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">PDF Letterhead</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'settings' && settingsSubTab === 'letterhead' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          {vendorLabSettings.enableStaticPdfLetterhead ? 'Active' : 'A4 PDF'}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('settings');
+                          setSettingsSubTab('name');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'settings' && settingsSubTab === 'name'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Type className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'name' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">Site Name</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'settings' && settingsSubTab === 'name' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Edit
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('settings');
+                          setSettingsSubTab('description');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'settings' && settingsSubTab === 'description'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <FileText className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'description' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">Site Description</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'settings' && settingsSubTab === 'description' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Summary
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('settings');
+                          setSettingsSubTab('feature');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'settings' && settingsSubTab === 'feature'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'feature' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">Feature Image</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'settings' && settingsSubTab === 'feature' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Banner
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('settings');
+                          setSettingsSubTab('payment_settings' as any);
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'settings' && (settingsSubTab === 'payment_qr' || (settingsSubTab as any) === 'payment_settings')
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <CreditCard className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && (settingsSubTab === 'payment_qr' || (settingsSubTab as any) === 'payment_settings') ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">Payment Settings</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'settings' && (settingsSubTab === 'payment_qr' || (settingsSubTab as any) === 'payment_settings') ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          UPI / Gateway
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('settings');
+                          setSettingsSubTab('plan');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'settings' && settingsSubTab === 'plan'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Zap className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'plan' ? 'text-sky-300' : 'text-amber-500'}`} />
+                          <span className="truncate">Plan &amp; Pricing</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'settings' && settingsSubTab === 'plan' ? 'text-white/70' : 'text-amber-700 font-semibold'
+                        }`}>
+                          {vendorLabSettings.remainingVisibilityDays ?? 24}d left
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        id="sidebar-sub-settings-prices"
+                        onClick={() => {
+                          setActiveTab('settings');
+                          setSettingsSubTab('prices');
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'settings' && settingsSubTab === 'prices'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 truncate">
+                          <IndianRupee className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'prices' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">Website Price Display</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'settings' && settingsSubTab === 'prices'
+                            ? 'text-white/70'
+                            : vendorLabSettings.showPricesOnWebsite !== false
+                            ? 'text-emerald-700 font-medium'
+                            : 'text-slate-400'
+                        }`}>
+                          {vendorLabSettings.showPricesOnWebsite !== false ? 'Show' : 'Hide'}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* SECTION 7: ADMIN SETTINGS */}
+                <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('admin_settings');
+                      toggleSidebarSection('admin_settings');
+                    }}
+                    className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                      activeTab === 'admin_settings'
+                        ? 'bg-[#0e294b] text-white font-semibold'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ShieldAlert className={`w-4 h-4 shrink-0 ${activeTab === 'admin_settings' ? 'text-sky-300' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold truncate">7. Admin Settings</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                        activeTab === 'admin_settings' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
+                      }`}>
+                        PIN &amp; Pass
+                      </span>
+                      {isAdminSettingsMenuOpen ? (
+                        <ChevronDown className={`w-4 h-4 ${activeTab === 'admin_settings' ? 'text-white/80' : 'text-slate-400'}`} />
+                      ) : (
+                        <ChevronRight className={`w-4 h-4 ${activeTab === 'admin_settings' ? 'text-white/80' : 'text-slate-400'}`} />
+                      )}
+                    </div>
+                  </button>
+
+                  {isAdminSettingsMenuOpen && (
+                    <div className="p-1 space-y-0.5 bg-slate-50/60 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('admin_settings');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'admin_settings'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <KeyRound className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'admin_settings' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">PIN Code &amp; Password</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'admin_settings' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Edit &gt;
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* SECTION 8: BOOKING FORM SETTINGS */}
+                <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('booking_settings');
+                      toggleSidebarSection('booking_settings');
+                    }}
+                    className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                      activeTab === 'booking_settings'
+                        ? 'bg-[#0e294b] text-white font-semibold'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CalendarCheck className={`w-4 h-4 shrink-0 ${activeTab === 'booking_settings' ? 'text-sky-300' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold truncate">8. Booking Settings</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                        activeTab === 'booking_settings' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
+                      }`}>
+                        2 Items
+                      </span>
+                      {isBookingSettingsMenuOpen ? (
+                        <ChevronDown className={`w-4 h-4 ${activeTab === 'booking_settings' ? 'text-white/80' : 'text-slate-400'}`} />
+                      ) : (
+                        <ChevronRight className={`w-4 h-4 ${activeTab === 'booking_settings' ? 'text-white/80' : 'text-slate-400'}`} />
+                      )}
+                    </div>
+                  </button>
+
+                  {isBookingSettingsMenuOpen && (
+                    <div className="p-1 space-y-0.5 bg-slate-50/60 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('booking_settings');
+                          setBookingSettingsSubTab('charges');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'booking_settings' && bookingSettingsSubTab === 'charges'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Truck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'booking_settings' && bookingSettingsSubTab === 'charges' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">Home Sample Charges</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'booking_settings' && bookingSettingsSubTab === 'charges' ? 'text-white/70' : 'text-slate-500 font-semibold'
+                        }`}>
+                          ₹{vendorLabSettings.homeCollectionCharge ?? 100}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('booking_settings');
+                          setBookingSettingsSubTab('timing');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'booking_settings' && bookingSettingsSubTab === 'timing'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Clock className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'booking_settings' && bookingSettingsSubTab === 'timing' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">Booking Timing</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'booking_settings' && bookingSettingsSubTab === 'timing' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Timing &gt;
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* SECTION 8: BOOKING FORM SETTINGS (Home Sample Charges — Edit, Booking Timing — Edit) */}
-              <div className="rounded-xl border border-amber-300/80 bg-amber-50/50 overflow-hidden shadow-2xs">
-                {/* Accordion Header */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('booking_settings');
-                    toggleSidebarSection('booking_settings');
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'booking_settings'
-                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
-                      : 'bg-amber-100/70 text-slate-900 font-bold hover:bg-amber-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <CalendarCheck className={`w-4 h-4 shrink-0 ${activeTab === 'booking_settings' ? 'text-amber-400' : 'text-amber-700'}`} />
-                    <span className="text-xs font-black truncate">8. Booking Form Settings</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      activeTab === 'booking_settings' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+              {/* GROUP: OPERATIONS & SUPPORT */}
+              <div className="space-y-1.5">
+                <div className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Operations &amp; Support
+                </div>
+
+                {/* SECTION 9: STAFF MANAGEMENT */}
+                <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
+                  <button
+                    type="button"
+                    id="tab-btn-staff-mgmt"
+                    onClick={() => {
+                      setActiveTab('staff');
+                      toggleSidebarSection('staff');
+                    }}
+                    className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                      activeTab === 'staff'
+                        ? 'bg-[#0e294b] text-white font-semibold'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Users className={`w-4 h-4 shrink-0 ${activeTab === 'staff' ? 'text-sky-300' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold truncate">9. Staff Management</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                        activeTab === 'staff' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
+                      }`}>
+                        {staffAccounts.length} Staff
+                      </span>
+                      {isStaffMenuOpen ? (
+                        <ChevronDown className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white/80' : 'text-slate-400'}`} />
+                      ) : (
+                        <ChevronRight className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white/80' : 'text-slate-400'}`} />
+                      )}
+                    </div>
+                  </button>
+
+                  {isStaffMenuOpen && (
+                    <div className="p-1 space-y-0.5 bg-slate-50/60 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('staff');
+                          setStaffSubTab('list');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'staff' && staffSubTab === 'list'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'staff' && staffSubTab === 'list' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">Staff List &amp; Roles</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'staff' && staffSubTab === 'list' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          {staffAccounts.length}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('staff');
+                          setStaffSubTab('add');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'staff' && staffSubTab === 'add'
+                            ? 'bg-[#0e294b] text-white shadow-2xs font-semibold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <UserPlus className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'staff' && staffSubTab === 'add' ? 'text-sky-300' : 'text-slate-400'}`} />
+                          <span className="truncate">+ Add New Staff</span>
+                        </div>
+                        <span className={`text-[10px] font-mono shrink-0 ${
+                          activeTab === 'staff' && staffSubTab === 'add' ? 'text-white/70' : 'text-slate-400'
+                        }`}>
+                          Add &gt;
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* SECTION 10: BACKUP & REPORTS */}
+                <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
+                  <button
+                    type="button"
+                    id="tab-btn-backup-reports"
+                    onClick={() => {
+                      setActiveTab('backup');
+                      setOpenSidebarSection(null);
+                      setIsMobileSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                      activeTab === 'backup'
+                        ? 'bg-[#0e294b] text-white font-semibold'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Database className={`w-4 h-4 shrink-0 ${activeTab === 'backup' ? 'text-sky-300' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold truncate">10. Backup &amp; Reports</span>
+                    </div>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                      activeTab === 'backup' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
                     }`}>
-                      2 Items
+                      Backup
                     </span>
-                    {isBookingSettingsMenuOpen ? (
-                      <ChevronDown className={`w-4 h-4 ${activeTab === 'booking_settings' ? 'text-white' : 'text-slate-800'}`} />
-                    ) : (
-                      <ChevronRight className={`w-4 h-4 ${activeTab === 'booking_settings' ? 'text-white' : 'text-slate-800'}`} />
-                    )}
-                  </div>
-                </button>
+                  </button>
+                </div>
 
-                {/* Sub-Items: Home Sample Charges — Edit, Booking Timing — Edit */}
-                {isBookingSettingsMenuOpen && (
-                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-amber-200/70">
-                    {/* 1. Home Sample Charges — Edit */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('booking_settings');
-                        setBookingSettingsSubTab('charges');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'booking_settings' && bookingSettingsSubTab === 'charges'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-amber-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Truck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'booking_settings' && bookingSettingsSubTab === 'charges' ? 'text-amber-400' : 'text-emerald-600'}`} />
-                        <span className="truncate">Home Sample Charges — Edit</span>
-                      </div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'booking_settings' && bookingSettingsSubTab === 'charges'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      }`}>
-                        ₹{vendorLabSettings.homeCollectionCharge ?? 100}
-                      </span>
-                    </button>
-
-                    {/* 2. Booking Timing — Edit */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('booking_settings');
-                        setBookingSettingsSubTab('timing');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'booking_settings' && bookingSettingsSubTab === 'timing'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-amber-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Clock className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'booking_settings' && bookingSettingsSubTab === 'timing' ? 'text-amber-400' : 'text-blue-600'}`} />
-                        <span className="truncate">Booking Timing — Edit</span>
-                      </div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'booking_settings' && bookingSettingsSubTab === 'timing'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-blue-50 text-blue-800 border border-blue-200'
-                      }`}>
-                        Timing &gt;
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* SECTION 9: STAFF MANAGEMENT (Reception & Technician) */}
-              <div className="rounded-xl border border-teal-300/80 bg-teal-50/50 overflow-hidden shadow-2xs">
-                {/* Accordion Header */}
-                <button
-                  type="button"
-                  id="tab-btn-staff-mgmt"
-                  onClick={() => {
-                    setActiveTab('staff');
-                    toggleSidebarSection('staff');
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'staff'
-                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
-                      : 'bg-teal-100/70 text-slate-900 font-bold hover:bg-teal-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Users className={`w-4 h-4 shrink-0 ${activeTab === 'staff' ? 'text-amber-400' : 'text-teal-700'}`} />
-                    <span className="text-xs font-black truncate">9. Staff Management</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      activeTab === 'staff' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+                {/* SECTION 11: TECH SUPPORT */}
+                <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden transition-all shadow-2xs">
+                  <button
+                    type="button"
+                    id="tab-btn-tech-support"
+                    onClick={() => {
+                      setActiveTab('support');
+                      setOpenSidebarSection(null);
+                      setIsMobileSidebarOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                      activeTab === 'support'
+                        ? 'bg-[#0e294b] text-white font-semibold'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-700 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Headphones className={`w-4 h-4 shrink-0 ${activeTab === 'support' ? 'text-sky-300' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold truncate">11. Tech Support</span>
+                    </div>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                      activeTab === 'support' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'
                     }`}>
-                      {staffAccounts.length} Staff
+                      Help Desk
                     </span>
-                    {isStaffMenuOpen ? (
-                      <ChevronDown className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white' : 'text-slate-800'}`} />
-                    ) : (
-                      <ChevronRight className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white' : 'text-slate-800'}`} />
-                    )}
-                  </div>
-                </button>
-
-                {/* Sub-Items: Staff List (Edit / Delete), Add New Staff */}
-                {isStaffMenuOpen && (
-                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-teal-200/70">
-                    {/* 1. Staff List (Edit Name & Password, Delete) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('staff');
-                        setStaffSubTab('list');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'staff' && staffSubTab === 'list'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'staff' && staffSubTab === 'list' ? 'text-amber-400' : 'text-teal-600'}`} />
-                        <span className="truncate">Staff List (Edit ID, Pass &amp; Roles)</span>
-                      </div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'staff' && staffSubTab === 'list'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-teal-50 text-teal-800 border border-teal-200'
-                      }`}>
-                        {staffAccounts.length}
-                      </span>
-                    </button>
-
-                    {/* 2. Add New Staff */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('staff');
-                        setStaffSubTab('add');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'staff' && staffSubTab === 'add'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <UserPlus className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'staff' && staffSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
-                        <span className="truncate">+ Add New Staff</span>
-                      </div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'staff' && staffSubTab === 'add'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      }`}>
-                        Add &gt;
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* SECTION 10: BACKUP & REPORTS */}
-              <div className="rounded-xl border border-indigo-200/80 bg-indigo-50/40 overflow-hidden shadow-2xs">
-                <button
-                  type="button"
-                  id="tab-btn-backup-reports"
-                  onClick={() => {
-                    setActiveTab('backup');
-                    setOpenSidebarSection(null);
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'backup'
-                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
-                      : 'bg-indigo-100/70 text-slate-900 font-bold hover:bg-indigo-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Database className={`w-4 h-4 shrink-0 ${activeTab === 'backup' ? 'text-amber-400' : 'text-indigo-700'}`} />
-                    <span className="text-xs font-black truncate">10. Backup & Reports</span>
-                  </div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    activeTab === 'backup' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
-                  }`}>
-                    Backup
-                  </span>
-                </button>
-              </div>
-
-              {/* SECTION 11: TECH SUPPORT */}
-              <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 overflow-hidden shadow-2xs">
-                <button
-                  type="button"
-                  id="tab-btn-tech-support"
-                  onClick={() => {
-                    setActiveTab('support');
-                    setOpenSidebarSection(null);
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'support'
-                      ? 'bg-emerald-700 text-white font-black shadow-xs'
-                      : 'bg-emerald-100/70 text-slate-900 font-bold hover:bg-emerald-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Headphones className={`w-4 h-4 shrink-0 ${activeTab === 'support' ? 'text-amber-300' : 'text-emerald-700'}`} />
-                    <span className="text-xs font-black truncate">11. Tech Support</span>
-                  </div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    activeTab === 'support' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-900'
-                  }`}>
-                    Help Desk
-                  </span>
-                </button>
+                  </button>
+                </div>
               </div>
             </div>
           </aside>
@@ -2152,6 +2092,48 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
           {/* MAIN CONTENT PANEL */}
           {/* ======================================================== */}
           <main className="flex-1 w-full min-w-0 space-y-6">
+            {/* Super Admin Quick Control Notice for Custom Domain Visibility */}
+            {currentUser?.role === 'admin' && (
+              <div className="bg-gradient-to-r from-[#123B6D] to-indigo-950 text-white p-3.5 rounded-2xl shadow-sm border border-blue-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                    <Globe className="w-4 h-4 text-amber-300" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-black flex items-center gap-2 flex-wrap">
+                      <span>Super Admin Custom Domain Control:</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-black tracking-wider ${
+                        isDomainFeatureEnabled
+                          ? 'bg-emerald-400 text-slate-950'
+                          : 'bg-amber-400 text-slate-950'
+                      }`}>
+                        {isDomainFeatureEnabled ? '✅ SHOWING in Dashboard (दिख रहा है)' : '🔒 HIDDEN from Dashboard (छुपा हुआ है)'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-blue-200 mt-0.5">
+                      {isDomainFeatureEnabled
+                        ? `Sidebar mein "5. Domain Request" option active hai for "${currentLab?.name}". Lab owner custom domain add kar sakta hai.`
+                        : `Sidebar se Domain Request option hide hai for "${currentLab?.name}". Lab owner is feature ko use nahi kar sakta.`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = !isDomainFeatureEnabled;
+                    updateVendorLab(currentLab.id, { isDomainFeatureEnabled: nextVal });
+                  }}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition shrink-0 cursor-pointer shadow-xs ${
+                    isDomainFeatureEnabled
+                      ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                      : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
+                  }`}
+                >
+                  {isDomainFeatureEnabled ? '🔒 Hide from Dashboard' : '✅ Show in Dashboard'}
+                </button>
+              </div>
+            )}
+
             {/* 1. VENDOR'S OWN WEBSITE CMS & SECTIONS ON/OFF TAB */}
             {(activeTab === 'website' || activeTab === 'profile') && (
               <VendorWebsiteCmsTab

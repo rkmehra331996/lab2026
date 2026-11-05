@@ -7743,6 +7743,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const defaultSettings = buildDefaultSettingsForLab(newLab);
       defaultSettings.status = targetStatus;
       defaultSettings.isWebsiteApproved = isApproved;
+      defaultSettings.isDomainFeatureEnabled = Boolean(vendor.isDomainFeatureEnabled);
       syncLabSettingsToCloud(newLabId, defaultSettings);
       return {
         ...prev,
@@ -7772,17 +7773,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       syncVendorLabToCloud(syncedLab);
     }
     if (updates.isDomainFeatureEnabled !== undefined) {
+      const isEnabled = Boolean(updates.isDomainFeatureEnabled);
       setVendorLabSettingsMap((prev) => {
         const existing = prev[id] || (id === vendorLabSettings.labId ? vendorLabSettings : null);
-        if (existing) {
-          const next = { ...existing, isDomainFeatureEnabled: updates.isDomainFeatureEnabled };
-          try {
-            localStorage.setItem('cms_vendor_lab_settings_map', JSON.stringify({ ...prev, [id]: next }));
-          } catch {}
-          syncLabSettingsToCloud(id, next);
-          return { ...prev, [id]: next };
-        }
-        return prev;
+        const targetLab = vendorLabsList.find((l) => l.id === id);
+        const base = existing || (targetLab ? buildDefaultSettingsForLab(targetLab) : { ...vendorLabSettings, labId: id });
+        const next = { ...base, isDomainFeatureEnabled: isEnabled };
+        try {
+          localStorage.setItem('cms_vendor_lab_settings_map', JSON.stringify({ ...prev, [id]: next }));
+        } catch {}
+        syncLabSettingsToCloud(id, next);
+        return { ...prev, [id]: next };
       });
     }
   };

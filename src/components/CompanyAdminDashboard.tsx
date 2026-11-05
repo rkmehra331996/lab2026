@@ -41,6 +41,14 @@ import {
   HardDriveDownload,
   FileText,
   Zap,
+  Ban,
+  Lock,
+  Unlock,
+  Search,
+  ToggleLeft,
+  ToggleRight,
+  Sliders,
+  EyeOff,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView, PricingPlan, CompanyFeature, LabManagementFeature } from '../types';
@@ -97,6 +105,8 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     refreshStorageMetrics,
     cleanStorageCache,
     openCacheModal,
+    updateVendorLab,
+    selectVendorLab,
   } = useCms();
 
   type SuperAdminMenu = 'home' | 'labs' | 'clients' | 'drafts' | 'backup' | 'domain_requests' | 'plans' | 'seo' | 'seo_posts';
@@ -136,6 +146,8 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
   const [upiSavedToast, setUpiSavedToast] = useState(false);
 
   const [toastMessage, setToastMessage] = useState('');
+  const [domainLabSearch, setDomainLabSearch] = useState('');
+  const [domainFeatureFilter, setDomainFeatureFilter] = useState<'all' | 'enabled' | 'hidden'>('all');
   const [pingResult, setPingResult] = useState<{ status: 'idle' | 'testing' | 'success'; latencyMs?: number; message?: string }>({ status: 'idle' });
 
   const runCloudPingTest = async () => {
@@ -950,15 +962,15 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
             </div>
 
             {/* Central Operations Bar */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4 flex-wrap">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
                 <div className="text-xs text-slate-600">
-                  Today's Central Operations: <strong>{receptionEntries.length} Patients</strong> registered • <strong>{reports.length} Reports</strong> issued
+                  Today's Central Operations: <strong className="font-semibold text-slate-900 font-mono">{receptionEntries.length} Patients</strong> registered • <strong className="font-semibold text-slate-900 font-mono">{reports.length} Reports</strong> issued
                 </div>
                 <button
                   type="button"
                   onClick={runCloudPingTest}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
                 >
                   <Activity className="w-3.5 h-3.5 text-emerald-600" />
                   <span>{pingResult.status === 'testing' ? 'Testing Ping...' : 'Test Cloud Ping'}</span>
@@ -969,137 +981,149 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 <button
                   type="button"
                   onClick={() => onNavigateView('reception_dashboard')}
-                  className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                  className="bg-[#0e294b] hover:bg-[#123B6D] text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
                 >
-                  <span>🖥️ Reception Counter</span>
+                  <span>Reception Counter</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onNavigateView('technician_dashboard')}
-                  className="bg-purple-700 hover:bg-purple-800 text-white px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                  className="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
                 >
-                  <FlaskConical className="w-3.5 h-3.5 text-amber-300" />
-                  <span>🔬 Technician Dept</span>
+                  <FlaskConical className="w-3.5 h-3.5 text-sky-300" />
+                  <span>Technician Dept</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onNavigateView('website')}
-                  className="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                  className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
                 >
-                  <span>🏠 Preview Live Site</span>
+                  <span>Preview Live Site</span>
                 </button>
               </div>
             </div>
 
             {/* Home Sub-Modules Strip */}
-            <div className="bg-white rounded-2xl p-2 border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1 flex-wrap">
-                <button
-                  onClick={() => setHomeSubTab('pricing')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                    homeSubTab === 'pricing'
-                      ? 'bg-[#123B6D] text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <IndianRupee className="w-3.5 h-3.5" />
-                  <span>SaaS Pricing ({pricingPlans.length})</span>
-                </button>
+            <div className="bg-slate-100/90 rounded-2xl p-1.5 border border-slate-200/90 shadow-2xs flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setHomeSubTab('pricing')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                  homeSubTab === 'pricing'
+                    ? 'bg-white text-slate-950 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <IndianRupee className="w-3.5 h-3.5 text-slate-500" />
+                <span>SaaS Pricing</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200/80 text-slate-600">
+                  {pricingPlans.length}
+                </span>
+              </button>
 
-                <button
-                  onClick={() => setHomeSubTab('upi_qr')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                    homeSubTab === 'upi_qr'
-                      ? 'bg-[#123B6D] text-white shadow-xs'
-                      : 'text-slate-700 bg-amber-50 hover:bg-amber-100/70 border border-amber-200'
-                  }`}
-                >
-                  <QrCode className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Dynamic UPI QR Scanner</span>
-                  <span className="text-[10px] bg-amber-200 text-amber-950 font-black px-1.5 py-0.2 rounded-full">
-                    Live
-                  </span>
-                </button>
+              <button
+                type="button"
+                onClick={() => setHomeSubTab('upi_qr')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                  homeSubTab === 'upi_qr'
+                    ? 'bg-white text-slate-950 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <QrCode className="w-3.5 h-3.5 text-slate-500" />
+                <span>Dynamic UPI QR Scanner</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-medium">
+                  Live
+                </span>
+              </button>
 
-                <button
-                  onClick={() => setHomeSubTab('backup')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                    homeSubTab === 'backup'
-                      ? 'bg-[#123B6D] text-white shadow-xs'
-                      : 'text-blue-900 bg-blue-50 hover:bg-blue-100/70 border border-blue-200'
-                  }`}
-                >
-                  <HardDriveDownload className="w-3.5 h-3.5 text-[#123B6D]" />
-                  <span>Website Backup</span>
-                </button>
+              <button
+                type="button"
+                onClick={() => setHomeSubTab('backup')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                  homeSubTab === 'backup'
+                    ? 'bg-white text-slate-950 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <HardDriveDownload className="w-3.5 h-3.5 text-slate-500" />
+                <span>Website Backup</span>
+              </button>
 
-                <button
-                  onClick={() => setHomeSubTab('cloud_sync')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                    homeSubTab === 'cloud_sync'
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
-                  }`}
-                >
-                  <Database className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Cloud DB & Hostinger Monitor</span>
-                </button>
+              <button
+                type="button"
+                onClick={() => setHomeSubTab('cloud_sync')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                  homeSubTab === 'cloud_sync'
+                    ? 'bg-white text-slate-950 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <Database className="w-3.5 h-3.5 text-slate-500" />
+                <span>Cloud DB &amp; Hostinger Monitor</span>
+              </button>
 
-                <button
-                  onClick={() => setHomeSubTab('cache')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                    homeSubTab === 'cache'
-                      ? 'bg-amber-600 text-white shadow-xs'
-                      : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200'
-                  }`}
-                  title="Optimize SaaS Cache & LocalStorage Footprint"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  <span>SaaS Cache Optimizer</span>
-                  <span className="text-[10px] bg-amber-200 text-amber-950 font-black px-1.5 py-0.2 rounded-full">
-                    {storageMetrics ? storageMetrics.localStorageFormatted : 'Clean'}
-                  </span>
-                </button>
+              <button
+                type="button"
+                onClick={() => setHomeSubTab('cache')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                  homeSubTab === 'cache'
+                    ? 'bg-white text-slate-950 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+                title="Optimize SaaS Cache & LocalStorage Footprint"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-slate-500" />
+                <span>SaaS Cache Optimizer</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200/80 text-slate-600">
+                  {storageMetrics ? storageMetrics.localStorageFormatted : 'Clean'}
+                </span>
+              </button>
 
-                <button
-                  onClick={() => setHomeSubTab('settings')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                    homeSubTab === 'settings'
-                      ? 'bg-[#123B6D] text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <Building className="w-3.5 h-3.5" />
-                  <span>Branding & Hero Content</span>
-                </button>
+              <button
+                type="button"
+                onClick={() => setHomeSubTab('settings')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                  homeSubTab === 'settings'
+                    ? 'bg-white text-slate-950 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <Building className="w-3.5 h-3.5 text-slate-500" />
+                <span>Branding &amp; Hero Content</span>
+              </button>
 
-                <button
-                  onClick={() => setActiveMenu('seo')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer text-emerald-900 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200"
-                  title="Configure Website SEO Settings"
-                >
-                  <Globe className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>SEO Settings</span>
-                  <span className="text-[10px] bg-emerald-200 text-emerald-950 font-black px-1.5 py-0.2 rounded-full">
-                    Google
-                  </span>
-                </button>
+              <button
+                type="button"
+                onClick={() => setActiveMenu('seo')}
+                className="px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                title="Configure Website SEO Settings"
+              >
+                <Globe className="w-3.5 h-3.5 text-slate-500" />
+                <span>SEO Settings</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-medium">
+                  Google
+                </span>
+              </button>
 
-                <button
-                  onClick={() => {
-                    setHomeSubTab('features');
-                    setFeatureSubSection('modules');
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                    homeSubTab === 'features'
-                      ? 'bg-[#123B6D] text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <FlaskConical className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Complete Lab Features ({labManagementFeatures?.length || 18})</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setHomeSubTab('features');
+                  setFeatureSubSection('modules');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                  homeSubTab === 'features'
+                    ? 'bg-white text-slate-950 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <FlaskConical className="w-3.5 h-3.5 text-slate-500" />
+                <span>Complete Lab Features</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200/80 text-slate-600">
+                  {labManagementFeatures?.length || 18}
+                </span>
+              </button>
             </div>
 
             {/* Sub-tab content when activeMenu === 'home' */}
@@ -2616,35 +2640,369 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
       </div>
     )}
 
-    {/* VIEW 5: DOMAIN REQUESTS (Vendor Custom Domain Approvals) */}
-    {activeMenu === 'domain_requests' && (
-      <div className="space-y-6 animate-in fade-in-50 duration-200">
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-[#123B6D] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                DNS Routing &amp; Domain Management
-              </span>
-              <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                {allDomainRequests.filter((r) => r.status === 'Pending').length} Pending Approval
-              </span>
+    {activeMenu === 'domain_requests' && (() => {
+      const totalVendors = vendorLabsList.length;
+      const domainEnabledCount = vendorLabsList.filter((l) => Boolean(l.isDomainFeatureEnabled)).length;
+      const domainHiddenCount = totalVendors - domainEnabledCount;
+      const pendingDomainReqsCount = allDomainRequests.filter((r) => r.status === 'Pending').length;
+
+      const filteredDomainVendors = vendorLabsList.filter((vendor) => {
+        const isEnabled = Boolean(vendor.isDomainFeatureEnabled);
+        if (domainFeatureFilter === 'enabled' && !isEnabled) return false;
+        if (domainFeatureFilter === 'hidden' && isEnabled) return false;
+
+        if (domainLabSearch.trim()) {
+          const q = domainLabSearch.toLowerCase().trim();
+          const name = (vendor.name || '').toLowerCase();
+          const phone = (vendor.phone || '').replace(/\D/g, '');
+          const city = (vendor.city || '').toLowerCase();
+          const id = (vendor.id || '').toLowerCase();
+          const customDomain = (vendor.customDomain || vendor.websiteDomain || '').toLowerCase();
+          const slug = (vendor.slug || '').toLowerCase();
+          return (
+            name.includes(q) ||
+            phone.includes(q) ||
+            city.includes(q) ||
+            id.includes(q) ||
+            customDomain.includes(q) ||
+            slug.includes(q)
+          );
+        }
+        return true;
+      });
+
+      const handleToggleAllDomainFeatures = (enable: boolean) => {
+        vendorLabsList.forEach((vendor) => {
+          updateVendorLab(vendor.id, { isDomainFeatureEnabled: enable });
+        });
+        showToast(
+          enable
+            ? `✅ Custom Domain option ENABLED for all ${vendorLabsList.length} laboratories!`
+            : `🔒 Custom Domain option HIDDEN for all ${vendorLabsList.length} laboratories!`
+        );
+      };
+
+      const handleToggleSingleDomainFeature = (vendorId: string, vendorName: string, currentVal: boolean) => {
+        const nextVal = !currentVal;
+        updateVendorLab(vendorId, { isDomainFeatureEnabled: nextVal });
+        showToast(
+          nextVal
+            ? `✅ Custom Domain option SHOW kar diya gaya hai for "${vendorName}". Ab vendor dashboard mein Domain Request ka option dikhayi dega.`
+            : `🔒 Custom Domain option HIDE kar diya gaya hai for "${vendorName}". Ab vendor dashboard se Domain Request ka option band ho gaya hai.`
+        );
+      };
+
+      return (
+        <div className="space-y-6 animate-in fade-in-50 duration-200">
+          {/* Header Card */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="bg-[#123B6D] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Super Admin Custom Domain Control
+                </span>
+                <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                  {pendingDomainReqsCount} Pending Approval
+                </span>
+              </div>
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-[#123B6D]" />
+                <span>Vendor Dashboard Custom Domain Control (कस्टम डोमेन विकल्प नियंत्रण)</span>
+              </h2>
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+                Super Admin नियंत्रित करता है कि किस Vendor Dashboard में <strong>'5. Domain Request'</strong> का विकल्प <strong>SHOW (दिखाई देगा)</strong> या <strong>HIDE (छुपा रहेगा)</strong>। डिफ़ॉल्ट रूप से यह विकल्प सुरक्षित रखने हेतु सभी के लिए Hidden रहता है।
+              </p>
             </div>
-            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-              <Globe className="w-5 h-5 text-[#123B6D]" />
-              <span>Laboratory Custom Domain Requests</span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              Review and approve custom domains (e.g. <code>apexdiag.in</code>) requested by diagnostic lab vendors. Ensure CNAME points to <code>indianlalaji.com</code> before approving. Default vendor shops use <code>indianlalaji.com/shop/[lab-id]</code> directory.
-            </p>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="text-xs bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-slate-700 font-mono">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">DNS CNAME Target</span>
+                <strong className="text-[#123B6D]">indianlalaji.com</strong>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="text-xs bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-slate-700 font-mono">
-              <span className="text-slate-400 block text-[10px] uppercase font-bold">DNS CNAME Target</span>
-              <strong className="text-[#123B6D]">indianlalaji.com</strong>
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
+              <div className="flex items-center justify-between text-xs text-slate-500 font-bold mb-1">
+                <span>Total Laboratories</span>
+                <Building2 className="w-4 h-4 text-slate-400" />
+              </div>
+              <div className="text-2xl font-black text-slate-900">{totalVendors}</div>
+              <p className="text-[11px] text-slate-400 mt-0.5">All registered partner labs</p>
+            </div>
+
+            <div
+              onClick={() => setDomainFeatureFilter('enabled')}
+              className={`rounded-2xl border p-4 shadow-2xs transition cursor-pointer ${
+                domainFeatureFilter === 'enabled'
+                  ? 'bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-300'
+                  : 'bg-white border-slate-200 hover:border-emerald-300'
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-emerald-800 mb-1">
+                <span>Custom Domain: SHOW</span>
+                <Eye className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div className="text-2xl font-black text-emerald-700">{domainEnabledCount}</div>
+              <p className="text-[11px] text-emerald-700/80 mt-0.5">Showing in Vendor Dashboard</p>
+            </div>
+
+            <div
+              onClick={() => setDomainFeatureFilter('hidden')}
+              className={`rounded-2xl border p-4 shadow-2xs transition cursor-pointer ${
+                domainFeatureFilter === 'hidden'
+                  ? 'bg-slate-100 border-slate-400 ring-2 ring-slate-300'
+                  : 'bg-white border-slate-200 hover:border-slate-400'
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1">
+                <span>Custom Domain: HIDDEN</span>
+                <Lock className="w-4 h-4 text-slate-500" />
+              </div>
+              <div className="text-2xl font-black text-slate-700">{domainHiddenCount}</div>
+              <p className="text-[11px] text-slate-500 mt-0.5">Hidden by default (Locked)</p>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
+              <div className="flex items-center justify-between text-xs text-slate-500 font-bold mb-1">
+                <span>Domain Requests</span>
+                <Globe className="w-4 h-4 text-indigo-500" />
+              </div>
+              <div className="text-2xl font-black text-[#123B6D]">{allDomainRequests.length}</div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {pendingDomainReqsCount > 0 ? `${pendingDomainReqsCount} awaiting approval` : 'All processed'}
+              </p>
             </div>
           </div>
-        </div>
+
+          {/* MAIN VENDOR DASHBOARD DOMAIN PERMISSION CONTROLLER */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-slate-50 border-b border-slate-200">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-[#123B6D]" />
+                    <span>Per-Vendor Custom Domain Permission Control (लैब अनुसार विकल्प नियंत्रण)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Select which laboratories should have the <strong>Domain Request</strong> tab visible inside their vendor portal.
+                  </p>
+                </div>
+
+                {/* Bulk Actions */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAllDomainFeatures(true)}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />
+                    <span>Show for All Labs</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAllDomainFeatures(false)}
+                    className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Ban className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Hide for All Labs</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Search & Filters */}
+              <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search laboratory name, phone, city, or ID..."
+                    value={domainLabSearch}
+                    onChange={(e) => setDomainLabSearch(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D] transition"
+                  />
+                  {domainLabSearch && (
+                    <button
+                      onClick={() => setDomainLabSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setDomainFeatureFilter('all')}
+                    className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
+                      domainFeatureFilter === 'all'
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    All ({totalVendors})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDomainFeatureFilter('enabled')}
+                    className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
+                      domainFeatureFilter === 'enabled'
+                        ? 'bg-emerald-600 text-white shadow-2xs'
+                        : 'text-emerald-800 hover:text-emerald-950'
+                    }`}
+                  >
+                    <span>SHOW</span>
+                    <span className="text-[10px] px-1.5 py-0.2 bg-emerald-700/50 rounded-full text-white">
+                      {domainEnabledCount}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDomainFeatureFilter('hidden')}
+                    className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
+                      domainFeatureFilter === 'hidden'
+                        ? 'bg-slate-700 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>HIDDEN</span>
+                    <span className="text-[10px] px-1.5 py-0.2 bg-slate-500/50 rounded-full text-white">
+                      {domainHiddenCount}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Vendor List */}
+            {filteredDomainVendors.length === 0 ? (
+              <div className="p-12 text-center text-xs text-slate-400">
+                No laboratories match the search or filter criteria.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {filteredDomainVendors.map((vendor) => {
+                  const isEnabled = Boolean(vendor.isDomainFeatureEnabled);
+                  const activeCustomDomain = vendor.customDomain || vendor.websiteDomain;
+                  const shopUrl = vendor.domainPreview || `indianlalaji.com/shop/${vendor.slug || vendor.id}`;
+
+                  return (
+                    <div
+                      key={vendor.id}
+                      className="p-4 sm:p-5 hover:bg-slate-50/80 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    >
+                      {/* Lab Info */}
+                      <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-sm shadow-2xs shrink-0"
+                          style={{ backgroundColor: vendor.color || '#123B6D' }}
+                        >
+                          {vendor.name.charAt(0)}
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-extrabold text-sm text-slate-900 truncate">{vendor.name}</h4>
+                            <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded text-slate-600 border border-slate-200">
+                              {vendor.id}
+                            </span>
+                            <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">
+                              {vendor.city || 'Punjab'}, {vendor.state || 'India'}
+                            </span>
+                            {vendor.phone && (
+                              <span className="font-mono text-[11px] text-slate-500">
+                                📞 {vendor.phone}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+                            <span>Default Shop:</span>
+                            <span className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                              {shopUrl}
+                            </span>
+                            {activeCustomDomain && (
+                              <>
+                                <span className="text-slate-400">•</span>
+                                <span className="text-indigo-700 font-bold flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded text-[11px] border border-indigo-200">
+                                  <Globe className="w-3 h-3 text-indigo-500" />
+                                  <span>Custom: <strong>{activeCustomDomain}</strong></span>
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Domain Visibility Control Actions */}
+                      <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+                        {/* Live Status Badge */}
+                        <div className="shrink-0">
+                          {isEnabled ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-300">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>SHOW in Dashboard</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">
+                              <Lock className="w-3.5 h-3.5 text-slate-400" />
+                              <span>HIDDEN (डिफ़ॉल्ट बंद)</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSingleDomainFeature(vendor.id, vendor.name, isEnabled)}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            isEnabled
+                              ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300'
+                              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          }`}
+                          title={
+                            isEnabled
+                              ? 'Click to HIDE Custom Domain option from this vendor dashboard'
+                              : 'Click to SHOW Custom Domain option in this vendor dashboard'
+                          }
+                        >
+                          {isEnabled ? (
+                            <>
+                              <EyeOff className="w-3.5 h-3.5 text-rose-600" />
+                              <span>HIDE from Dashboard</span>
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-3.5 h-3.5 text-white" />
+                              <span>SHOW in Dashboard</span>
+                            </>
+                          )}
+                        </button>
+
+                        {/* Test in Vendor Dashboard Link */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            selectVendorLab(vendor.id);
+                            onNavigateView('vendor_dashboard');
+                          }}
+                          className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1 cursor-pointer"
+                          title="Open this vendor's dashboard to test and verify domain option visibility"
+                        >
+                          <span>Open Dashboard</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Existing Requests Section */}
 
         {/* Requests List */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -2777,7 +3135,7 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
           )}
         </div>
       </div>
-    )}
+    )})()}
 
     {/* VIEW 6: PLAN TAB & RENEW REQUESTS */}
     {activeMenu === 'plans' && (

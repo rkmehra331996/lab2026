@@ -823,6 +823,7 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
                 ...(data.state !== undefined ? { state: data.state } : {}),
                 ...(data.nablAccreditationNo !== undefined ? { nablCode: data.nablAccreditationNo } : {}),
                 ...(data.nablNumber !== undefined ? { nablCode: data.nablNumber } : {}),
+                ...(data.isDomainFeatureEnabled !== undefined ? { isDomainFeatureEnabled: Boolean(data.isDomainFeatureEnabled) } : {}),
                 _updatedAt: new Date().toISOString(),
               };
             }
@@ -976,6 +977,7 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
             ...(data.publishedAt !== undefined ? { publishedAt: data.publishedAt } : {}),
             ...(data.planExpiresAt !== undefined ? { planExpiresAt: data.planExpiresAt } : {}),
             ...(data.remainingVisibilityDays !== undefined ? { remainingVisibilityDays: data.remainingVisibilityDays } : {}),
+            ...(data.isDomainFeatureEnabled !== undefined ? { isDomainFeatureEnabled: Boolean(data.isDomainFeatureEnabled) } : {}),
             _updatedAt: new Date().toISOString(),
           };
           store.lab_settings[settingsKey] = nextSet;
