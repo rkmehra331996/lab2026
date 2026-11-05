@@ -8,13 +8,17 @@ import {
   Check,
   Share2,
   ShieldCheck,
-  ExternalLink,
   PlusCircle,
   Sparkles,
-  FileText,
-  Clock,
   BookmarkPlus,
   ArrowRight,
+  Laptop,
+  Download,
+  Wifi,
+  WifiOff,
+  HardDrive,
+  Printer,
+  Monitor,
 } from 'lucide-react';
 
 export interface HomeScreenShortcutModalProps {
@@ -35,7 +39,16 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
   websiteDirectUrl,
   downloadAppUrl,
 }) => {
-  const [activeTab, setActiveTab] = useState<'android' | 'ios'>('android');
+  const [activeTab, setActiveTab] = useState<'desktop' | 'android' | 'ios'>(() => {
+    if (typeof window !== 'undefined') {
+      const ua = window.navigator.userAgent.toLowerCase();
+      if (/iphone|ipad|ipod/.test(ua)) return 'ios';
+      if (/android/.test(ua)) return 'android';
+      return 'desktop';
+    }
+    return 'desktop';
+  });
+
   const [copiedLink, setCopiedLink] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -43,7 +56,7 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
 
   const effectiveUrl = websiteDirectUrl || downloadAppUrl || (typeof window !== 'undefined' ? window.location.href : '');
 
-  // Listen for beforeinstallprompt event for Android / Chromium PWA 1-click install
+  // Listen for beforeinstallprompt event for Desktop Chromium / Android PWA 1-click install
   useEffect(() => {
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
@@ -73,9 +86,9 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
     try {
       const dynamicManifest = {
         id: `/shop/${labId}`,
-        name: `${labName} Diagnostic App`,
+        name: `${labName} Diagnostic Software`,
         short_name: (labName || 'Lab App').slice(0, 24),
-        description: `Official Diagnostic & Pathology Mobile App for ${labName}`,
+        description: `Official Diagnostic & Pathology Software for ${labName} - Works 100% Offline & Online`,
         start_url: vendorTargetUrl,
         scope: '/',
         display: 'standalone',
@@ -120,7 +133,7 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
 
   if (!isOpen) return null;
 
-  // Handle 1-Click Android PWA Install / Home Screen Shortcut
+  // Handle 1-Click PWA Install / Home Screen Shortcut / Desktop App
   const handleAddToHomeScreen = async () => {
     try {
       localStorage.setItem('cms_installed_vendor_app_slug', labId);
@@ -133,7 +146,7 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
         const choiceResult = await deferredPrompt.userChoice;
         if (choiceResult.outcome === 'accepted') {
           setIsInstalled(true);
-          setInstallSuccessToast('✅ App successfully added to your device!');
+          setInstallSuccessToast('✅ ऐप आपके डिवाइस पर सफलतापूर्वक इंस्टॉल हो गया है!');
           setTimeout(() => setInstallSuccessToast(null), 4000);
         }
         setDeferredPrompt(null);
@@ -141,9 +154,11 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
       } catch {}
     }
 
-    // If native prompt is not available, show clear helpful guidance toast
-    if (activeTab === 'android') {
-      setInstallSuccessToast('👉 ऊपर दायें कोने में (⋮) मेनू पर क्लिक करें और "Add to Home screen" चुनें');
+    // If native prompt is not available, show clear helpful guidance toast based on active tab
+    if (activeTab === 'desktop') {
+      setInstallSuccessToast('👉 ऊपर ब्राउज़र एड्रेस बार में (⊕ या 💻) "Install" आइकॉन पर क्लिक करें');
+    } else if (activeTab === 'android') {
+      setInstallSuccessToast('👉 ऊपर दायें कोने में (⋮) मेनू पर क्लिक करें और "Add to Home screen" या "Install" चुनें');
     } else {
       setInstallSuccessToast('👉 नीचे Share (⎋) बटन पर टैप करें और "Add to Home Screen" चुनें');
     }
@@ -158,7 +173,7 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
 
   const handleShareWhatsApp = () => {
     const text = encodeURIComponent(
-      `Open ${labName} Lab Portal directly on your mobile:\n${effectiveUrl}`
+      `Open ${labName} Lab Portal & Offline App:\n${effectiveUrl}`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
@@ -167,8 +182,8 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
     <div
       role="dialog"
       aria-modal="true"
-      aria-labelledby="home-screen-modal-title"
-      className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+      aria-labelledby="install-offline-modal-title"
+      className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
@@ -181,54 +196,66 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
             type="button"
             onClick={onClose}
             className="absolute top-4 right-4 text-slate-300 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition cursor-pointer"
-            aria-label="Close Home Screen Shortcut Modal"
+            aria-label="Close Install Offline App Modal"
           >
             <X className="w-5 h-5" />
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 text-white flex items-center justify-center shadow-inner shrink-0">
-              <BookmarkPlus className="w-6 h-6 text-amber-300" />
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center justify-center shadow-inner shrink-0">
+              <Download className="w-6 h-6 text-emerald-400" />
             </div>
             <div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-400/30 mb-1">
                 <Sparkles className="w-3 h-3" />
-                <span>1-Tap Quick Access</span>
+                <span>Offline &amp; Online Ready • Desktop &amp; Mobile</span>
               </div>
-              <h2 id="home-screen-modal-title" className="text-lg sm:text-xl font-black text-white leading-tight">
-                Add to Home Screen (होम स्क्रीन शॉर्टकट)
+              <h2 id="install-offline-modal-title" className="text-lg sm:text-xl font-black text-white leading-tight">
+                Install Offline App (ऑफलाइन ऐप इंस्टॉल करें)
               </h2>
               <p className="text-xs text-slate-300">
-                {labName} • बिना ऐप डाउनलोड किए सीधे अपने मोबाइल स्क्रीन पर जोड़ें
+                {labName} • कंप्यूटर (Desktop PC) या मोबाइल में ऐप डाउनलोड करें और बिना इंटरनेट काम करें
               </p>
             </div>
           </div>
 
-          {/* OS Switcher Tabs */}
-          <div className="grid grid-cols-2 gap-2 mt-5 p-1 bg-white/10 rounded-2xl border border-white/10">
+          {/* OS Switcher Tabs (Desktop / Android / iOS) */}
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mt-5 p-1 bg-white/10 rounded-2xl border border-white/10">
+            <button
+              type="button"
+              onClick={() => setActiveTab('desktop')}
+              className={`py-2 px-2.5 sm:px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'desktop'
+                  ? 'bg-white text-[#123B6D] shadow-md'
+                  : 'text-slate-200 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Laptop className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="truncate">PC / Desktop</span>
+            </button>
             <button
               type="button"
               onClick={() => setActiveTab('android')}
-              className={`py-2 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+              className={`py-2 px-2.5 sm:px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'android'
                   ? 'bg-white text-[#123B6D] shadow-md'
                   : 'text-slate-200 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Smartphone className="w-4 h-4 text-emerald-600" />
-              <span>Android (Google Chrome)</span>
+              <Smartphone className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="truncate">Android</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('ios')}
-              className={`py-2 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+              className={`py-2 px-2.5 sm:px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'ios'
                   ? 'bg-white text-[#123B6D] shadow-md'
                   : 'text-slate-200 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Apple className="w-4 h-4 text-slate-800" />
-              <span>iPhone / iPad (Safari)</span>
+              <Apple className="w-4 h-4 text-slate-800 shrink-0" />
+              <span className="truncate">iPhone / iPad</span>
             </button>
           </div>
         </div>
@@ -243,24 +270,37 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
 
         {/* Modal Body */}
         <div className="p-5 sm:p-6 overflow-y-auto max-h-[68vh] space-y-5 text-slate-700 text-xs">
+          
           {/* Main 1-Click Action Card */}
           <div className="bg-gradient-to-br from-emerald-50 via-teal-50/40 to-slate-50 border border-emerald-200 rounded-2xl p-4.5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
-                  <PlusCircle className="w-4 h-4" />
+                <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
+                  {activeTab === 'desktop' ? (
+                    <Monitor className="w-4 h-4" />
+                  ) : activeTab === 'android' ? (
+                    <Smartphone className="w-4 h-4" />
+                  ) : (
+                    <Apple className="w-4 h-4" />
+                  )}
                 </span>
                 <div>
                   <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm">
-                    {activeTab === 'android' ? 'Android Home Screen Shortcut' : 'iPhone / iPad Home Screen Shortcut'}
+                    {activeTab === 'desktop'
+                      ? 'Desktop / PC Offline App Installation'
+                      : activeTab === 'android'
+                      ? 'Android Offline App & Shortcut'
+                      : 'iPhone / iPad Offline App'}
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    सीधे फ़ोन की स्क्रीन से 1-क्लिक में रिपोर्ट्स, टेस्ट व बुकिंग्स एक्सेस करें
+                    {activeTab === 'desktop'
+                      ? 'कंप्यूटर के डेस्कटॉप पर इंस्टॉल करें • बिना इंटरनेट भी चलेगा (Offline & Online)'
+                      : 'सीधे फ़ोन की स्क्रीन से 1-क्लिक में रिपोर्ट्स, टेस्ट व बिलिंग एक्सेस करें'}
                   </p>
                 </div>
               </div>
               <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-200 shrink-0">
-                Zero Storage
+                Offline Ready
               </span>
             </div>
 
@@ -270,27 +310,65 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
               onClick={handleAddToHomeScreen}
               className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-98"
             >
-              <PlusCircle className="w-4 h-4 text-emerald-200" />
+              <Download className="w-4 h-4 text-emerald-200" />
               <span>
                 {isInstalled
-                  ? 'App Already Installed'
-                  : 'Add App'}
+                  ? '✅ App Already Installed (ऐप पहले से इंस्टॉल है)'
+                  : activeTab === 'desktop'
+                  ? 'Install Desktop App on this PC (1-Click)'
+                  : activeTab === 'android'
+                  ? 'Install Android App (1-Click)'
+                  : 'Add to iPhone Home Screen'}
               </span>
               <ArrowRight className="w-4 h-4 text-emerald-200 ml-1" />
             </button>
           </div>
 
-          {/* Section: How to Add Step-by-Step Instructions */}
+          {/* Section: Step-by-Step Instructions */}
           <div className="space-y-3">
             <h3 className="font-black text-slate-900 text-xs sm:text-sm flex items-center justify-between">
               <span>
-                {activeTab === 'android'
-                  ? 'Android पर शॉर्टकट कैसे जोड़ें (Step-by-Step Guide)'
-                  : 'iPhone / iPad पर शॉर्टकट कैसे जोड़ें (Step-by-Step Guide)'}
+                {activeTab === 'desktop'
+                  ? 'PC / Laptop पर ऑफलाइन ऐप कैसे इंस्टॉल करें (Step-by-Step Guide)'
+                  : activeTab === 'android'
+                  ? 'Android फ़ोन पर ऐप कैसे इंस्टॉल करें (Step-by-Step Guide)'
+                  : 'iPhone / iPad पर ऐप कैसे जोड़ें (Step-by-Step Guide)'}
               </span>
             </h3>
 
-            {activeTab === 'android' ? (
+            {activeTab === 'desktop' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
+                    1
+                  </div>
+                  <h4 className="font-extrabold text-slate-900 text-xs">Chrome / Edge ब्राउज़र</h4>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    अपने कंप्यूटर (PC / Laptop) के <strong>Google Chrome</strong> या <strong>Microsoft Edge</strong> ब्राउज़र में यह वेबसाइट खोलें।
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
+                    2
+                  </div>
+                  <h4 className="font-extrabold text-slate-900 text-xs">Install (⊕ / 💻) आइकॉन</h4>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    ऊपर एड्रेस बार के दायें कोने में <strong>Install Icon (⊕ या 💻)</strong> पर क्लिक करें, या ऊपर दिए गए <strong>"Install Desktop App"</strong> बटन को दबाएँ।
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
+                    3
+                  </div>
+                  <h4 className="font-extrabold text-slate-900 text-xs">Desktop Shortcut</h4>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    <strong>"Install"</strong> पर क्लिक करते ही आपके डेस्कटॉप व टास्कबार पर {labName} का अलग सॉफ्टवेयर आइकॉन बन जाएगा।
+                  </p>
+                </div>
+              </div>
+            ) : activeTab === 'android' ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
                   <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
@@ -316,9 +394,9 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
                   <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
                     3
                   </div>
-                  <h4 className="font-extrabold text-slate-900 text-xs">Add to Home screen</h4>
+                  <h4 className="font-extrabold text-slate-900 text-xs">Install / Add App</h4>
                   <p className="text-[11px] text-slate-500 leading-snug">
-                    <strong>"Add to Home screen"</strong> (या "Install app") पर टैप करें। शॉर्टकट तुरंत होम स्क्रीन पर आ जाएगा।
+                    <strong>"Install app"</strong> या <strong>"Add to Home screen"</strong> पर टैप करें। ऐप तुरंत फ़ोन में इंस्टॉल हो जाएगा।
                   </p>
                 </div>
               </div>
@@ -357,31 +435,31 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
             )}
           </div>
 
-          {/* Section: Why Home Screen Shortcut? */}
+          {/* Section: Offline & Online Benefits */}
           <div className="border-t border-slate-200 pt-4">
             <h4 className="font-extrabold text-slate-900 text-xs mb-2.5">
-              होम स्क्रीन शॉर्टकट के मुख्य फ़ायदे (Key Benefits):
+              ऑफलाइन डेस्कटॉप ऐप के मुख्य फ़ायदे (Offline &amp; Online Features):
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                <FileText className="w-4 h-4 text-teal-600 mx-auto mb-1" />
-                <div className="font-bold text-slate-800 text-[11px]">Instant Reports</div>
-                <div className="text-[10px] text-slate-500">1-टैप में PDF डाउनलोड</div>
+              <div className="p-2.5 bg-emerald-50/70 rounded-xl border border-emerald-200 text-center">
+                <WifiOff className="w-4 h-4 text-emerald-700 mx-auto mb-1" />
+                <div className="font-bold text-slate-800 text-[11px]">100% Offline</div>
+                <div className="text-[10px] text-slate-500">बिना इंटरनेट बिलिंग चालू</div>
               </div>
-              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                <Clock className="w-4 h-4 text-amber-600 mx-auto mb-1" />
-                <div className="font-bold text-slate-800 text-[11px]">Live Status</div>
-                <div className="text-[10px] text-slate-500">सैंपल व टेस्ट ट्रैकिंग</div>
+              <div className="p-2.5 bg-blue-50/70 rounded-xl border border-blue-200 text-center">
+                <Printer className="w-4 h-4 text-blue-700 mx-auto mb-1" />
+                <div className="font-bold text-slate-800 text-[11px]">Instant Print</div>
+                <div className="text-[10px] text-slate-500">Thermal व A4 प्रिंटर सपोर्ट</div>
               </div>
-              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 mx-auto mb-1" />
-                <div className="font-bold text-slate-800 text-[11px]">No App Store</div>
-                <div className="text-[10px] text-slate-500">फ़ोन स्टोरेज की बचत</div>
+              <div className="p-2.5 bg-amber-50/70 rounded-xl border border-amber-200 text-center">
+                <HardDrive className="w-4 h-4 text-amber-700 mx-auto mb-1" />
+                <div className="font-bold text-slate-800 text-[11px]">Desktop Icon</div>
+                <div className="text-[10px] text-slate-500">अलग ऐप विंडो में खुलेगा</div>
               </div>
-              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                <ExternalLink className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
-                <div className="font-bold text-slate-800 text-[11px]">100% Direct</div>
-                <div className="text-[10px] text-slate-500">हमेशा ताज़ा डेटा</div>
+              <div className="p-2.5 bg-indigo-50/70 rounded-xl border border-indigo-200 text-center">
+                <Wifi className="w-4 h-4 text-indigo-700 mx-auto mb-1" />
+                <div className="font-bold text-slate-800 text-[11px]">Auto Cloud Sync</div>
+                <div className="text-[10px] text-slate-500">नेट आते ही सर्वर पर सिंक</div>
               </div>
             </div>
           </div>
@@ -417,7 +495,7 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
         <div className="bg-slate-50 border-t border-slate-200 p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-slate-500">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="text-[11px]">100% Direct &amp; Safe • Official Laboratory Shortcut</span>
+            <span className="text-[11px]">100% Secure • Official Laboratory PWA Offline Software</span>
           </div>
           <button
             type="button"
@@ -432,5 +510,6 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
   );
 };
 
-// Backward-compatible alias so existing imports don't break
+// Backward-compatible aliases
 export const DownloadAppModal = HomeScreenShortcutModal;
+export const InstallOfflineAppModal = HomeScreenShortcutModal;

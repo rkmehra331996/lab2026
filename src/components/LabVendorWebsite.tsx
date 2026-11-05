@@ -874,8 +874,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         params.get('page') === 'home-screen-shortcut' ||
         params.get('page') === 'shortcut' ||
         params.get('page') === 'download-app' ||
+        params.get('page') === 'install-offline-app' ||
+        params.get('page') === 'install-app' ||
         hash === '#shortcut' ||
-        hash === '#download-app'
+        hash === '#download-app' ||
+        hash === '#install-offline-app'
       ) {
         setIsDownloadAppModalOpen(true);
       }
@@ -888,13 +891,13 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       try {
         const url = new URL(window.location.href);
         let changed = false;
-        ['download-app', 'shortcut', 'home-screen-shortcut'].forEach((p) => {
+        ['download-app', 'shortcut', 'home-screen-shortcut', 'install-offline-app', 'install-app'].forEach((p) => {
           if (url.searchParams.get('page') === p) {
             url.searchParams.delete('page');
             changed = true;
           }
         });
-        if (url.hash === '#download-app' || url.hash === '#shortcut') {
+        if (url.hash === '#download-app' || url.hash === '#shortcut' || url.hash === '#install-offline-app') {
           url.hash = '';
           changed = true;
         }
@@ -2961,6 +2964,19 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <span className="sm:hidden text-[11px]">Report</span>
             </button>
 
+            {/* Install Offline App Button (Desktop & Mobile: Works 100% Offline & Online) */}
+            <button
+              type="button"
+              onClick={() => setIsDownloadAppModalOpen(true)}
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition cursor-pointer shadow-xs shrink-0 active:scale-95 border border-emerald-500/50"
+              id="header-install-offline-app-btn"
+              title={`Install ${labName} Offline App on PC Desktop & Mobile (Works 100% Offline & Online)`}
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
+              <span className="hidden sm:inline">Install Offline App</span>
+              <span className="sm:hidden text-[11px]">Install App</span>
+            </button>
+
             {/* 2. Desktop: Expert Login / Dashboard Button */}
             {currentUser ? (
               <button
@@ -3139,7 +3155,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     Contact &amp; Location
                   </button>
 
-                  {/* Home Screen Shortcut & Visit Website QR Buttons in Drawer */}
+                  {/* Install Offline App & Visit Website QR Buttons in Drawer */}
                   <div className="pt-2 space-y-1.5">
                     <button
                       type="button"
@@ -3148,13 +3164,14 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                         setIsDownloadAppModalOpen(true);
                       }}
                       className="w-full text-left py-2.5 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 transition text-xs font-bold cursor-pointer flex items-center justify-between"
+                      id="drawer-install-offline-app-btn"
                     >
                       <span className="flex items-center gap-2">
-                        <BookmarkPlus className="w-4 h-4 text-emerald-600" />
-                        <span>Home Screen Shortcut</span>
+                        <Download className="w-4 h-4 text-emerald-600" />
+                        <span>Install Offline App (ऑफलाइन ऐप)</span>
                       </span>
                       <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-black">
-                        1-Tap Add
+                        PC &amp; Mobile
                       </span>
                     </button>
 
@@ -5116,14 +5133,14 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 <li>
                   <button
                     type="button"
-                    id="btn-footer-home-screen-shortcut"
+                    id="btn-footer-install-offline-app"
                     onClick={() => setIsDownloadAppModalOpen(true)}
                     className="hover:text-[#123B6D] text-emerald-700 font-bold flex items-center gap-1.5 cursor-pointer text-left transition"
                   >
-                    <BookmarkPlus className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Home Screen Shortcut</span>
+                    <Download className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Install Offline App (PC &amp; Mobile)</span>
                     <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold border border-emerald-200">
-                      1-Tap Add
+                      Offline Ready
                     </span>
                   </button>
                 </li>
