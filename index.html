@@ -30,23 +30,19 @@
             enumerable: true,
           });
 
-          // 1. Unregister any active Service Workers to prevent caching / controllerchange reloads
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              for (var i = 0; i < regs.length; i++) {
-                regs[i].unregister().catch(function() {});
-              }
-            }).catch(function() {});
-          }
-
-          // 2. Clear CacheStorage (all caches created by workbox, sw, or browser cache)
-          if ('caches' in window) {
-            caches.keys().then(function(names) {
-              for (var c = 0; c < names.length; c++) {
-                caches.delete(names[c]).catch(function() {});
-              }
-            }).catch(function() {});
-          }
+          // Capture beforeinstallprompt globally for instant 1-click install on Desktop & Android
+          window.__pwaDeferredPrompt = null;
+          window.__pwaInstalled = false;
+          window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.__pwaDeferredPrompt = e;
+            window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+          });
+          window.addEventListener('appinstalled', function() {
+            window.__pwaDeferredPrompt = null;
+            window.__pwaInstalled = true;
+            window.dispatchEvent(new CustomEvent('pwa-installed'));
+          });
 
           // 3. Final Release Version Tag - clear old cached session if version changed
           try {

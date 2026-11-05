@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Download, MonitorCheck, Smartphone, X, Laptop } from 'lucide-react';
-import { usePWAInstall } from '../hooks/usePWAInstall';
+import { Download, Smartphone, X, Laptop, Sparkles } from 'lucide-react';
+import { usePWAInstall, triggerNativePwaInstall } from '../hooks/usePWAInstall';
 
 interface PWAInstallButtonProps {
   variant?: 'navbar' | 'banner' | 'card' | 'minimal';
@@ -11,8 +11,9 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   variant = 'navbar',
   className = '',
 }) => {
-  const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
+  const { isInstallable, isInstalled, isIOS } = usePWAInstall();
   const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // If already running inside an installed PWA instance, do not show install button
   if (isInstalled) {
@@ -24,13 +25,38 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
     return null;
   }
 
+  const handleInstallClick = async () => {
+    const res = await triggerNativePwaInstall();
+    setToastMessage(res.message);
+    setTimeout(() => setToastMessage(null), 5000);
+  };
+
+  const renderToast = () => {
+    if (!toastMessage) return null;
+    return (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] max-w-md w-[92%] sm:w-auto px-4 py-3 bg-[#123B6D] text-white rounded-2xl shadow-2xl border-2 border-emerald-400 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold">
+          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setToastMessage(null)}
+          className="p-1 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  };
+
   if (variant === 'minimal') {
     return (
       <>
         {isInstallable && (
           <button
             type="button"
-            onClick={install}
+            onClick={handleInstallClick}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95 ${className}`}
             title="Install IndianLalaji Lab Software on this PC / Mobile"
           >
@@ -51,6 +77,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         )}
 
         {showIOSGuide && <IOSGuideModal onClose={() => setShowIOSGuide(false)} />}
+        {renderToast()}
       </>
     );
   }
@@ -72,7 +99,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           {isInstallable && (
             <button
               type="button"
-              onClick={install}
+              onClick={handleInstallClick}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs rounded-md shadow-xs transition active:scale-95 cursor-pointer whitespace-nowrap"
             >
               <Download className="w-3.5 h-3.5" />
@@ -93,6 +120,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         </div>
 
         {showIOSGuide && <IOSGuideModal onClose={() => setShowIOSGuide(false)} />}
+        {renderToast()}
       </>
     );
   }
@@ -103,7 +131,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
       {isInstallable && (
         <button
           type="button"
-          onClick={install}
+          onClick={handleInstallClick}
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-sm transition active:scale-95 cursor-pointer ${className}`}
           title="Install IndianLalaji Desktop / Mobile App (Works Offline)"
         >
@@ -125,6 +153,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
       )}
 
       {showIOSGuide && <IOSGuideModal onClose={() => setShowIOSGuide(false)} />}
+      {renderToast()}
     </>
   );
 };

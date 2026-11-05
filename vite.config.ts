@@ -10,7 +10,6 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       VitePWA({
-        selfDestroying: true,
         registerType: 'autoUpdate',
         includeAssets: [
           'apple-touch-icon.png',
@@ -106,7 +105,8 @@ export default defineConfig(() => {
           ],
         },
         devOptions: {
-          enabled: false,
+          enabled: true,
+          type: 'module',
         },
       }),
     ],

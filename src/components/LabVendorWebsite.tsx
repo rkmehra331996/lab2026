@@ -78,6 +78,7 @@ import { LabWelcomeFirstScreen } from './vendor/LabWelcomeFirstScreen';
 import { TermsConditionsModal } from './TermsConditionsModal';
 import { VendorPolicyModal, PolicyTabType } from './vendor/VendorPolicyModal';
 import { HomeScreenShortcutModal, DownloadAppModal } from './DownloadAppModal';
+import { triggerNativePwaInstall } from '../hooks/usePWAInstall';
 import { VendorAiVoiceBot } from './vendor/VendorAiVoiceBot';
 import { getTenantWebsiteUrl, getTenantSubdomain, getTenantBrowserUrl, SUPER_ADMIN_DOMAIN, normalizeToDirectoryUrl } from '../constants/domains';
 import { isTenantMatch, isReportAccessibleToTenant } from '../utils/tenantSecurity';
@@ -594,6 +595,20 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const [isWebsiteQrModalOpen, setIsWebsiteQrModalOpen] = useState(false);
   const [copiedWebsiteUrl, setCopiedWebsiteUrl] = useState(false);
   const [isDownloadAppModalOpen, setIsDownloadAppModalOpen] = useState(false);
+  const [installToast, setInstallToast] = useState<string | null>(null);
+
+  const handleDirectInstall = async () => {
+    try {
+      localStorage.setItem('cms_installed_vendor_app_slug', effectiveSlug);
+      localStorage.setItem('cms_installed_vendor_app_id', effectiveVendorId);
+    } catch {}
+
+    const res = await triggerNativePwaInstall(effectiveVendorId, labName);
+    setInstallToast(res.message);
+    setTimeout(() => {
+      setInstallToast(null);
+    }, 5500);
+  };
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [policyModalTab, setPolicyModalTab] = useState<PolicyTabType>('terms');
   const [fullScreenImage, setFullScreenImage] = useState<{
@@ -880,7 +895,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         hash === '#download-app' ||
         hash === '#install-offline-app'
       ) {
-        setIsDownloadAppModalOpen(true);
+        handleDirectInstall();
       }
     }
   }, []);
@@ -2967,10 +2982,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             {/* Install Offline App Button (Desktop & Mobile: Works 100% Offline & Online) */}
             <button
               type="button"
-              onClick={() => setIsDownloadAppModalOpen(true)}
+              onClick={handleDirectInstall}
               className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition cursor-pointer shadow-xs shrink-0 active:scale-95 border border-emerald-500/50"
               id="header-install-offline-app-btn"
-              title={`Install ${labName} Offline App on PC Desktop & Mobile (Works 100% Offline & Online)`}
+              title={`Install ${labName} directly on Desktop & Mobile (Works 100% Offline & Online)`}
             >
               <Download className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
               <span className="hidden sm:inline">Install Offline App</span>
@@ -3161,7 +3176,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                       type="button"
                       onClick={() => {
                         setMobileMenuOpen(false);
-                        setIsDownloadAppModalOpen(true);
+                        handleDirectInstall();
                       }}
                       className="w-full text-left py-2.5 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 transition text-xs font-bold cursor-pointer flex items-center justify-between"
                       id="drawer-install-offline-app-btn"
@@ -5134,7 +5149,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   <button
                     type="button"
                     id="btn-footer-install-offline-app"
-                    onClick={() => setIsDownloadAppModalOpen(true)}
+                    onClick={handleDirectInstall}
                     className="hover:text-[#123B6D] text-emerald-700 font-bold flex items-center gap-1.5 cursor-pointer text-left transition"
                   >
                     <Download className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -5462,6 +5477,23 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         customPrivacy={vendorLabSettings?.privacyPolicy}
         customRefund={vendorLabSettings?.refundPolicy}
       />
+
+      {/* Direct 1-Click Install Notification Banner (No popup modal on Desktop & Android!) */}
+      {installToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] max-w-lg w-[92%] sm:w-auto px-4 py-3 bg-[#123B6D] text-white rounded-2xl shadow-2xl border-2 border-emerald-400 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold">
+            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{installToast}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setInstallToast(null)}
+            className="p-1 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Home Screen Shortcut Modal (Android & iOS with Step-by-Step 1-Tap Add Guide) */}
       <HomeScreenShortcutModal
@@ -5835,7 +5867,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
           }
           setIsBookingModalOpen(true);
         }}
-        onOpenDownloadAppModal={() => setIsDownloadAppModalOpen(true)}
+        onOpenDownloadAppModal={handleDirectInstall}
         language={language}
       />
 

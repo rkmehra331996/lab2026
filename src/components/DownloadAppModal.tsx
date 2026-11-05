@@ -50,26 +50,46 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
   });
 
   const [copiedLink, setCopiedLink] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(() => {
+    return typeof window !== 'undefined' ? (window as any).__pwaDeferredPrompt || null : null;
+  });
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true ||
+      (window as any).__pwaInstalled === true
+    );
+  });
   const [installSuccessToast, setInstallSuccessToast] = useState<string | null>(null);
 
   const effectiveUrl = websiteDirectUrl || downloadAppUrl || (typeof window !== 'undefined' ? window.location.href : '');
 
   // Listen for beforeinstallprompt event for Desktop Chromium / Android PWA 1-click install
   useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).__pwaDeferredPrompt) {
+      setDeferredPrompt((window as any).__pwaDeferredPrompt);
+    }
+
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
+      (window as any).__pwaDeferredPrompt = e;
       setDeferredPrompt(e);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('pwa-prompt-ready', () => {
+      if ((window as any).__pwaDeferredPrompt) {
+        setDeferredPrompt((window as any).__pwaDeferredPrompt);
+      }
+    });
 
     // Check if already installed in standalone mode
     if (
       typeof window !== 'undefined' &&
       (window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true)
+        (window.navigator as any).standalone === true ||
+        (window as any).__pwaInstalled === true)
     ) {
       setIsInstalled(true);
     }
@@ -140,14 +160,24 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
       localStorage.setItem('cms_installed_vendor_app_id', labId);
     } catch {}
 
-    if (deferredPrompt) {
+    const promptObj = deferredPrompt || (typeof window !== 'undefined' ? (window as any).__pwaDeferredPrompt : null);
+    if (promptObj) {
       try {
-        deferredPrompt.prompt();
-        const choiceResult = await deferredPrompt.userChoice;
-        if (choiceResult.outcome === 'accepted') {
+        await promptObj.prompt();
+        const choiceResult = await promptObj.userChoice;
+        if (choiceResult && choiceResult.outcome === 'accepted') {
           setIsInstalled(true);
           setInstallSuccessToast('✅ ऐप आपके डिवाइस पर सफलतापूर्वक इंस्टॉल हो गया है!');
-          setTimeout(() => setInstallSuccessToast(null), 4000);
+          if (typeof window !== 'undefined') {
+            (window as any).__pwaDeferredPrompt = null;
+            (window as any).__pwaInstalled = true;
+          }
+          setDeferredPrompt(null);
+          setTimeout(() => {
+            setInstallSuccessToast(null);
+            onClose();
+          }, 2500);
+          return;
         }
         setDeferredPrompt(null);
         return;
