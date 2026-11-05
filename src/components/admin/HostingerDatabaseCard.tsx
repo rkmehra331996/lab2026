@@ -255,13 +255,13 @@ export const HostingerDatabaseCard: React.FC<HostingerDatabaseCardProps> = ({ sh
       <div className="bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-xl px-4 py-2.5 text-xs flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-extrabold text-emerald-900">ताज़ा अपडेटेड वर्शन (Latest Build v2.5 Ready):</span>
+          <span className="font-extrabold text-emerald-900">ताज़ा अपडेटेड वर्शन (Latest Build v3.0 Fresh):</span>
           <span className="text-emerald-800 text-[11px]">
-            Website Draft, WhatsApp Web Slip, Standardized Receipts, PWA Shortcuts &amp; MySQL Sync शामिल हैं।
+            Employee System, Updated Pricing (₹5,933/12M), Install Offline App (PC &amp; Mobile) व MySQL Sync शामिल हैं।
           </span>
         </div>
         <span className="text-[10px] font-mono font-bold bg-emerald-200 text-emerald-950 px-2 py-0.5 rounded border border-emerald-300">
-          Build 2026-10-27 (Fresh)
+          Build (Latest Update)
         </span>
       </div>
 

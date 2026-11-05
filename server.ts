@@ -162,20 +162,22 @@ async function startServer() {
         const rootDir = __dirname;
         const targetZip = path.join(rootDir, 'public', 'indianalala_hostinger_build.zip');
 
-        // Always ensure final new version zip is packaged and fresh from latest build
-        try {
-          execSync('node scripts/createHostingerZip.mjs', { cwd: rootDir, stdio: 'inherit' });
-        } catch {
+        // Always ensure targetZip exists; if missing or explicitly requested fresh, package it
+        if (!fs.existsSync(targetZip) || req.query.fresh === '1') {
           try {
-            execSync('python3 scripts/package-hostinger.py', { cwd: rootDir, stdio: 'inherit' });
-          } catch {}
+            execSync('node scripts/createHostingerZip.mjs', { cwd: rootDir, stdio: 'inherit' });
+          } catch {
+            try {
+              execSync('python3 scripts/package-hostinger.py', { cwd: rootDir, stdio: 'inherit' });
+            } catch {}
+          }
         }
 
         if (fs.existsSync(targetZip)) {
           const stat = fs.statSync(targetZip);
           const dateStr = new Date().toISOString().slice(0, 10);
           res.setHeader('Content-Type', 'application/zip');
-          res.setHeader('Content-Disposition', `attachment; filename="indianalala_hostinger_build_${dateStr}.zip"`);
+          res.setHeader('Content-Disposition', `attachment; filename="indianalala_hostinger_build_latest_${dateStr}.zip"`);
           res.setHeader('Content-Length', stat.size);
           res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
           res.setHeader('Pragma', 'no-cache');
