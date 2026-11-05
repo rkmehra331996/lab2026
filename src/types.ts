@@ -10,6 +10,7 @@ export type AppView =
   | 'technician_dashboard'
   | 'pathologist_dashboard'
   | 'expert_dashboard'
+  | 'employee_dashboard'
   | 'seo_post';
 
 export type UserRole =
@@ -24,6 +25,8 @@ export type UserRole =
   | 'pathologist'
   | 'expert'
   | 'expert_member'
+  | 'employee'
+  | 'team_member'
   | null;
 
 export interface RolePermissions {
@@ -40,19 +43,32 @@ export interface RolePermissions {
   canDispatchWhatsApp: boolean;
   canReconcileCash: boolean;
   canManageExpertDashboard?: boolean;
+  canManageTeamMembers?: boolean;
+  canCreateClientLab?: boolean;
+  canViewOwnClients?: boolean;
+  canEditOwnClients?: boolean;
+  canActivateDemo?: boolean;
+  canAutoPublishDemo?: boolean;
+  canFollowUpNotes?: boolean;
+  canDeleteUnpaidEligibleLab?: boolean;
+  canDeletePaidLab?: boolean;
+  canManuallyPublishPaidLab?: boolean;
+  canVerifyPayment?: boolean;
 }
 
 export interface CmsUser {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert';
+  phone?: string;
+  role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert' | 'employee';
   avatar?: string;
   entityName: string;
   labId?: string;
   labName?: string;
   branchId?: string;
   branchName?: string;
+  employeeId?: string;
   permissions?: RolePermissions;
 }
 
@@ -135,6 +151,8 @@ export interface CompanyEmployee {
   bloodGroup?: string;
   emergencyContact?: string;
   notes?: string;
+  password?: string; // Created by Admin for employee login
+  role?: 'team_member' | 'employee';
 }
 
 export interface SeoPost {
@@ -831,6 +849,27 @@ export interface VendorLabDirectoryItem {
   establishedYear?: number;
   reviewsCount?: number;
   features?: string[];
+  // Team Member / Employee Client Management Fields
+  assignedEmployeeId?: string;
+  assignedEmployeeName?: string;
+  assignedEmployeePhone?: string;
+  isPaid?: boolean;
+  paidAt?: string;
+  paidAmount?: number;
+  isDemoActive?: boolean;
+  demoActivatedAt?: string;
+  demoExpiresAt?: string;
+  callNotes?: string;
+  followUpNotes?: Array<{
+    id: string;
+    date: string;
+    authorName: string;
+    status: string;
+    notes: string;
+    nextFollowUpDate?: string;
+  }>;
+  nextFollowUpDate?: string;
+  leadStatus?: 'New Lead' | 'Demo Active' | 'Follow-up' | 'Payment Pending' | 'Paid Customer' | 'Not Interested';
   _updatedAt?: string;
 }
 

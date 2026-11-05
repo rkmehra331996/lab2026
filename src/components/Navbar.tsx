@@ -42,19 +42,26 @@ export const Navbar: React.FC<NavbarProps> = ({
   const getRoleLabel = (role: UserRole) => {
     switch (role) {
       case 'admin':
+      case 'super_admin':
         return 'Super Admin';
       case 'vendor':
+      case 'lab_admin':
         return 'Lab Admin';
       case 'expert':
+      case 'expert_member':
         return 'Expert Member';
       case 'branch_manager':
         return 'Branch Mgr';
       case 'reception':
+      case 'receptionist':
         return 'Reception';
       case 'technician':
         return 'Technician';
       case 'pathologist':
         return 'Pathologist';
+      case 'employee':
+      case 'team_member':
+        return 'Team Member';
       default:
         return role;
     }
@@ -63,12 +70,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   const getDashboardViewForRole = (role: UserRole): AppView => {
     switch (role) {
       case 'admin':
+      case 'super_admin':
         return 'admin_dashboard';
       case 'vendor':
+      case 'lab_admin':
         return 'vendor_dashboard';
       case 'expert':
+      case 'expert_member':
         return 'expert_dashboard';
       case 'reception':
+      case 'receptionist':
         return 'reception_dashboard';
       case 'technician':
         return 'technician_dashboard';
@@ -76,6 +87,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         return 'branch_manager_dashboard';
       case 'pathologist':
         return 'pathologist_dashboard';
+      case 'employee':
+      case 'team_member':
+        return 'employee_dashboard';
       default:
         return 'website';
     }

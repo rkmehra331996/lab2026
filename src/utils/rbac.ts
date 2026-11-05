@@ -439,6 +439,33 @@ export function getPermissionsForRole(role: string): RolePermissions {
         canReconcileCash: true,
         canManageExpertDashboard: true,
       };
+    case 'employee':
+    case 'team_member':
+      return {
+        canAccessSuperAdmin: false,
+        canManageLabSettings: false,
+        canManageBranches: false,
+        canManageStaff: false,
+        canViewAllBranchesData: false,
+        canRegisterPatients: false,
+        canCollectBilling: false,
+        canEnterLabResults: false,
+        canSignAndApproveReports: false,
+        canViewFinancials: false,
+        canDispatchWhatsApp: false,
+        canReconcileCash: false,
+        canManageTeamMembers: false,
+        canCreateClientLab: true,
+        canViewOwnClients: true,
+        canEditOwnClients: true,
+        canActivateDemo: true,
+        canAutoPublishDemo: true,
+        canFollowUpNotes: true,
+        canDeleteUnpaidEligibleLab: true,
+        canDeletePaidLab: false,
+        canManuallyPublishPaidLab: false,
+        canVerifyPayment: false,
+      };
     default:
       return {
         canAccessSuperAdmin: false,
@@ -454,6 +481,17 @@ export function getPermissionsForRole(role: string): RolePermissions {
         canDispatchWhatsApp: false,
         canReconcileCash: false,
         canManageExpertDashboard: false,
+        canManageTeamMembers: false,
+        canCreateClientLab: false,
+        canViewOwnClients: false,
+        canEditOwnClients: false,
+        canActivateDemo: false,
+        canAutoPublishDemo: false,
+        canFollowUpNotes: false,
+        canDeleteUnpaidEligibleLab: false,
+        canDeletePaidLab: false,
+        canManuallyPublishPaidLab: false,
+        canVerifyPayment: false,
       };
   }
 }
@@ -461,6 +499,10 @@ export function getPermissionsForRole(role: string): RolePermissions {
 export function isUserAuthorizedForView(user: CmsUser | null, view: AppView): boolean {
   if (!user) return false;
   const role = user.role;
+
+  if (view === 'employee_dashboard') {
+    return role === 'employee' || role === 'admin';
+  }
 
   if (view === 'admin_dashboard') {
     return role === 'admin';

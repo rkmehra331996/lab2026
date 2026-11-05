@@ -40,7 +40,7 @@ interface CmsAuthModalProps {
   isVendorContext?: boolean;
 }
 
-export type MainAuthRole = 'super_admin' | 'vendor_owner';
+export type MainAuthRole = 'super_admin' | 'vendor_owner' | 'employee';
 export type LabAuthRole = 'auto' | 'vendor' | 'reception' | 'technician' | 'expert';
 
 export const INDIAN_STATES = [
@@ -223,6 +223,8 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
         setMainRole('super_admin');
       } else if (targetLoginRole === 'vendor') {
         setMainRole('vendor_owner');
+      } else if (targetLoginRole === 'employee') {
+        setMainRole('employee');
       }
     }
   }, [isOpen, effectiveIsVendor, targetLoginRole]);
@@ -615,9 +617,12 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
         cleanInput === 'root';
 
       // If user selected SuperAdmin role card, or entered Super Admin master identifier, strictly use 'admin'
-      let targetRole: 'admin' | 'vendor' = mainRole === 'super_admin' ? 'admin' : 'vendor';
+      let targetRole: 'admin' | 'vendor' | 'employee' =
+        mainRole === 'super_admin' ? 'admin' : mainRole === 'employee' ? 'employee' : 'vendor';
       if (mainRole === 'super_admin' || isSuperAdminEmail) {
         targetRole = 'admin';
+      } else if (mainRole === 'employee') {
+        targetRole = 'employee';
       } else if (cleanDigits.length >= 7 || !cleanInput.includes('@')) {
         targetRole = 'vendor';
       }
@@ -939,17 +944,21 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                   <span className="font-bold text-slate-800">LOGIN</span>
                   <span>➔</span>
                   <span className="text-rose-700 font-bold">
-                    {mainRole === 'super_admin' ? 'SuperAdmin (Full Access)' : 'Admin(labowner) (Assigned)'}
+                    {mainRole === 'super_admin'
+                      ? 'SuperAdmin (Full Access)'
+                      : mainRole === 'employee'
+                      ? 'Team Member (Employee Portal)'
+                      : 'Admin(labowner) (Assigned)'}
                   </span>
                 </div>
               </div>
 
-              {/* 2 Role Selection Cards: SuperAdmin vs Admin(labowner) */}
+              {/* 3 Role Selection Cards: SuperAdmin vs Admin(labowner) vs Team Member */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-2">
                   Select Administrative Role:
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {/* Card 1: SuperAdmin (Full Access) */}
                   <button
                     type="button"
@@ -960,17 +969,17 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       setPassword('');
                       setPinCode('');
                     }}
-                    className={`p-3.5 rounded-xl border text-left transition flex flex-col gap-1.5 cursor-pointer ${
+                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
                       mainRole === 'super_admin'
                         ? 'border-rose-500 bg-rose-50/70 shadow-xs ring-1 ring-rose-500'
                         : 'border-slate-200 bg-white hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-800 flex items-center justify-center">
-                        <Crown className="w-4 h-4 text-rose-700" />
+                      <div className="w-7 h-7 rounded-lg bg-rose-100 text-rose-800 flex items-center justify-center">
+                        <Crown className="w-3.5 h-3.5 text-rose-700" />
                       </div>
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-rose-200 text-rose-900">
+                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">
                         Full Access
                       </span>
                     </div>
@@ -978,8 +987,8 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       <div className="font-black text-xs text-slate-900">SuperAdmin</div>
                       <div className="text-[10px] text-rose-700 font-bold">Master Platform Admin</div>
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-snug">
-                      Global access to all diagnostic laboratories, Hostinger MySQL DB, licensing & master directory.
+                    <p className="text-[10px] text-slate-500 leading-snug">
+                      Global access to all labs, licensing, employees & directory.
                     </p>
                   </button>
 
@@ -993,32 +1002,65 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       setPassword('');
                       setPinCode('');
                     }}
-                    className={`p-3.5 rounded-xl border text-left transition flex flex-col gap-1.5 cursor-pointer ${
+                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
                       mainRole === 'vendor_owner'
                         ? 'border-amber-500 bg-amber-50/70 shadow-xs ring-1 ring-amber-500'
                         : 'border-slate-200 bg-white hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center">
-                        <Building className="w-4 h-4 text-amber-700" />
+                      <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center">
+                        <Building className="w-3.5 h-3.5 text-amber-700" />
                       </div>
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-200 text-amber-900">
-                        Assigned Permissions
+                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">
+                        Lab Owner
                       </span>
                     </div>
                     <div>
                       <div className="font-black text-xs text-slate-900">Admin (labowner)</div>
-                      <div className="text-[10px] text-amber-700 font-bold">Laboratory Center Owner</div>
+                      <div className="text-[10px] text-amber-700 font-bold">Lab Center Owner</div>
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-snug">
-                      Assigned access to your specific laboratory: test master, staff credentials, accounts & reports.
+                    <p className="text-[10px] text-slate-500 leading-snug">
+                      Assigned lab access: test master, staff credentials & reports.
+                    </p>
+                  </button>
+
+                  {/* Card 3: Team Member (Consultation Executive) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMainRole('employee');
+                      setLoginError('');
+                      setEmailOrPhone('');
+                      setPassword('');
+                      setPinCode('');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                      mainRole === 'employee'
+                        ? 'border-emerald-500 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-500'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-900 flex items-center justify-center">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                      </div>
+                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900">
+                        Employee
+                      </span>
+                    </div>
+                    <div>
+                      <div className="font-black text-xs text-slate-900">Team Member</div>
+                      <div className="text-[10px] text-emerald-700 font-bold">Sales & Consultation</div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-snug">
+                      Register clients, activate 2-day live demos & track paid sales.
                     </p>
                   </button>
                 </div>
               </div>
 
-              {/* Login Form for SuperAdmin / Admin (labowner) */}
+              {/* Login Form for SuperAdmin / Admin (labowner) / Team Member */}
               <form
                 onSubmit={handleMainWebsiteLogin}
                 className="space-y-3.5 pt-1"
@@ -1033,6 +1075,8 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                     {mainRole === 'super_admin'
                       ? 'Super Admin Master Email ID *'
+                      : mainRole === 'employee'
+                      ? 'Employee Registered Mobile Number (10 Digits) *'
                       : 'Registered Lab Owner Mobile Number (10 Digits) or Email *'}
                   </label>
                   <div className="relative">
@@ -1055,6 +1099,8 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       placeholder={
                         mainRole === 'super_admin'
                           ? 'Super admin email address'
+                          : mainRole === 'employee'
+                          ? 'Enter 10-digit employee mobile number'
                           : '10-digit mobile number or owner email'
                       }
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none placeholder:text-slate-400 font-medium"
@@ -1064,7 +1110,7 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Password *
+                    {mainRole === 'employee' ? 'Employee Password (Created by Admin) *' : 'Password *'}
                   </label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1083,7 +1129,13 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       spellCheck={false}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder={mainRole === 'super_admin' ? 'Enter Super Admin password' : 'Enter password'}
+                      placeholder={
+                        mainRole === 'super_admin'
+                          ? 'Enter Super Admin password'
+                          : mainRole === 'employee'
+                          ? 'Enter password created by Admin'
+                          : 'Enter password'
+                      }
                       className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none placeholder:text-slate-400"
                     />
                     <button

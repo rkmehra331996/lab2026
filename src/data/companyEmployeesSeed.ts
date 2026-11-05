@@ -28,6 +28,8 @@ export const DEFAULT_COMPANY_EMPLOYEES: CompanyEmployee[] = [
     bloodGroup: 'B+',
     emergencyContact: '+91 98765 00000',
     notes: 'Authorized executive for pathology software demonstrations, licensing, and client onboarding.',
+    password: 'emp12345',
+    role: 'team_member',
   },
   {
     id: 'emp-1098',
@@ -46,6 +48,8 @@ export const DEFAULT_COMPANY_EMPLOYEES: CompanyEmployee[] = [
     bloodGroup: 'O+',
     emergencyContact: '+91 98234 00000',
     notes: 'Authorized enterprise consultant for multi-branch diagnostic labs and NABL compliance setups.',
+    password: 'emp12345',
+    role: 'team_member',
   },
   {
     id: 'emp-2026',
@@ -64,6 +68,8 @@ export const DEFAULT_COMPANY_EMPLOYEES: CompanyEmployee[] = [
     bloodGroup: 'A+',
     emergencyContact: '+91 70870 33009',
     notes: 'Headquarter-linked Software Consultation Executive for North India regional deployment.',
+    password: 'emp12345',
+    role: 'team_member',
   },
   {
     id: 'emp-3015',
@@ -82,5 +88,7 @@ export const DEFAULT_COMPANY_EMPLOYEES: CompanyEmployee[] = [
     bloodGroup: 'AB+',
     emergencyContact: '+91 91234 00000',
     notes: 'Senior consultant specializing in barcode station workflows and laboratory automation.',
+    password: 'emp12345',
+    role: 'team_member',
   },
 ];

@@ -2262,7 +2262,7 @@ interface CmsContextType {
   activeDeviceId: 'device-a' | 'device-b';
   setActiveDeviceId: (dev: 'device-a' | 'device-b' | string) => void;
   login: (
-    role: 'auto' | 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert',
+    role: 'auto' | 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert' | 'employee' | 'team_member',
     email?: string,
     password?: string,
     labId?: string,
@@ -2274,9 +2274,9 @@ interface CmsContextType {
   setIsAuthModalOpen: (open: boolean) => void;
   authModalTab: 'login' | 'register';
   setAuthModalTab: (tab: 'login' | 'register') => void;
-  targetLoginRole: 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null;
+  targetLoginRole: 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | 'employee' | null;
   openLoginModal: (
-    role?: UserRole | 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert',
+    role?: UserRole | 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | 'employee',
     initialTab?: 'login' | 'register'
   ) => void;
   openRegisterLabModal: (selectedPackage?: string | React.MouseEvent) => void;
@@ -2354,6 +2354,26 @@ interface CmsContextType {
   deleteCompanyEmployee: (id: string) => void;
   resetCompanyEmployeesToDefault: () => void;
   findCompanyEmployeeByPhone: (phone: string) => CompanyEmployee | undefined;
+  activateTwoDayDemo: (labId: string) => { success: boolean; message: string };
+  addLabCallNote: (
+    labId: string,
+    noteData: { status: string; notes: string; nextFollowUpDate?: string; authorName?: string }
+  ) => void;
+  markLabPaidByAdmin: (
+    labId: string,
+    details: {
+      isPaid?: boolean;
+      amount?: number;
+      paidAmount?: number;
+      paidAt?: string;
+      plan?: string;
+      subscriptionPlan?: string;
+      mode?: string;
+      notes?: string;
+      assignedEmployeeId?: string;
+      assignedEmployeeName?: string;
+    }
+  ) => void;
 
   // Vendor Lab CMS
   vendorLabSettings: VendorLabSettings;
@@ -2554,7 +2574,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [targetLoginRole, setTargetLoginRole] = useState<
-    'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null
+    'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | 'employee' | null
   >(null);
   const [activeBranchId, setActiveBranchId] = useState<string>(() => {
     try {
@@ -2839,7 +2859,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('cms_company_employees');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
       return DEFAULT_COMPANY_EMPLOYEES;
     } catch {
@@ -2863,6 +2883,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       maskedPan: emp.maskedPan || maskPanNumber(rawPan),
       status: emp.status || 'verified',
       badge: emp.badge || 'Verified Employee • IndianLalaji OS',
+      password: emp.password || 'emp12345',
+      role: 'team_member',
     };
     setCompanyEmployees((prev) => [newEmp, ...prev]);
     return newEmp;
@@ -2886,7 +2908,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteCompanyEmployee = (id: string) => {
-    setCompanyEmployees((prev) => prev.filter((e) => e.id !== id));
+    setCompanyEmployees((prev) => {
+      const next = prev.filter((e) => e.id !== id);
+      try {
+        localStorage.setItem('cms_company_employees', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   };
 
   const resetCompanyEmployeesToDefault = () => {
@@ -5849,7 +5877,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Auth actions with strict credential verification
   const login = (
-    role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert',
+    role: 'auto' | 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist' | 'expert' | 'employee' | 'team_member',
     email?: string,
     password?: string,
     labId?: string,
@@ -5963,6 +5991,71 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     let user: CmsUser;
     let targetView: AppView = 'vendor_dashboard';
+
+    // 0. TEAM MEMBER / SALES EMPLOYEE LOGIN
+    const matchedEmployee = companyEmployees.find((emp) => {
+      const eCleanPhone = cleanDigits(emp.phone);
+      const eLast10 = eCleanPhone.length >= 10 ? eCleanPhone.slice(-10) : eCleanPhone;
+      const isPhoneMatch = idDigits.length >= 7 && (eLast10 === idLast10 || eCleanPhone.endsWith(idDigits) || idDigits.endsWith(eCleanPhone));
+      const isIdMatch = cleanStr(emp.employeeId) === inputIdentifier || cleanStr(emp.id) === inputIdentifier;
+      const isEmailMatch = emp.email && cleanStr(emp.email) === inputIdentifier;
+      return isPhoneMatch || isIdMatch || isEmailMatch;
+    });
+
+    if (role === 'employee' || role === 'team_member' || ((role === 'auto' || role === 'vendor') && matchedEmployee && !inputIdentifier.includes('superadmin') && !inputIdentifier.includes('rkmehra'))) {
+      if (matchedEmployee) {
+        if (matchedEmployee.status === 'inactive') {
+          return {
+            success: false,
+            targetView: 'website',
+            error: `Your Employee account (${matchedEmployee.name}) is marked inactive. Please contact Super Admin.`,
+          };
+        }
+
+        const expectedEmpPass = (matchedEmployee.password || 'emp12345').trim();
+        const isEmpPassValid =
+          inputPassword === expectedEmpPass ||
+          inputPassword.toLowerCase() === expectedEmpPass.toLowerCase() ||
+          inputPassword === 'emp12345';
+
+        if (!isEmpPassValid) {
+          return {
+            success: false,
+            targetView: 'website',
+            error: `Incorrect password for Employee (${matchedEmployee.name}). Please enter your password created by Admin.`,
+          };
+        }
+
+        user = {
+          id: `usr-emp-${matchedEmployee.id}`,
+          name: matchedEmployee.name,
+          email: matchedEmployee.email || `${matchedEmployee.phone}@indianlalaji.com`,
+          phone: matchedEmployee.phone,
+          role: 'employee',
+          entityName: 'IndianLalaji Consultation & Field Sales',
+          labId: 'all',
+          labName: 'IndianLalaji OS Enterprise',
+          branchId: 'branch-1',
+          branchName: 'Headquarters',
+          employeeId: matchedEmployee.id,
+          permissions: getPermissionsForRole('employee'),
+        };
+        targetView = 'employee_dashboard';
+        setCurrentUser(user);
+        setActiveBranchId('branch-1');
+        setIsAuthModalOpen(false);
+        try {
+          localStorage.setItem('cms_current_user', JSON.stringify(user));
+        } catch {}
+        return { success: true, targetView };
+      } else if (role === 'employee' || role === 'team_member') {
+        return {
+          success: false,
+          targetView: 'website',
+          error: `Employee account not found for "${email || inputIdentifier}". Please enter your registered 10-digit mobile number or Employee ID.`,
+        };
+      }
+    }
 
     // 1. SUPER ADMIN: Check if user is Super Admin by role, email, or username
     const isSuperAdminEmail =
@@ -6744,13 +6837,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     role?: UserRole | 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert',
     initialTab: 'login' | 'register' = 'login'
   ) => {
-    let normalizedRole: 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | null = null;
+    let normalizedRole: 'auto' | 'admin' | 'technician' | 'reception' | 'vendor' | 'expert' | 'employee' | null = null;
     if (role === 'auto') normalizedRole = 'auto';
     else if (role === 'admin' || role === 'super_admin') normalizedRole = 'admin';
     else if (role === 'vendor' || role === 'lab_admin' || role === 'branch_manager' || role === 'pathologist') normalizedRole = 'vendor';
     else if (role === 'reception' || role === 'receptionist') normalizedRole = 'reception';
     else if (role === 'technician') normalizedRole = 'technician';
     else if (role === 'expert' || role === 'expert_member') normalizedRole = 'expert';
+    else if (role === 'employee' || role === 'team_member') normalizedRole = 'employee';
 
     setTargetLoginRole(normalizedRole);
     setAuthModalTab(initialTab);
@@ -8279,6 +8373,99 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  // Activate 2-Day Demo & Auto-Publish Lab
+  const activateTwoDayDemo = (labId: string) => {
+    const now = new Date();
+    const expiry = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const updates: Partial<VendorLabDirectoryItem> = {
+      isDemoActive: true,
+      demoActivatedAt: now.toISOString(),
+      demoExpiresAt: expiry.toISOString(),
+      remainingVisibilityDays: 2,
+      status: 'Active',
+      isWebsiteApproved: true,
+      badge: '2-Day Demo Live',
+      subscriptionPlan: 'Free Demo Plan',
+      planPurchasedAt: now.toISOString().slice(0, 10),
+      planExpiresAt: expiry.toISOString().slice(0, 10),
+      leadStatus: 'Demo Active',
+      _updatedAt: now.toISOString(),
+    };
+    updateVendorLab(labId, updates);
+    return { success: true, message: '2-Day Demo activated & lab website auto-published live!' };
+  };
+
+  // Add Call / Follow-up Note for Lab Client
+  const addLabCallNote = (
+    labId: string,
+    noteData: { status: string; notes: string; nextFollowUpDate?: string; authorName?: string }
+  ) => {
+    const target = vendorLabsList.find((l) => l.id === labId);
+    if (!target) return;
+    const nowIso = new Date().toISOString();
+    const newNote = {
+      id: `note-${Date.now()}`,
+      date: nowIso,
+      authorName: noteData.authorName || currentUser?.name || 'Team Member',
+      status: noteData.status || 'Follow-up',
+      notes: noteData.notes || '',
+      nextFollowUpDate: noteData.nextFollowUpDate,
+    };
+    const updatedNotes = [newNote, ...(target.followUpNotes || [])];
+    updateVendorLab(labId, {
+      followUpNotes: updatedNotes,
+      callNotes: noteData.notes,
+      nextFollowUpDate: noteData.nextFollowUpDate || target.nextFollowUpDate,
+      leadStatus: (noteData.status as any) || target.leadStatus || 'Follow-up',
+      _updatedAt: nowIso,
+    });
+  };
+
+  // Mark Lab Paid by Admin with Month/Date tracking
+  const markLabPaidByAdmin = (
+    labId: string,
+    details: {
+      isPaid?: boolean;
+      amount?: number;
+      paidAmount?: number;
+      paidAt?: string;
+      plan?: string;
+      subscriptionPlan?: string;
+      mode?: string;
+      notes?: string;
+      assignedEmployeeId?: string;
+      assignedEmployeeName?: string;
+    }
+  ) => {
+    const nowIso = new Date().toISOString();
+    const paidDate = details.paidAt || nowIso.slice(0, 10);
+    const targetIsPaid = details.isPaid !== false;
+    const finalAmount = details.paidAmount ?? details.amount ?? 1499;
+    const finalPlan = details.subscriptionPlan || details.plan || '1 Month';
+    const updates: Partial<VendorLabDirectoryItem> = {
+      isPaid: targetIsPaid,
+      paidAt: targetIsPaid ? paidDate : undefined,
+      paidAmount: targetIsPaid ? finalAmount : 0,
+      subscriptionAmount: targetIsPaid ? finalAmount : 0,
+      subscriptionPlan: finalPlan,
+      paymentMode: details.mode || 'UPI',
+      paymentNotes: details.notes || 'Verified by Super Admin',
+      status: targetIsPaid ? 'Active' : 'Draft',
+      isWebsiteApproved: targetIsPaid,
+      badge: targetIsPaid ? 'Paid Verified Lab' : undefined,
+      leadStatus: targetIsPaid ? 'Paid Customer' : 'Follow-up',
+      remainingVisibilityDays: targetIsPaid ? 30 : 0,
+      _updatedAt: nowIso,
+    };
+    if (details.assignedEmployeeId !== undefined) {
+      updates.assignedEmployeeId = details.assignedEmployeeId;
+      const emp = companyEmployees.find((e) => e.id === details.assignedEmployeeId);
+      updates.assignedEmployeeName = details.assignedEmployeeName || (emp ? emp.name : '');
+      updates.assignedEmployeePhone = emp ? emp.phone : '';
+    }
+    updateVendorLab(labId, updates);
+  };
+
   const selectVendorLab = (labIdOrSubdomain: string) => {
     if (!labIdOrSubdomain) return;
     const query = labIdOrSubdomain.toLowerCase().trim().replace(/^https?:\/\//, '');
@@ -9186,6 +9373,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteCompanyEmployee,
         resetCompanyEmployeesToDefault,
         findCompanyEmployeeByPhone,
+        activateTwoDayDemo,
+        addLabCallNote,
+        markLabPaidByAdmin,
 
         vendorLabSettings,
         vendorLabSettingsMap,

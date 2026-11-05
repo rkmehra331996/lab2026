@@ -28,6 +28,7 @@ import { LabSoftwareApp } from './components/LabSoftwareApp';
 import { PatientPortalApp } from './components/PatientPortalApp';
 import { LabVendorWebsite } from './components/LabVendorWebsite';
 import { CompanyAdminDashboard } from './components/CompanyAdminDashboard';
+import { EmployeeDashboard } from './components/EmployeeDashboard';
 import { LabVendorDashboard } from './components/LabVendorDashboard';
 import { ReceptionEntryDashboard } from './components/ReceptionEntryDashboard';
 import { TechnicianDepartmentDashboard } from './components/technician/TechnicianDepartmentDashboard';
@@ -80,6 +81,7 @@ export default function App() {
         [
           'vendor_dashboard',
           'admin_dashboard',
+          'employee_dashboard',
           'reception_dashboard',
           'technician_dashboard',
           'branch_manager_dashboard',
@@ -437,6 +439,7 @@ export default function App() {
     const isDashboardOrPost = [
       'vendor_dashboard',
       'admin_dashboard',
+      'employee_dashboard',
       'technician_dashboard',
       'reception_dashboard',
       'pathologist_dashboard',
@@ -755,6 +758,56 @@ export default function App() {
           fallbackMessage="Super Admin dashboard load karte waqt ek error aayi. Please Retry karein."
         >
           <CompanyAdminDashboard
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </ErrorBoundary>
+        <CmsAuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onNavigateView={(v) => {
+            setCurrentView(v);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 2b. Dedicated Experience: IndianLalaji Team Member / Employee Dashboard
+  if (currentView === 'employee_dashboard') {
+    if (!isAuthorizedForView('employee_dashboard')) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+          <DashboardAuthGuard
+            view="employee_dashboard"
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+          <CmsAuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onNavigateView={(v) => {
+              setCurrentView(v);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+        <ErrorBoundary
+          fallbackTitle="Team Member Dashboard"
+          fallbackMessage="Team Member dashboard load karte waqt ek error aayi. Please Retry karein."
+        >
+          <EmployeeDashboard
+            onBackToWebsite={handleBackToWebsite}
             onNavigateView={(view) => {
               setCurrentView(view);
               window.scrollTo({ top: 0, behavior: 'smooth' });

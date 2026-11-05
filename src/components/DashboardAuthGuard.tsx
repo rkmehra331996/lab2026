@@ -66,6 +66,16 @@ export const DashboardAuthGuard: React.FC<DashboardAuthGuardProps> = ({
           desc: 'This clinical workstation is restricted to qualified Pathologists (MD / DNB) for reviewing analyzer findings, flagging critical panic values, and signing NABL reports.',
           hint: 'Note: Requires digital signature authorization and clinical verification rights.',
         };
+      case 'employee_dashboard':
+        return {
+          role: 'employee' as const,
+          title: 'Team Member & Field Consultant Dashboard',
+          hindiTitle: 'टीम सदस्य एवं फील्ड कंसल्टेंट पोर्टल',
+          badge: '💼 Team Member Access Only',
+          badgeColor: 'bg-indigo-100 text-indigo-900 border-indigo-300',
+          desc: 'This workspace is restricted to IndianLalaji Team Members for client lab creation, 2-day live demo activations, call notes, and monthly paid conversions tracking.',
+          hint: 'Note: Log in with your Mobile Number and Admin-issued Password (एडमिन द्वारा दिया गया मोबाइल नंबर और पासवर्ड डालें).',
+        };
       case 'admin_dashboard':
       default:
         return {
