@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Menu, X, Building2, KeyRound, Globe, LogOut, UserCheck, LayoutDashboard, FileText, Search } from 'lucide-react';
+import { Menu, X, Building2, KeyRound, Globe, LogOut, UserCheck, LayoutDashboard, FileText, Search, ShieldCheck } from 'lucide-react';
 import { AppView, Language, UserRole } from '../types';
 import { useCms } from '../context/CmsContext';
 import { PWAInstallButton } from './PWAInstallButton';
+import { VerifyEmployeeModal } from './VerifyEmployeeModal';
 
 interface NavbarProps {
   onOpenDemo?: () => void;
@@ -20,6 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectLanguage,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isVerifyEmployeeOpen, setIsVerifyEmployeeOpen] = useState(false);
   const {
     currentUser,
     logout,
@@ -158,6 +160,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="nav-link-pricing"
             >
               Pricing
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsVerifyEmployeeOpen(true)}
+              className="hover:text-[#123B6D] transition cursor-pointer text-slate-700 hover:font-bold whitespace-nowrap inline-flex items-center gap-1.5"
+              id="nav-link-verify-employee"
+              title="Official Employee Verification"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Verify Employee</span>
             </button>
 
             <button
@@ -319,6 +332,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                 7087033009
               </span>
             </button>
+
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setIsVerifyEmployeeOpen(true);
+              }}
+              className="text-left py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold flex items-center justify-between"
+              id="nav-mobile-verify-employee"
+            >
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Verify Employee</span>
+              </span>
+              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                Official
+              </span>
+            </button>
           </div>
 
           <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
@@ -374,6 +404,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       )}
+
+      {/* Official Employee Verification Popup */}
+      <VerifyEmployeeModal
+        isOpen={isVerifyEmployeeOpen}
+        onClose={() => setIsVerifyEmployeeOpen(false)}
+      />
     </nav>
   );
 };

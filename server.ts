@@ -707,6 +707,7 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
       contact_submissions: store.contact_submissions || store.contactSubmissions || [],
       pricing_plans: store.pricing_plans || store.pricingPlans || [],
       plan_requests: store.plan_requests || store.planRequests || [],
+      company_employees: store.company_employees || store.companyEmployees || [],
       // Also provide camelCase aliases
       receptionEntries: store.reception_entries || store.receptionEntries || [],
       reports: store.lab_reports || store.reports || [],
@@ -721,6 +722,7 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
       companySettings: store.company_settings || store.companySettings || null,
       portalSections: store.portal_sections || store.portalSections || null,
       seoSettings: store.seo_settings || store.seoSettings || null,
+      companyEmployees: store.company_employees || store.companyEmployees || [],
     };
 
     function normalizeTenantIdServer(id: any): string {
@@ -824,6 +826,10 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
                 ...(data.nablAccreditationNo !== undefined ? { nablCode: data.nablAccreditationNo } : {}),
                 ...(data.nablNumber !== undefined ? { nablCode: data.nablNumber } : {}),
                 ...(data.isDomainFeatureEnabled !== undefined ? { isDomainFeatureEnabled: Boolean(data.isDomainFeatureEnabled) } : {}),
+                ...(data.ownerPassword !== undefined ? { password: data.ownerPassword } : {}),
+                ...(data.password !== undefined ? { password: data.password } : {}),
+                ...(data.ownerPin !== undefined ? { pin: data.ownerPin } : {}),
+                ...(data.pin !== undefined ? { pin: data.pin } : {}),
                 _updatedAt: new Date().toISOString(),
               };
             }
@@ -877,6 +883,8 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
         pricingPlans: ['pricing_plans', 'pricingPlans'],
         plan_requests: ['plan_requests', 'planRequests'],
         planRequests: ['plan_requests', 'planRequests'],
+        company_employees: ['company_employees', 'companyEmployees'],
+        companyEmployees: ['company_employees', 'companyEmployees'],
       };
 
       const targetKeys = ALIAS_MAP[collection] || [collection];
@@ -978,6 +986,10 @@ Sitemap: https://indianlalaji.com/sitemap.xml`;
             ...(data.planExpiresAt !== undefined ? { planExpiresAt: data.planExpiresAt } : {}),
             ...(data.remainingVisibilityDays !== undefined ? { remainingVisibilityDays: data.remainingVisibilityDays } : {}),
             ...(data.isDomainFeatureEnabled !== undefined ? { isDomainFeatureEnabled: Boolean(data.isDomainFeatureEnabled) } : {}),
+            ...(data.password !== undefined ? { ownerPassword: data.password } : {}),
+            ...(data.ownerPassword !== undefined ? { ownerPassword: data.ownerPassword } : {}),
+            ...(data.pin !== undefined ? { ownerPin: data.pin } : {}),
+            ...(data.ownerPin !== undefined ? { ownerPin: data.ownerPin } : {}),
             _updatedAt: new Date().toISOString(),
           };
           store.lab_settings[settingsKey] = nextSet;

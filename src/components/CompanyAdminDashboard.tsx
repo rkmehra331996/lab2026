@@ -58,6 +58,7 @@ import { WebsiteBackupTab } from './admin/WebsiteBackupTab';
 import { VendorPlanRenewTab } from './admin/VendorPlanRenewTab';
 import { SeoSettingsTab } from './admin/SeoSettingsTab';
 import { SeoPostsManagement } from './admin/SeoPostsManagement';
+import { EmployeeManagementTab } from './admin/EmployeeManagementTab';
 import { forceFreshReload } from '../utils/cacheManager';
 import { IndianLalajiMarquee } from './IndianLalajiMarquee';
 import { SyncNowButton } from './SyncNowButton';
@@ -88,6 +89,7 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     updateLabManagementFeature,
     deleteLabManagementFeature,
     resetLabManagementFeatures,
+    companyEmployees,
     vendorLabsList,
     superAdminTenantScope,
     setSuperAdminTenantScope,
@@ -109,10 +111,10 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     selectVendorLab,
   } = useCms();
 
-  type SuperAdminMenu = 'home' | 'labs' | 'clients' | 'drafts' | 'backup' | 'domain_requests' | 'plans' | 'seo' | 'seo_posts';
+  type SuperAdminMenu = 'home' | 'labs' | 'clients' | 'drafts' | 'backup' | 'domain_requests' | 'plans' | 'seo' | 'seo_posts' | 'employees';
   const [activeMenu, setActiveMenu] = useState<SuperAdminMenu>('home');
 
-  type HomeSubTab = 'pricing' | 'upi_qr' | 'backup' | 'cloud_sync' | 'cache' | 'settings' | 'features' | 'seo';
+  type HomeSubTab = 'pricing' | 'upi_qr' | 'backup' | 'cloud_sync' | 'cache' | 'settings' | 'features' | 'seo' | 'employees';
   const [homeSubTab, setHomeSubTab] = useState<HomeSubTab>('pricing');
   const activeTab = homeSubTab;
 
@@ -758,6 +760,31 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 Blog
               </span>
             </button>
+
+            {/* Employee Verification Directory Tab */}
+            <button
+              type="button"
+              id="menu-btn-employees"
+              onClick={() => setActiveMenu('employees')}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shrink-0 relative ${
+                activeMenu === 'employees'
+                  ? 'bg-amber-400 text-slate-950 font-bold shadow-2xs'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+              }`}
+              title="Employee Verification Directory (Software Consultation Executives)"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Employees</span>
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden sm:inline-block leading-none ${
+                  activeMenu === 'employees'
+                    ? 'bg-slate-900 text-amber-300'
+                    : 'bg-emerald-500/30 text-emerald-200'
+                }`}
+              >
+                {companyEmployees.length}
+              </span>
+            </button>
           </nav>
 
           {/* Right Header Actions: Refresh Data + Visit Website and Logout */}
@@ -1122,6 +1149,22 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 <span>Complete Lab Features</span>
                 <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200/80 text-slate-600">
                   {labManagementFeatures?.length || 18}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHomeSubTab('employees')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                  homeSubTab === 'employees'
+                    ? 'bg-white text-slate-950 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Verify Employees</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200/80 text-slate-600">
+                  {companyEmployees.length}
                 </span>
               </button>
             </div>
@@ -2272,6 +2315,13 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
           </div>
         )}
 
+        {/* EMPLOYEE VERIFICATION DIRECTORY (SOFTWARE CONSULTATION EXECUTIVES) */}
+        {activeTab === 'employees' && (
+          <div className="animate-in fade-in-50 duration-200">
+            <EmployeeManagementTab />
+          </div>
+        )}
+
         {/* 4. LIVE CLOUD DB & SYNC INSPECTOR */}
         {activeTab === 'cloud_sync' && (
           <div className="space-y-6 animate-in fade-in-50 duration-200">
@@ -3167,6 +3217,13 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
             }
           }}
         />
+      </div>
+    )}
+
+    {/* VIEW 9: SUPER ADMIN EMPLOYEE DIRECTORY (Software Consultation Executives) */}
+    {activeMenu === 'employees' && (
+      <div className="animate-in fade-in-50 duration-200">
+        <EmployeeManagementTab />
       </div>
     )}
   </div>

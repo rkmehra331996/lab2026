@@ -35,6 +35,7 @@ export const VendorAdminSettingsTab: React.FC<VendorAdminSettingsTabProps> = ({
     vendorLabsList,
     currentUser,
     activeTenantId,
+    selectedVendorLabId,
     openCacheModal,
     storageMetrics,
     cleanStorageCache,
@@ -56,9 +57,13 @@ export const VendorAdminSettingsTab: React.FC<VendorAdminSettingsTabProps> = ({
 
   // Determine current active lab
   const currentLabId =
-    vendorLabSettings?.labId ||
-    (currentUser?.role !== 'admin' ? currentUser?.labId : 'lab-apex') ||
-    'lab-apex';
+    (selectedVendorLabId && selectedVendorLabId !== 'all')
+      ? selectedVendorLabId
+      : (activeTenantId && activeTenantId !== 'all')
+      ? activeTenantId
+      : vendorLabSettings?.labId ||
+        (currentUser?.role !== 'admin' ? currentUser?.labId : 'lab-apex') ||
+        'lab-apex';
 
   const currentLab =
     vendorLabsList.find((l) => l.id === currentLabId) ||
@@ -85,15 +90,19 @@ export const VendorAdminSettingsTab: React.FC<VendorAdminSettingsTabProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [successToast, setSuccessToast] = useState('');
 
-  // Sync if settings change externally
+  // Sync only when switching labs or initially loading, not while typing
+  const lastLabIdRef = React.useRef(currentLabId);
   useEffect(() => {
-    const pass = vendorLabSettings.ownerPassword || currentLab?.password || 'owner123';
-    const pin = vendorLabSettings.ownerPin || currentLab?.pin || '123456';
-    setNewPassword(pass);
-    setConfirmPassword(pass);
-    setNewPin(pin);
-    setConfirmPin(pin);
-  }, [vendorLabSettings.ownerPassword, vendorLabSettings.ownerPin, currentLab]);
+    if (lastLabIdRef.current !== currentLabId) {
+      lastLabIdRef.current = currentLabId;
+      const pass = vendorLabSettings.ownerPassword || currentLab?.password || 'owner123';
+      const pin = vendorLabSettings.ownerPin || currentLab?.pin || '123456';
+      setNewPassword(pass);
+      setConfirmPassword(pass);
+      setNewPin(pin);
+      setConfirmPin(pin);
+    }
+  }, [currentLabId, vendorLabSettings.ownerPassword, vendorLabSettings.ownerPin, currentLab]);
 
   // Password Strength calculation
   const calculatePasswordStrength = (pwd: string) => {
@@ -168,9 +177,14 @@ export const VendorAdminSettingsTab: React.FC<VendorAdminSettingsTabProps> = ({
     const cleanPass = newPassword.trim();
     updateVendorLabCredentials(currentLabId, cleanPass, cleanPin);
     updateVendorLabSettings({
+      labId: currentLabId,
       ownerPassword: cleanPass,
       ownerPin: cleanPin,
     });
+    setNewPassword(cleanPass);
+    setConfirmPassword(cleanPass);
+    setNewPin(cleanPin);
+    setConfirmPin(cleanPin);
 
     setSuccessToast(`Admin PIN Code & Password updated successfully! New password: "${cleanPass}" | PIN: "${cleanPin}"`);
     setTimeout(() => setSuccessToast(''), 4500);

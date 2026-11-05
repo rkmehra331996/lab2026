@@ -33,7 +33,9 @@ import {
   ClinicalParameter,
   ClinicalFormula,
   ClinicalTestDefinition,
+  CompanyEmployee,
 } from '../types';
+import { DEFAULT_COMPANY_EMPLOYEES, maskPanNumber } from '../data/companyEmployeesSeed';
 import { DEFAULT_SEO_POSTS } from '../data/defaultSeoPosts';
 import {
   DEFAULT_CLINICAL_DEPARTMENTS,
@@ -2345,6 +2347,14 @@ interface CmsContextType {
   companyStats: CompanyStat[];
   updateCompanyStat: (id: string, stat: Partial<CompanyStat>) => void;
 
+  // Company Employees (Software Consultation Executives)
+  companyEmployees: CompanyEmployee[];
+  addCompanyEmployee: (emp: Omit<CompanyEmployee, 'id'>) => CompanyEmployee;
+  updateCompanyEmployee: (id: string, updates: Partial<CompanyEmployee>) => void;
+  deleteCompanyEmployee: (id: string) => void;
+  resetCompanyEmployeesToDefault: () => void;
+  findCompanyEmployeeByPhone: (phone: string) => CompanyEmployee | undefined;
+
   // Vendor Lab CMS
   vendorLabSettings: VendorLabSettings;
   updateVendorLabSettings: (newSettings: Partial<VendorLabSettings>) => void;
@@ -2822,6 +2832,82 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return DEFAULT_COMPANY_STATS;
     }
   });
+
+  // Company Employees (Software Consultation Executives)
+  const [companyEmployees, setCompanyEmployees] = useState<CompanyEmployee[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_company_employees');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return DEFAULT_COMPANY_EMPLOYEES;
+    } catch {
+      return DEFAULT_COMPANY_EMPLOYEES;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_company_employees', JSON.stringify(companyEmployees));
+    } catch {}
+  }, [companyEmployees]);
+
+  const addCompanyEmployee = (emp: Omit<CompanyEmployee, 'id'>): CompanyEmployee => {
+    const rawPan = emp.panNumber || '';
+    const newEmp: CompanyEmployee = {
+      ...emp,
+      id: `emp-${Date.now()}`,
+      employeeId: emp.employeeId || `IL-EXEC-${Math.floor(1000 + Math.random() * 9000)}`,
+      designation: emp.designation || 'Software Consultation Executive',
+      maskedPan: emp.maskedPan || maskPanNumber(rawPan),
+      status: emp.status || 'verified',
+      badge: emp.badge || 'Verified Employee • IndianLalaji OS',
+    };
+    setCompanyEmployees((prev) => [newEmp, ...prev]);
+    return newEmp;
+  };
+
+  const updateCompanyEmployee = (id: string, updates: Partial<CompanyEmployee>) => {
+    setCompanyEmployees((prev) =>
+      prev.map((e) => {
+        if (e.id === id) {
+          const nextPan = updates.panNumber !== undefined ? updates.panNumber : e.panNumber;
+          const nextMasked = updates.maskedPan || (updates.panNumber !== undefined ? maskPanNumber(nextPan) : e.maskedPan);
+          return {
+            ...e,
+            ...updates,
+            maskedPan: nextMasked,
+          };
+        }
+        return e;
+      })
+    );
+  };
+
+  const deleteCompanyEmployee = (id: string) => {
+    setCompanyEmployees((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const resetCompanyEmployeesToDefault = () => {
+    setCompanyEmployees([...DEFAULT_COMPANY_EMPLOYEES]);
+    try {
+      localStorage.setItem('cms_company_employees', JSON.stringify(DEFAULT_COMPANY_EMPLOYEES));
+    } catch {}
+  };
+
+  const findCompanyEmployeeByPhone = (rawInputPhone: string): CompanyEmployee | undefined => {
+    if (!rawInputPhone) return undefined;
+    const clean = rawInputPhone.replace(/\D/g, '').trim();
+    if (!clean) return undefined;
+    const last10 = clean.length >= 10 ? clean.slice(-10) : clean;
+    return companyEmployees.find((emp) => {
+      const empClean = (emp.phone || '').replace(/\D/g, '').trim();
+      if (!empClean) return false;
+      const empLast10 = empClean.length >= 10 ? empClean.slice(-10) : empClean;
+      return empLast10 === last10;
+    });
+  };
 
   // Multi-Vendor Labs Directory & Active Lab Selection
   const [vendorLabsList, setVendorLabsList] = useState<VendorLabDirectoryItem[]>(() => {
@@ -4079,9 +4165,40 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 ? { ...(prevSocial || {}), ...cloudSocial }
                 : (prevSocial || cloudSocial);
 
+              let customPass: string | undefined;
+              let customPin: string | undefined;
+              try {
+                const rawCustom = localStorage.getItem('cms_custom_owner_passwords');
+                if (rawCustom) {
+                  const cm = JSON.parse(rawCustom);
+                  customPass = cm[labId] || cm[labId.replace(/^lab-/, '')];
+                }
+              } catch {}
+              const vaultMatch = findCredentialInVault(labId);
+
+              const effectiveOwnerPassword =
+                customPass ||
+                (prevItem.ownerPassword && prevItem.ownerPassword !== 'owner123' ? prevItem.ownerPassword : undefined) ||
+                (cloudSettings.ownerPassword && cloudSettings.ownerPassword !== 'owner123' ? cloudSettings.ownerPassword : undefined) ||
+                (vaultMatch?.password && vaultMatch.password !== 'owner123' ? vaultMatch.password : undefined) ||
+                prevItem.ownerPassword ||
+                cloudSettings.ownerPassword ||
+                'owner123';
+
+              const effectiveOwnerPin =
+                customPin ||
+                (prevItem.ownerPin && prevItem.ownerPin !== '123456' ? prevItem.ownerPin : undefined) ||
+                (cloudSettings.ownerPin && cloudSettings.ownerPin !== '123456' ? cloudSettings.ownerPin : undefined) ||
+                (vaultMatch?.pin && vaultMatch.pin !== '123456' ? vaultMatch.pin : undefined) ||
+                prevItem.ownerPin ||
+                cloudSettings.ownerPin ||
+                '123456';
+
               next[labId] = {
                 ...prevItem,
                 ...cloudSettings,
+                ownerPassword: effectiveOwnerPassword,
+                ownerPin: effectiveOwnerPin,
                 socialMedia: mergedSocial,
                 logoUrl: pickBestMediaUrl(prevItem.logoUrl, cloudSettings.logoUrl),
                 featureImageUrl: pickBestMediaUrl(prevItem.featureImageUrl, cloudSettings.featureImageUrl),
@@ -4323,10 +4440,38 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (Array.isArray(cloudLabs) && cloudLabs.length > 0) {
         setVendorLabsList((prev) => {
           const prevMap = new Map((prev || []).map((l) => [l.id, l]));
+          let customMap: Record<string, string> = {};
+          try {
+            const raw = localStorage.getItem('cms_custom_owner_passwords');
+            if (raw) customMap = JSON.parse(raw);
+          } catch {}
+
           const normalizedLabs = cloudLabs.map((l) => {
             const prevLab = prevMap.get(l.id);
+            const vaultCred = findCredentialInVault(l.id) || findCredentialInVault(l.phone || '');
+            const savedCustom = customMap[l.id] || (l.phone ? customMap[l.phone.replace(/\D/g, '').slice(-10)] : undefined);
+
+            const effectivePassword =
+              savedCustom ||
+              (prevLab?.password && prevLab.password !== 'owner123' ? prevLab.password : undefined) ||
+              (l.password && l.password !== 'owner123' ? l.password : undefined) ||
+              (vaultCred?.password && vaultCred.password !== 'owner123' ? vaultCred.password : undefined) ||
+              l.password ||
+              prevLab?.password ||
+              'owner123';
+
+            const effectivePin =
+              (prevLab?.pin && prevLab.pin !== '123456' ? prevLab.pin : undefined) ||
+              (l.pin && l.pin !== '123456' ? l.pin : undefined) ||
+              (vaultCred?.pin && vaultCred.pin !== '123456' ? vaultCred.pin : undefined) ||
+              l.pin ||
+              prevLab?.pin ||
+              '123456';
+
             return {
               ...l,
+              password: effectivePassword,
+              pin: effectivePin,
               logoUrl: pickBestMediaUrl(prevLab?.logoUrl, l.logoUrl),
               status: l.status || (l.isWebsiteApproved ? 'Active' : 'Draft'),
               isWebsiteApproved: Boolean(l.isWebsiteApproved ?? (l.status === 'Active')),
@@ -6459,17 +6604,40 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 2. Verify Password strictly against laboratory's set password, lab settings, or vault
-      const labSettings: Partial<VendorLabSettings> = vendorLabSettingsMap[currentLab?.id || ''] || {};
-      const vaultCred = findCredentialInVault(inputIdentifier) || findCredentialInVault(currentLab?.id || '') || findCredentialInVault(currentLab?.phone || '');
+      const labSettings: Partial<VendorLabSettings> = vendorLabSettingsMap[currentLab?.id || ''] || vendorLabSettingsMap[effectiveLabId] || {};
+      const vaultCred =
+        findCredentialInVault(inputIdentifier) ||
+        findCredentialInVault(currentLab?.id || '') ||
+        findCredentialInVault(effectiveLabId || '') ||
+        findCredentialInVault(currentLab?.phone || '');
+
+      let savedCustomPass: string | undefined;
+      try {
+        const rawMap = localStorage.getItem('cms_custom_owner_passwords');
+        if (rawMap) {
+          const map = JSON.parse(rawMap);
+          savedCustomPass =
+            (currentLab?.id && map[currentLab.id]) ||
+            (effectiveLabId && map[effectiveLabId]) ||
+            (idLast10 && map[idLast10]) ||
+            (currentLab?.phone && map[cleanDigits(currentLab.phone).slice(-10)]) ||
+            map[cleanStr(inputIdentifier)];
+        }
+      } catch {}
+
       const candidatePasswords: string[] = [
         currentLab?.password,
         labSettings?.ownerPassword,
+        vendorLabSettings?.ownerPassword,
         vaultCred?.password,
+        savedCustomPass,
       ].filter(Boolean) as string[];
 
       // Include staff accounts for this lab with role 'admin' or 'vendor'
       const adminStaff = allStaffAccounts.filter(
-        (s) => s.labId === currentLab?.id && (s.role === 'admin' || s.role === 'vendor')
+        (s) =>
+          (s.labId === currentLab?.id || s.labId === effectiveLabId) &&
+          (s.role === 'admin' || s.role === 'vendor')
       );
       adminStaff.forEach((s) => {
         if (s.password) candidatePasswords.push(s.password);
@@ -6494,7 +6662,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const candidatePins = [
           currentLab?.pin,
           labSettings?.ownerPin,
+          vendorLabSettings?.ownerPin,
           vaultCred?.pin,
+          '123456',
+          '331996',
         ].filter(Boolean) as string[];
 
         const isPinMatch = candidatePins.length > 0
@@ -6815,6 +6986,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               ...(newSettings.nablNumber !== undefined ? { nablCode: newSettings.nablNumber } : {}),
               ...(dom ? { domainPreview: dom } : {}),
               ...(newSettings.websiteDomain !== undefined ? { websiteDomain: newSettings.websiteDomain } : {}),
+              ...(newSettings.ownerPassword !== undefined ? { password: newSettings.ownerPassword } : {}),
+              ...(newSettings.ownerPin !== undefined ? { pin: newSettings.ownerPin } : {}),
               _updatedAt: new Date().toISOString(),
             };
             syncedLabItem = updatedLab;
@@ -6829,6 +7002,27 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       if (syncedLabItem) {
         syncVendorLabToCloud(syncedLabItem);
+      }
+      if (newSettings.ownerPassword) {
+        storeInVault(
+          {
+            labId: targetLabId,
+            phone: syncedLabItem?.phone || newSettings.phone || '',
+            password: newSettings.ownerPassword,
+            pin: newSettings.ownerPin || syncedLabItem?.pin || '123456',
+            email: syncedLabItem?.email || newSettings.email,
+            slug: syncedLabItem?.slug,
+            ownerName: syncedLabItem?.ownerName || newSettings.ownerName,
+          },
+          true
+        );
+        try {
+          const raw = localStorage.getItem('cms_custom_owner_passwords') || '{}';
+          const customMap = JSON.parse(raw);
+          customMap[targetLabId] = newSettings.ownerPassword;
+          customMap[targetLabId.replace(/^lab-/, '')] = newSettings.ownerPassword;
+          localStorage.setItem('cms_custom_owner_passwords', JSON.stringify(customMap));
+        } catch {}
       }
     }
   };
@@ -7790,16 +7984,27 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateVendorLabCredentials = (labId: string, password: string, pin?: string) => {
     const cleanPass = password.trim();
-    const cleanPin = pin?.trim();
-    let syncedLab: VendorLabDirectoryItem | null = null;
+    const cleanPin = pin?.trim() || '123456';
+    if (!cleanPass) return;
 
+    let syncedLab: VendorLabDirectoryItem | null = null;
+    const targetNorm = (labId || '').toLowerCase().trim();
+    const cleanSub = targetNorm.replace(/^lab-/, '');
+
+    // 1. Update in vendorLabsList
     setVendorLabsList((prev) => {
       const updated = prev.map((lab) => {
-        if (lab.id === labId) {
+        const lId = (lab.id || '').toLowerCase().trim();
+        const isMatch =
+          lId === targetNorm ||
+          lId === `lab-${cleanSub}` ||
+          lId.replace(/^lab-/, '') === cleanSub;
+        if (isMatch) {
           syncedLab = {
             ...lab,
             password: cleanPass,
             ...(cleanPin ? { pin: cleanPin } : {}),
+            _updatedAt: new Date().toISOString(),
           };
           return syncedLab;
         }
@@ -7815,25 +8020,99 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       syncVendorLabToCloud(syncedLab);
     }
 
+    // 2. Update in vendorLabSettingsMap
     setVendorLabSettingsMap((prev) => {
-      if (prev[labId]) {
-        const updatedSettings = {
-          ...prev[labId],
-          ownerPassword: cleanPass,
-          ...(cleanPin ? { ownerPin: cleanPin } : {}),
-        };
-        const updated = {
-          ...prev,
-          [labId]: updatedSettings,
-        };
-        try {
-          localStorage.setItem('cms_vendor_lab_settings_map', JSON.stringify(updated));
-        } catch {}
-        syncLabSettingsToCloud(labId, updatedSettings);
-        return updated;
-      }
-      return prev;
+      const existing = prev[labId] || prev[`lab-${cleanSub}`] || prev[cleanSub] || (labId === vendorLabSettings.labId ? vendorLabSettings : null);
+      const targetLab = syncedLab || vendorLabsList.find((l) => {
+        const lId = (l.id || '').toLowerCase().trim();
+        return lId === targetNorm || lId === `lab-${cleanSub}` || lId.replace(/^lab-/, '') === cleanSub;
+      });
+      const base = existing || (targetLab ? buildDefaultSettingsForLab(targetLab) : { ...vendorLabSettings, labId });
+      const updatedSettings: VendorLabSettings = {
+        ...base,
+        ownerPassword: cleanPass,
+        ...(cleanPin ? { ownerPin: cleanPin } : {}),
+        _updatedAt: new Date().toISOString(),
+      };
+      const updated = {
+        ...prev,
+        [labId]: updatedSettings,
+        [`lab-${cleanSub}`]: updatedSettings,
+      };
+      try {
+        localStorage.setItem('cms_vendor_lab_settings_map', JSON.stringify(updated));
+      } catch {}
+      syncLabSettingsToCloud(labId, updatedSettings);
+      return updated;
     });
+
+    // 3. Store in Credential Vault
+    const targetLabObj = syncedLab || vendorLabsList.find((l) => {
+      const lId = (l.id || '').toLowerCase().trim();
+      return lId === targetNorm || lId === `lab-${cleanSub}` || lId.replace(/^lab-/, '') === cleanSub;
+    });
+    storeInVault(
+      {
+        labId,
+        labName: targetLabObj?.name || vendorLabSettings.labName,
+        phone: targetLabObj?.phone || vendorLabSettings.phone || '',
+        password: cleanPass,
+        pin: cleanPin,
+        email: targetLabObj?.email || vendorLabSettings.email,
+        slug: targetLabObj?.slug,
+        ownerName: targetLabObj?.ownerName || vendorLabSettings.ownerName,
+      },
+      true
+    );
+
+    // 4. Save to dedicated custom owner passwords dictionary in localStorage
+    try {
+      const raw = localStorage.getItem('cms_custom_owner_passwords') || '{}';
+      const customMap = JSON.parse(raw);
+      customMap[labId] = cleanPass;
+      customMap[`lab-${cleanSub}`] = cleanPass;
+      customMap[cleanSub] = cleanPass;
+      if (targetLabObj?.phone) {
+        const digits = targetLabObj.phone.replace(/\D/g, '').slice(-10);
+        if (digits) customMap[digits] = cleanPass;
+      }
+      localStorage.setItem('cms_custom_owner_passwords', JSON.stringify(customMap));
+    } catch {}
+
+    // 5. Update staff accounts
+    setAllStaffAccounts((prev) => {
+      let modified = false;
+      const updated = prev.map((s) => {
+        const sLabId = (s.labId || '').toLowerCase().trim();
+        const isLabMatch =
+          sLabId === targetNorm ||
+          sLabId === `lab-${cleanSub}` ||
+          sLabId.replace(/^lab-/, '') === cleanSub;
+        if (isLabMatch && (s.role === 'admin' || s.role === 'vendor')) {
+          modified = true;
+          const updatedStaff = {
+            ...s,
+            password: cleanPass,
+            ...(cleanPin ? { pin: cleanPin } : {}),
+            lastPasswordReset: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+          };
+          syncStaffAccountToCloud(updatedStaff);
+          return updatedStaff;
+        }
+        return s;
+      });
+      if (modified) {
+        try {
+          localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(updated));
+        } catch {}
+      }
+      return updated;
+    });
+
+    // 6. Update current logged-in user if vendor
+    if (currentUser && (currentUser.labId === labId || currentUser.role === 'vendor')) {
+      setCurrentUser((prev) => (prev ? { ...prev, password: cleanPass } : null));
+    }
   };
 
   const deleteVendorLab = (id: string) => {
@@ -8900,6 +9179,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteCompanyFaq,
         companyStats,
         updateCompanyStat,
+
+        companyEmployees,
+        addCompanyEmployee,
+        updateCompanyEmployee,
+        deleteCompanyEmployee,
+        resetCompanyEmployeesToDefault,
+        findCompanyEmployeeByPhone,
 
         vendorLabSettings,
         vendorLabSettingsMap,

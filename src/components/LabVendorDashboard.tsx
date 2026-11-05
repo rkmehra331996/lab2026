@@ -248,9 +248,11 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   }, [isDomainFeatureEnabled, activeTab]);
 
   const handleOpenOwnerPasswordModal = () => {
-    setOwnerNewPassword(currentLab?.password || 'owner123');
-    setOwnerConfirmPassword(currentLab?.password || 'owner123');
-    setOwnerNewPin(currentLab?.pin || '123456');
+    const currentPass = currentSettings?.ownerPassword || currentLab?.password || vendorLabSettings.ownerPassword || 'owner123';
+    const currentPin = currentSettings?.ownerPin || currentLab?.pin || vendorLabSettings.ownerPin || '123456';
+    setOwnerNewPassword(currentPass);
+    setOwnerConfirmPassword(currentPass);
+    setOwnerNewPin(currentPin);
     setOwnerPasswordError('');
     setIsOwnerPasswordModal(true);
   };
@@ -271,8 +273,14 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
     }
     const cleanPass = ownerNewPassword.trim();
     const cleanPin = ownerNewPin.trim() || '123456';
+    const targetLabId = currentLab?.id || effectiveLabId || 'lab-apex';
 
-    updateVendorLabCredentials(currentLab?.id || 'lab-apex', cleanPass, cleanPin);
+    updateVendorLabCredentials(targetLabId, cleanPass, cleanPin);
+    updateVendorLabSettings({
+      labId: targetLabId,
+      ownerPassword: cleanPass,
+      ownerPin: cleanPin,
+    });
     setIsOwnerPasswordModal(false);
     setToastMessage(`Lab Owner credentials updated! New login password: "${cleanPass}" | PIN: "${cleanPin}"`);
     setTimeout(() => setToastMessage(''), 4500);
@@ -2421,7 +2429,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                       <div className="text-[11px] text-slate-600 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono">
                         <span>Mobile/Login: <strong className="text-slate-900 font-bold">{currentLab?.phone || '9876543210'}</strong></span>
                         <span className="flex items-center gap-1">
-                          Pass: <strong className="text-slate-900 font-bold">{showOwnerPassword ? currentLab?.password || 'owner123' : '••••••••'}</strong>
+                          Pass: <strong className="text-slate-900 font-bold">{showOwnerPassword ? currentSettings?.ownerPassword || currentLab?.password || vendorLabSettings.ownerPassword || 'owner123' : '••••••••'}</strong>
                           <button
                             type="button"
                             onClick={() => setShowOwnerPassword((p) => !p)}
@@ -2432,7 +2440,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                           </button>
                         </span>
                         <span className="flex items-center gap-1">
-                          PIN: <strong className="text-slate-900 font-bold">{showOwnerPin ? currentLab?.pin || '123456' : '••••••'}</strong>
+                          PIN: <strong className="text-slate-900 font-bold">{showOwnerPin ? currentSettings?.ownerPin || currentLab?.pin || vendorLabSettings.ownerPin || '123456' : '••••••'}</strong>
                           <button
                             type="button"
                             onClick={() => setShowOwnerPin((p) => !p)}

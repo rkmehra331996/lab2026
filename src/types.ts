@@ -118,6 +118,25 @@ export interface CompanySettings {
   qrCodeUrl?: string;
 }
 
+export interface CompanyEmployee {
+  id: string;
+  employeeId: string;
+  name: string;
+  phone: string;
+  email: string;
+  panNumber: string;
+  maskedPan?: string;
+  designation: string;
+  department?: string;
+  photoUrl?: string;
+  status: 'active' | 'verified' | 'inactive';
+  badge?: string;
+  joiningDate?: string;
+  bloodGroup?: string;
+  emergencyContact?: string;
+  notes?: string;
+}
+
 export interface SeoPost {
   id: string;
   title: string;
