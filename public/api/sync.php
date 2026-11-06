@@ -812,7 +812,81 @@ if ($method === 'GET') {
         exit();
     }
 
-    // Default GET: Fetch all active collections
+    if ($action === 'get_lab' || $action === 'get_vendor') {
+        $rawId = strtolower(trim($_GET['identifier'] ?? ''));
+        if (!$rawId) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'found' => false, 'message' => 'Missing lab identifier']);
+            exit();
+        }
+
+        $vendorLabs = fetchCollectionData('vendor_labs') ?: [];
+        $labSettingsArr = fetchCollectionData('lab_settings') ?: [];
+        $tests = fetchCollectionData('lab_tests') ?: [];
+        $packages = fetchCollectionData('lab_packages') ?: [];
+        $doctors = fetchCollectionData('lab_doctors') ?: [];
+        $branches = fetchCollectionData('vendor_branches') ?: [];
+
+        $settingsMap = [];
+        if (is_array($labSettingsArr)) {
+            foreach ($labSettingsArr as $s) {
+                $sid = $s['labId'] ?? ($s['id'] ?? '');
+                if ($sid) $settingsMap[$sid] = $s;
+            }
+        }
+
+        $cleanDigits = preg_replace('/\D/', '', $rawId);
+        $clean10 = strlen($cleanDigits) >= 10 ? substr($cleanDigits, -10) : '';
+
+        $matchedLab = null;
+        foreach ($vendorLabs as $l) {
+            $id = strtolower($l['id'] ?? '');
+            $slug = strtolower($l['slug'] ?? '');
+            $dp = strtolower($l['domainPreview'] ?? '');
+            $phoneDigits = preg_replace('/\D/', '', $l['phone'] ?? '');
+            $nameClean = preg_replace('/[^a-z0-9]/', '', strtolower($l['name'] ?? ''));
+
+            if ($id === $rawId ||
+                $id === "lab-$rawId" ||
+                preg_replace('/^lab-/', '', $id) === preg_replace('/^lab-/', '', $rawId) ||
+                $slug === $rawId ||
+                strpos($dp, $rawId) !== false ||
+                (!empty($clean10) && substr($phoneDigits, -10) === $clean10) ||
+                (!empty($rawId) && strpos($nameClean, preg_replace('/[^a-z0-9]/', '', $rawId)) !== false)) {
+                $matchedLab = $l;
+                break;
+            }
+        }
+
+        if ($matchedLab) {
+            $labId = $matchedLab['id'];
+            $settings = $settingsMap[$labId] ?? null;
+            $labTests = array_values(array_filter($tests, fn($t) => empty($t['labId']) || $t['labId'] === $labId || $t['labId'] === 'all'));
+            $labPackages = array_values(array_filter($packages, fn($p) => empty($p['labId']) || $p['labId'] === $labId || $p['labId'] === 'all'));
+            $labDoctors = array_values(array_filter($doctors, fn($d) => empty($d['labId']) || $d['labId'] === $labId || $d['labId'] === 'all'));
+            $labBranches = array_values(array_filter($branches, fn($b) => empty($b['labId']) || $b['labId'] === $labId || $b['labId'] === 'all'));
+
+            echo json_encode([
+                'status' => 'success',
+                'found' => true,
+                'lab' => $matchedLab,
+                'settings' => $settings,
+                'tests' => $labTests,
+                'packages' => $labPackages,
+                'doctors' => $labDoctors,
+                'branches' => $labBranches,
+            ]);
+            exit();
+        }
+
+        http_response_code(404);
+        echo json_encode([
+            'status' => 'not_found',
+            'found' => false,
+            'message' => "Laboratory '$rawId' was not found in directory."
+        ]);
+        exit();
+    }
     $allData = [];
     foreach (array_keys($TABLE_MAP) as $col) {
         $allData[$col] = fetchCollectionData($col);
@@ -848,10 +922,64 @@ if ($method === 'POST') {
         $dbData = $payload['data'] ?? [];
         $configFile = DATA_DIR . '/db_config.json';
         @file_put_contents($configFile, json_encode($dbData, JSON_PRETTY_PRINT));
+        $cooldownFile = DATA_DIR . '/mysql_down.tmp';
+        if (file_exists($cooldownFile)) {
+            @unlink($cooldownFile);
+        }
         echo json_encode([
             'status' => 'success',
             'message' => 'Database configuration saved successfully',
             'data' => $dbData
+        ]);
+        exit();
+    }
+
+    if ($postAction === 'update_vendor_status' || $action === 'update_vendor_status') {
+        $id = $payload['id'] ?? ($_POST['id'] ?? '');
+        $status = $payload['status'] ?? ($_POST['status'] ?? 'Active');
+        $isWebsiteApproved = !empty($payload['isWebsiteApproved']) || !empty($_POST['isWebsiteApproved']) || $status === 'Active';
+
+        if (!$id) {
+            echo json_encode(['status' => 'error', 'message' => 'Lab ID is required']);
+            exit();
+        }
+
+        $targetLower = strtolower(trim((string)$id));
+        $cleanSlug = preg_replace('/^lab-/', '', $targetLower);
+        $labs = readCollectionFile('vendor_labs') ?: [];
+        $matched = false;
+
+        $updatedLabs = array_map(function($l) use ($targetLower, $cleanSlug, $status, $isWebsiteApproved, &$matched) {
+            $lId = strtolower($l['id'] ?? '');
+            $lSlug = strtolower($l['slug'] ?? '');
+            if ($lId === $targetLower || $lId === "lab-$targetLower" || preg_replace('/^lab-/', '', $lId) === $cleanSlug || $lSlug === $cleanSlug) {
+                $matched = true;
+                $l['status'] = $status;
+                $l['isWebsiteApproved'] = $isWebsiteApproved;
+                $l['badge'] = $isWebsiteApproved ? 'Verified Lab' : 'Draft - Pending Admin Approval';
+                $l['_updatedAt'] = date('c');
+            }
+            return $l;
+        }, $labs);
+
+        if ($matched) {
+            writeCollectionFile('vendor_labs', $updatedLabs);
+            global $pdo;
+            if ($pdo) {
+                try {
+                    $stmt = $pdo->prepare("UPDATE `vendor_labs` SET `status` = :status, `isWebsiteApproved` = :approved WHERE LOWER(`id`) = :id OR LOWER(`id`) = :labId");
+                    $stmt->execute([':status' => $status, ':approved' => $isWebsiteApproved ? 1 : 0, ':id' => $cleanSlug, ':labId' => "lab-$cleanSlug"]);
+                } catch (\Exception $e) {}
+            }
+        }
+
+        echo json_encode([
+            'status' => 'success',
+            'success' => true,
+            'matched' => $matched,
+            'id' => $id,
+            'labStatus' => $status,
+            'isWebsiteApproved' => $isWebsiteApproved
         ]);
         exit();
     }

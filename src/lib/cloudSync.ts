@@ -160,7 +160,7 @@ function buildApiUrl(base: string, endpoint: string): string {
   return `${cleanBase}${cleanEndpoint}${sep}${cacheBuster}`;
 }
 
-async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs: number = 8000): Promise<any> {
+async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs: number = 5000): Promise<any> {
   let controller: AbortController | null = null;
   let timeoutId: any = null;
 
@@ -1028,12 +1028,12 @@ function startMultiDeviceSyncHeartbeat() {
   // Initial immediate fetch
   pollHostingerServerUpdates(true);
 
-  // Poll every 8 seconds for changes across devices only when active and online
+  // Poll every 12 seconds for changes across devices only when active and online
   pollingTimer = setInterval(() => {
     if (typeof document !== 'undefined' && document.visibilityState === 'visible' && navigator.onLine) {
       pollHostingerServerUpdates();
     }
-  }, 8000);
+  }, 12000);
 
   // Poll immediately when user tabs back into the browser or reconnects
   window.addEventListener('focus', () => {
@@ -1672,6 +1672,7 @@ export function subscribeToBookings(
 // -----------------------------------------------------------------------------
 // 9. Initial Seeding of Platform Data to Hostinger Server
 // -----------------------------------------------------------------------------
+let isInitialSeedTriggered = false;
 export async function seedInitialHostingerData(
   initialEntries: ReceptionPatientEntry[],
   initialReports: LabReport[],
@@ -1686,7 +1687,17 @@ export async function seedInitialHostingerData(
   initialStaff: LabStaffAccount[],
   initialBranches: VendorBranch[]
 ): Promise<void> {
+  if (isInitialSeedTriggered) return;
+  isInitialSeedTriggered = true;
+
   try {
+    if (typeof window !== 'undefined') {
+      const alreadySeeded = localStorage.getItem('hostinger_seed_completed_v2');
+      if (alreadySeeded === 'true') {
+        return;
+      }
+    }
+
     const payload = {
       action: 'seed_all',
       collections: {
@@ -1705,10 +1716,18 @@ export async function seedInitialHostingerData(
       },
     };
 
-    await callHostingerApi('/api/sync.php', {
+    const res = await callHostingerApi('/api/sync.php', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+
+    if (res && (res.status === 'success' || res.action === 'seed_all')) {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('hostinger_seed_completed_v2', 'true');
+        } catch {}
+      }
+    }
   } catch (err) {
     handleHostingerError(err, OperationType.WRITE, 'seed_data');
   }

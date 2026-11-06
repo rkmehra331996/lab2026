@@ -67,6 +67,11 @@ async function run() {
   if (fs.existsSync(apiSrc)) {
     copyRecursiveSync(apiSrc, apiDst);
   }
+  const apiHtaccessSrc = path.join(publicDir, 'api', '.htaccess');
+  const apiHtaccessDst = path.join(distDir, 'api', '.htaccess');
+  if (fs.existsSync(apiHtaccessSrc)) {
+    fs.copyFileSync(apiHtaccessSrc, apiHtaccessDst);
+  }
 
   // 3. Ensure uploads folder is copied
   const uploadsSrc = path.join(publicDir, 'uploads');

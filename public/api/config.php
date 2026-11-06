@@ -84,76 +84,61 @@ function getLastMySqlError() {
     return null;
 }
 
-if (defined('DB_USER') && DB_USER) {
-    // Attempt standard localhost, 127.0.0.1, Hostinger socket, and configured host
-    $connectionAttempts = [];
-    if (DB_HOST === 'localhost' || DB_HOST === '127.0.0.1') {
-        $connectionAttempts[] = ['type' => 'host', 'value' => 'localhost'];
-        $connectionAttempts[] = ['type' => 'host', 'value' => '127.0.0.1'];
-        if (file_exists('/var/run/mysqld/mysqld.sock')) {
-            $connectionAttempts[] = ['type' => 'socket', 'value' => '/var/run/mysqld/mysqld.sock'];
+if (defined('DB_USER') && DB_USER && DB_NAME) {
+    // Check if MySQL connection failed recently (cooldown prevents hanging every request when DB is offline)
+    $cooldownFile = DATA_DIR . '/mysql_down.tmp';
+    $skipMySql = false;
+    if (file_exists($cooldownFile)) {
+        $failedTime = (int)@file_get_contents($cooldownFile);
+        if (time() - $failedTime < 25) {
+            $skipMySql = true;
+            $dbError = 'MySQL temporary cooldown active; fast JSON file fallback in use';
+            $storageMode = 'file';
         }
-    } else {
-        $connectionAttempts[] = ['type' => 'host', 'value' => DB_HOST];
     }
 
-    foreach ($connectionAttempts as $attempt) {
+    if (!$skipMySql) {
+        $primaryHost = DB_HOST ?: 'localhost';
         try {
-            if ($attempt['type'] === 'socket') {
-                $dsn = "mysql:unix_socket=" . $attempt['value'] . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-            } else {
-                $dsn = "mysql:host=" . $attempt['value'] . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-            }
+            $dsn = "mysql:host=" . $primaryHost . ";dbname=" . DB_NAME . ";charset=utf8mb4";
             $pdo = new PDO($dsn, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::ATTR_TIMEOUT => 3
+                PDO::ATTR_TIMEOUT => 2
             ]);
             $storageMode = 'mysql';
-            $connectedHost = $attempt['value'];
+            $connectedHost = $primaryHost;
             $dbError = null;
-            break;
+            if (file_exists($cooldownFile)) {
+                @unlink($cooldownFile);
+            }
         } catch (Exception $e) {
             $dbError = $e->getMessage();
             $pdo = null;
+            $storageMode = 'file';
+            @file_put_contents($cooldownFile, (string)time());
+            logMySqlError('pdo_connect', $dbError, DB_USER . '@' . $primaryHost);
         }
     }
 
     if ($pdo) {
         autoBootstrapDatabaseTables($pdo);
-    } else {
-        logMySqlError('pdo_connect', $dbError ?: 'Failed to connect to MySQL', DB_USER . '@' . DB_HOST);
     }
 }
 
 function autoBootstrapDatabaseTables($pdoInstance) {
     if (!$pdoInstance) return;
+    $bootstrapMarker = DATA_DIR . '/.bootstrapped_' . md5(DB_NAME . DB_USER);
+    if (file_exists($bootstrapMarker)) {
+        return; // Already bootstrapped; skip expensive SHOW TABLES on every request
+    }
+
     try {
-        $requiredTables = [
-            'vendor_labs', 'lab_settings', 'lab_branches', 'lab_staff',
-            'lab_tests', 'lab_packages', 'lab_doctors', 'lab_reception_entries',
-            'lab_reports', 'lab_bookings', 'company_settings', 'portal_sections',
-            'pricing_plans', 'contact_submissions', 'domain_requests',
-            'lab_images', 'lab_plan_requests', 'seo_posts'
-        ];
-
-        $existingTables = [];
-        $tblStmt = $pdoInstance->query("SHOW TABLES");
-        if ($tblStmt) {
-            $existingTables = $tblStmt->fetchAll(PDO::FETCH_COLUMN);
-        }
-        $missing = array_diff($requiredTables, $existingTables);
-        if (empty($missing)) {
-            return; // All required tables already present
-        }
-
         $schemaFile = __DIR__ . '/schema.sql';
         if (file_exists($schemaFile)) {
             $sql = file_get_contents($schemaFile);
-            // Cleanly strip multi-line comments
             $sql = preg_replace('!/\*.*?\*/!s', '', $sql);
-            // Cleanly strip line comments
             $lines = explode("\n", $sql);
             $cleanSql = '';
             foreach ($lines as $line) {
@@ -171,6 +156,7 @@ function autoBootstrapDatabaseTables($pdoInstance) {
                     }
                 }
             }
+            @file_put_contents($bootstrapMarker, date('c'));
         }
     } catch (\Exception $e) {
         logMySqlError('autoBootstrap', $e->getMessage());
@@ -213,20 +199,19 @@ function readCollectionFile($collection) {
 }
 
 /**
- * JSON File Storage Helper - Writes a collection with flock
+ * JSON File Storage Helper - Writes a collection atomically without blocking locks
  */
 function writeCollectionFile($collection, $data) {
     $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '', $collection);
     $filePath = DATA_DIR . '/' . $safeName . '.json';
-    $fp = @fopen($filePath, 'c+');
-    if ($fp) {
-        if (flock($fp, LOCK_EX)) {
-            ftruncate($fp, 0);
-            fwrite($fp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-            fflush($fp);
-            flock($fp, LOCK_UN);
+    $tempFile = $filePath . '.' . uniqid('tmp_', true);
+    $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    if ($json !== false) {
+        if (@file_put_contents($tempFile, $json) !== false) {
+            @rename($tempFile, $filePath);
+        } else {
+            @file_put_contents($filePath, $json);
         }
-        fclose($fp);
     }
     
     // Update global sync timestamp and track per-collection update

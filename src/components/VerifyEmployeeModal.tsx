@@ -76,11 +76,6 @@ export const VerifyEmployeeModal: React.FC<VerifyEmployeeModalProps> = ({
     setTimeout(() => setCopiedPan(false), 2000);
   };
 
-  // Provide first 3 sample employee phones for easy one-click testing
-  const samplePhones = companyEmployees.slice(0, 3).map((e) => ({
-    name: e.name,
-    phone: e.phone,
-  }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -183,25 +178,6 @@ export const VerifyEmployeeModal: React.FC<VerifyEmployeeModalProps> = ({
               </button>
             </form>
 
-            {/* Quick Test Sample Numbers */}
-            {!hasSearched && samplePhones.length > 0 && (
-              <div className="pt-1.5 flex items-center gap-1.5 flex-wrap text-[11px] text-slate-500">
-                <span className="font-semibold text-slate-400">Quick Test:</span>
-                {samplePhones.map((s) => (
-                  <button
-                    key={s.phone}
-                    type="button"
-                    onClick={() => {
-                      setPhoneNumber(s.phone);
-                      handleVerify(s.phone);
-                    }}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-[11px] transition cursor-pointer border border-slate-200"
-                  >
-                    {s.phone} ({s.name.split(' ')[0]})
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Result Area */}

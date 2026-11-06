@@ -54,7 +54,7 @@ export default defineConfig(() => {
           skipWaiting: true,
           clientsClaim: true,
           cleanupOutdatedCaches: true,
-          maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           // Exclude html from precache so index.html is always fetched fresh from the live server
           globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2}'],
           navigateFallback: null,
@@ -105,14 +105,30 @@ export default defineConfig(() => {
           ],
         },
         devOptions: {
-          enabled: true,
-          type: 'module',
+          enabled: false,
         },
       }),
     ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+      },
+    },
+    build: {
+      chunkSizeWarningLimit: 2500,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('pdfjs-dist')) return 'vendor-pdfjs';
+              if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdfgen';
+              if (id.includes('xlsx')) return 'vendor-xlsx';
+              if (id.includes('lucide-react')) return 'vendor-icons';
+              if (id.includes('@google/genai')) return 'vendor-gemini';
+              if (id.includes('jszip')) return 'vendor-jszip';
+            }
+          },
+        },
       },
     },
     server: {

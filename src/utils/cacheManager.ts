@@ -305,31 +305,6 @@ export function autoPruneOnAppInit(): void {
       }
       localStorage.setItem('cms_app_build_version', APP_BUILD_VERSION);
     }
-
-    // Purge old precaches and HTML navigation caches so live deployments always show fresh view
-    if ('caches' in window) {
-      caches.keys().then((names) => {
-        for (const n of names) {
-          if (
-            isNewBuild ||
-            n.includes('dev-dist') ||
-            n.includes('workbox-precache') ||
-            n.includes('html-navigation')
-          ) {
-            caches.delete(n).catch(() => {});
-          }
-        }
-      }).catch(() => {});
-    }
-
-    // Trigger immediate service worker update check on live server
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (const reg of registrations) {
-          reg.update().catch(() => {});
-        }
-      }).catch(() => {});
-    }
   } catch (err) {
     console.warn('[CacheManager] Auto-prune warning:', err);
   }

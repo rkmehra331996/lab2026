@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { AppView, Language, SeoPost } from './types';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
@@ -24,25 +24,35 @@ import { DemoSection } from './components/DemoSection';
 import { FinalCTASection } from './components/FinalCTASection';
 import { MobileFixedCTA } from './components/MobileFixedCTA';
 import { BookDemoModal } from './components/Modals';
-import { LabSoftwareApp } from './components/LabSoftwareApp';
-import { PatientPortalApp } from './components/PatientPortalApp';
-import { LabVendorWebsite } from './components/LabVendorWebsite';
-import { CompanyAdminDashboard } from './components/CompanyAdminDashboard';
-import { EmployeeDashboard } from './components/EmployeeDashboard';
-import { LabVendorDashboard } from './components/LabVendorDashboard';
-import { ReceptionEntryDashboard } from './components/ReceptionEntryDashboard';
-import { TechnicianDepartmentDashboard } from './components/technician/TechnicianDepartmentDashboard';
 import { DashboardAuthGuard } from './components/DashboardAuthGuard';
 import { CmsAuthModal } from './components/CmsAuthModal';
 import { CacheManagerModal } from './components/CacheManagerModal';
-import { BranchManagerDashboard } from './components/BranchManagerDashboard';
-import { PathologistDashboard } from './components/PathologistDashboard';
-import { ExpertMemberDashboard } from './components/ExpertMemberDashboard';
 import { RoleContextBanner } from './components/RoleContextBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Footer } from './components/Footer';
-import { SeoPostDetailView } from './components/SeoPostDetailView';
 import { Building, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+
+// Lazy-loaded heavy dashboards and views (Loaded on-demand to eliminate initial bundle bloat and prevent browser freezing)
+const LabSoftwareApp = lazy(() => import('./components/LabSoftwareApp').then((m) => ({ default: m.LabSoftwareApp })));
+const PatientPortalApp = lazy(() => import('./components/PatientPortalApp').then((m) => ({ default: m.PatientPortalApp })));
+const LabVendorWebsite = lazy(() => import('./components/LabVendorWebsite').then((m) => ({ default: m.LabVendorWebsite })));
+const CompanyAdminDashboard = lazy(() => import('./components/CompanyAdminDashboard').then((m) => ({ default: m.CompanyAdminDashboard })));
+const EmployeeDashboard = lazy(() => import('./components/EmployeeDashboard').then((m) => ({ default: m.EmployeeDashboard })));
+const LabVendorDashboard = lazy(() => import('./components/LabVendorDashboard').then((m) => ({ default: m.LabVendorDashboard })));
+const ReceptionEntryDashboard = lazy(() => import('./components/ReceptionEntryDashboard').then((m) => ({ default: m.ReceptionEntryDashboard })));
+const TechnicianDepartmentDashboard = lazy(() => import('./components/technician/TechnicianDepartmentDashboard').then((m) => ({ default: m.TechnicianDepartmentDashboard })));
+const BranchManagerDashboard = lazy(() => import('./components/BranchManagerDashboard').then((m) => ({ default: m.BranchManagerDashboard })));
+const PathologistDashboard = lazy(() => import('./components/PathologistDashboard').then((m) => ({ default: m.PathologistDashboard })));
+const ExpertMemberDashboard = lazy(() => import('./components/ExpertMemberDashboard').then((m) => ({ default: m.ExpertMemberDashboard })));
+const SeoPostDetailView = lazy(() => import('./components/SeoPostDetailView').then((m) => ({ default: m.SeoPostDetailView })));
+
+const DashboardLoadingFallback: React.FC = () => (
+  <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center">
+    <div className="w-12 h-12 border-4 border-[#123B6D]/20 border-t-[#123B6D] rounded-full animate-spin mb-4" />
+    <h3 className="text-base font-bold text-slate-800">Loading Workspace...</h3>
+    <p className="text-xs text-slate-500 mt-1">Please wait while workspace components load securely.</p>
+  </div>
+);
 import { isUserAuthorizedForView } from './utils/rbac';
 import { useCms } from './context/CmsContext';
 import { getTenantSubdomain } from './constants/domains';
@@ -205,12 +215,15 @@ export default function App() {
         return;
       }
 
-      // Step 2: Fetch specific lab directly from backend /api/lab/:identifier
+      // Step 2: Fetch specific lab directly from backend /api/lab/:identifier with safe 3s timeout
       try {
-        const res = await fetch(`/api/lab/${encodeURIComponent(cleanId)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.found && data.lab) {
+        const ctrl = new AbortController();
+        const tId = setTimeout(() => ctrl.abort(), 3000);
+        const res = await fetch(`/api/lab/${encodeURIComponent(cleanId)}`, { signal: ctrl.signal }).catch(() => null);
+        clearTimeout(tId);
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null);
+          if (data && data.found && data.lab) {
             injectCloudLab(data.lab, data.settings);
             selectVendorLab(data.lab.id);
             setSelectedVendorLabId(data.lab.id);
@@ -662,19 +675,21 @@ export default function App() {
   if (currentView === 'seo_post' && activePost) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <SeoPostDetailView
-          post={activePost}
-          onBack={() => {
-            setCurrentView('website');
-            setActivePost(null);
-            window.scrollTo({ top: 0 });
-          }}
-          onSelectPost={(p) => setActivePost(p)}
-          onNavigateView={(v) => {
-            setCurrentView(v);
-            window.scrollTo({ top: 0 });
-          }}
-        />
+        <Suspense fallback={<DashboardLoadingFallback />}>
+          <SeoPostDetailView
+            post={activePost}
+            onBack={() => {
+              setCurrentView('website');
+              setActivePost(null);
+              window.scrollTo({ top: 0 });
+            }}
+            onSelectPost={(p) => setActivePost(p)}
+            onNavigateView={(v) => {
+              setCurrentView(v);
+              window.scrollTo({ top: 0 });
+            }}
+          />
+        </Suspense>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
@@ -695,24 +710,26 @@ export default function App() {
           fallbackTitle="Laboratory Website"
           fallbackMessage="Diagnostic lab website load karte waqt ek problem aayi. Please refresh karein ya dobara koshish karein."
         >
-          <LabVendorWebsite
-            targetLabId={selectedVendorLabId}
-            language={language}
-            onSelectLanguage={setLanguage}
-            onOpenReportPortal={handleViewPatientPortal}
-            onOpenLabSoftware={handleLaunchLabApp}
-            onOpenSoftwareWebsite={() => {
-              setCurrentView('website');
-              window.history.pushState({}, '', '/');
-            }}
-            onOpenVendorDashboard={() => setCurrentView('vendor_dashboard')}
-            onOpenReceptionDashboard={() => setCurrentView('reception_dashboard')}
-            onOpenAdminDashboard={() => setCurrentView('vendor_dashboard')}
-            onNavigateView={(v) => {
-              setCurrentView(v);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
+          <Suspense fallback={<DashboardLoadingFallback />}>
+            <LabVendorWebsite
+              targetLabId={selectedVendorLabId}
+              language={language}
+              onSelectLanguage={setLanguage}
+              onOpenReportPortal={handleViewPatientPortal}
+              onOpenLabSoftware={handleLaunchLabApp}
+              onOpenSoftwareWebsite={() => {
+                setCurrentView('website');
+                window.history.pushState({}, '', '/');
+              }}
+              onOpenVendorDashboard={() => setCurrentView('vendor_dashboard')}
+              onOpenReceptionDashboard={() => setCurrentView('reception_dashboard')}
+              onOpenAdminDashboard={() => setCurrentView('vendor_dashboard')}
+              onNavigateView={(v) => {
+                setCurrentView(v);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </Suspense>
         </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
@@ -757,12 +774,14 @@ export default function App() {
           fallbackTitle="Super Admin Console"
           fallbackMessage="Super Admin dashboard load karte waqt ek error aayi. Please Retry karein."
         >
-          <CompanyAdminDashboard
-            onNavigateView={(view) => {
-              setCurrentView(view);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
+          <Suspense fallback={<DashboardLoadingFallback />}>
+            <CompanyAdminDashboard
+              onNavigateView={(view) => {
+                setCurrentView(view);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </Suspense>
         </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
@@ -806,13 +825,15 @@ export default function App() {
           fallbackTitle="Team Member Dashboard"
           fallbackMessage="Team Member dashboard load karte waqt ek error aayi. Please Retry karein."
         >
-          <EmployeeDashboard
-            onBackToWebsite={handleBackToWebsite}
-            onNavigateView={(view) => {
-              setCurrentView(view);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
+          <Suspense fallback={<DashboardLoadingFallback />}>
+            <EmployeeDashboard
+              onBackToWebsite={handleBackToWebsite}
+              onNavigateView={(view) => {
+                setCurrentView(view);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </Suspense>
         </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
@@ -857,12 +878,14 @@ export default function App() {
           fallbackTitle="Lab Owner / Management Dashboard"
           fallbackMessage="Lab dashboard load karte waqt ek error aayi. Please Retry karein."
         >
-          <LabVendorDashboard
-            onNavigateView={(view) => {
-              setCurrentView(view);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
+          <Suspense fallback={<DashboardLoadingFallback />}>
+            <LabVendorDashboard
+              onNavigateView={(view) => {
+                setCurrentView(view);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </Suspense>
         </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
@@ -909,13 +932,15 @@ export default function App() {
           fallbackTitle="Reception & Billing Dashboard"
           fallbackMessage="Reception dashboard load karte waqt ek error aayi. Please Retry karein."
         >
-          <ReceptionEntryDashboard
-            onNavigateView={(view) => {
-              setCurrentView(view);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            onOpenReportPortal={handleViewPatientPortal}
-          />
+          <Suspense fallback={<DashboardLoadingFallback />}>
+            <ReceptionEntryDashboard
+              onNavigateView={(view) => {
+                setCurrentView(view);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onOpenReportPortal={handleViewPatientPortal}
+            />
+          </Suspense>
         </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
@@ -962,14 +987,16 @@ export default function App() {
           fallbackTitle="Technician Testing Workstation"
           fallbackMessage="Technician workstation load karte waqt ek error aayi. Please Retry karein."
         >
-          <LabSoftwareApp
-            onBackToWebsite={handleBackToWebsite}
-            onViewReport={handleViewPatientPortal}
-            onNavigateView={(view) => {
-              setCurrentView(view);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
+          <Suspense fallback={<DashboardLoadingFallback />}>
+            <LabSoftwareApp
+              onBackToWebsite={handleBackToWebsite}
+              onViewReport={handleViewPatientPortal}
+              onNavigateView={(view) => {
+                setCurrentView(view);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </Suspense>
         </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
@@ -992,13 +1019,15 @@ export default function App() {
           fallbackTitle="Branch Operations"
           fallbackMessage="Branch dashboard load karte waqt ek error aayi. Please Retry karein."
         >
-          <BranchManagerDashboard
-            onNavigateView={(view) => {
-              setCurrentView(view);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            onOpenReportPortal={handleViewPatientPortal}
-          />
+          <Suspense fallback={<DashboardLoadingFallback />}>
+            <BranchManagerDashboard
+              onNavigateView={(view) => {
+                setCurrentView(view);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onOpenReportPortal={handleViewPatientPortal}
+            />
+          </Suspense>
         </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
@@ -1044,13 +1073,15 @@ export default function App() {
           fallbackTitle="Pathologist Verification Desk"
           fallbackMessage="Pathologist dashboard load karte waqt ek error aayi. Please Retry karein."
         >
-          <PathologistDashboard
-            onNavigateView={(view) => {
-              setCurrentView(view);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            onOpenReportPortal={handleViewPatientPortal}
-          />
+          <Suspense fallback={<DashboardLoadingFallback />}>
+            <PathologistDashboard
+              onNavigateView={(view) => {
+                setCurrentView(view);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onOpenReportPortal={handleViewPatientPortal}
+            />
+          </Suspense>
         </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
@@ -1096,13 +1127,15 @@ export default function App() {
           fallbackTitle="Expert Member Dashboard"
           fallbackMessage="Expert member dashboard load karte waqt ek error aayi. Please Retry karein."
         >
-          <ExpertMemberDashboard
-            onNavigateView={(view) => {
-              setCurrentView(view);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            onOpenReportPortal={handleViewPatientPortal}
-          />
+          <Suspense fallback={<DashboardLoadingFallback />}>
+            <ExpertMemberDashboard
+              onNavigateView={(view) => {
+                setCurrentView(view);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onOpenReportPortal={handleViewPatientPortal}
+            />
+          </Suspense>
         </ErrorBoundary>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
@@ -1121,10 +1154,12 @@ export default function App() {
   if (currentView === 'lab_app') {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <LabSoftwareApp
-          onBackToWebsite={handleBackToWebsite}
-          onViewReport={handleViewPatientPortal}
-        />
+        <Suspense fallback={<DashboardLoadingFallback />}>
+          <LabSoftwareApp
+            onBackToWebsite={handleBackToWebsite}
+            onViewReport={handleViewPatientPortal}
+          />
+        </Suspense>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
           isVendorContext={true}
@@ -1142,17 +1177,19 @@ export default function App() {
   if (currentView === 'patient_portal') {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <PatientPortalApp
-          onBackToWebsite={handleBackToWebsite}
-          initialReportId={selectedReportId}
-          initialMobile={selectedPatientMobile}
-          initialPatientName={selectedPatientName}
-          vendorLabId={selectedVendorLabId}
-          onSelectVendorLab={(labId) => {
-            setSelectedVendorLabId(labId);
-            selectVendorLab(labId);
-          }}
-        />
+        <Suspense fallback={<DashboardLoadingFallback />}>
+          <PatientPortalApp
+            onBackToWebsite={handleBackToWebsite}
+            initialReportId={selectedReportId}
+            initialMobile={selectedPatientMobile}
+            initialPatientName={selectedPatientName}
+            vendorLabId={selectedVendorLabId}
+            onSelectVendorLab={(labId) => {
+              setSelectedVendorLabId(labId);
+              selectVendorLab(labId);
+            }}
+          />
+        </Suspense>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
           isVendorContext={true}

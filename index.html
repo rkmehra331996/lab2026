@@ -17,19 +17,6 @@
     <script>
       (function() {
         try {
-          var origFetch = window.fetch;
-          var currentFetch = typeof origFetch === 'function' ? origFetch.bind(window) : origFetch;
-          Object.defineProperty(window, 'fetch', {
-            get: function() {
-              return currentFetch;
-            },
-            set: function(fn) {
-              currentFetch = fn;
-            },
-            configurable: true,
-            enumerable: true,
-          });
-
           // Capture beforeinstallprompt globally for instant 1-click install on Desktop & Android
           window.__pwaDeferredPrompt = null;
           window.__pwaInstalled = false;
@@ -44,61 +31,12 @@
             window.dispatchEvent(new CustomEvent('pwa-installed'));
           });
 
-          // 3. Final Release Version Tag - clear old cached session if version changed
-          try {
-            var FINAL_APP_RELEASE = 'INDIANLALAJI-FINAL-RELEASE-2026';
-            var previousRelease = localStorage.getItem('app_final_release_version');
-            if (previousRelease !== FINAL_APP_RELEASE) {
-              localStorage.setItem('app_final_release_version', FINAL_APP_RELEASE);
-              try { sessionStorage.clear(); } catch (e) {}
-              if (!window.location.search && !window.location.hash && (window.location.pathname === '/' || window.location.pathname === '/index.html' || !window.location.pathname)) {
-                localStorage.removeItem('cms_current_view');
-              }
-            }
-          } catch (e) {}
-
-          // Ensure visiting indianlalaji.com homepage root always opens clean public website
-          try {
-            var host = (window.location.hostname || '').toLowerCase();
-            if ((host === 'indianlalaji.com' || host === 'www.indianlalaji.com') &&
-                (window.location.pathname === '/' || window.location.pathname === '/index.html' || !window.location.pathname) &&
-                !window.location.search) {
-              localStorage.removeItem('cms_current_view');
-            }
-          } catch (e) {}
-
-          // React preamble flag for dev mode
-          window.__vite_plugin_react_preamble_installed__ = true;
-
-          // Stub out any Vite HMR WebSockets to prevent unwanted full-reload signals
-          var RealWebSocket = window.WebSocket;
-          if (RealWebSocket) {
-            window.WebSocket = function(url, protocols) {
-              if (
-                protocols === 'vite-hmr' ||
-                (Array.isArray(protocols) && protocols.indexOf('vite-hmr') !== -1) ||
-                (typeof url === 'string' && (url.indexOf('vite-hmr') !== -1 || url.indexOf('/@vite') !== -1))
-              ) {
-                var stub = {
-                  readyState: 1,
-                  send: function() {},
-                  close: function() {},
-                  addEventListener: function(type, fn) {
-                    if (type === 'open') setTimeout(fn, 10);
-                  },
-                  removeEventListener: function() {},
-                  onopen: null,
-                  onclose: null,
-                  onerror: null,
-                  onmessage: null
-                };
-                setTimeout(function() {
-                  if (typeof stub.onopen === 'function') stub.onopen({ type: 'open' });
-                }, 10);
-                return stub;
-              }
-              return new RealWebSocket(url, protocols);
-            };
+          // Ensure visiting homepage root opens clean public website
+          var host = (window.location.hostname || '').toLowerCase();
+          if ((host === 'indianlalaji.com' || host === 'www.indianlalaji.com') &&
+              (window.location.pathname === '/' || window.location.pathname === '/index.html' || !window.location.pathname) &&
+              !window.location.search) {
+            try { localStorage.removeItem('cms_current_view'); } catch (e) {}
           }
         } catch (e) {}
       })();

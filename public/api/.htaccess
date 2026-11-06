@@ -1,9 +1,26 @@
-# Disable script rewriting and directory listing inside /api/
-<IfModule mod_rewrite.c>
-    RewriteEngine Off
-</IfModule>
-
 Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /api/
+
+    # Allow direct execution of existing PHP files and directories
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Map extensionless endpoints to their PHP handlers
+    RewriteRule ^sync/?$ sync.php [L,QSA]
+    RewriteRule ^status/?$ status.php [L,QSA]
+    RewriteRule ^upload/?$ upload.php [L,QSA]
+    RewriteRule ^db-config/?$ config.php [L,QSA]
+    RewriteRule ^vendor/status/?$ sync.php?action=update_vendor_status [L,QSA]
+    RewriteRule ^vendor-status/?$ sync.php?action=update_vendor_status [L,QSA]
+    RewriteRule ^lab/(.+)$ sync.php?action=get_lab&identifier=$1 [L,QSA]
+    RewriteRule ^labs/(.+)$ sync.php?action=get_lab&identifier=$1 [L,QSA]
+    RewriteRule ^vendor/(.+)$ sync.php?action=get_lab&identifier=$1 [L,QSA]
+    RewriteRule ^ai/voice-chat/?$ sync.php?action=voice_chat [L,QSA]
+</IfModule>
 
 # Disable caching for all API endpoints across Hostinger LiteSpeed / Apache & CDN
 <IfModule mod_headers.c>
