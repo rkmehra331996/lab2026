@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { downloadDesktopShortcut } from '../utils/shortcutGenerator';
 
 export interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -14,11 +15,12 @@ declare global {
 
 /**
  * Directly triggers the native browser PWA install prompt (Chromium Desktop & Android)
- * without opening any intermediary popup or dialog.
+ * or immediately generates and downloads a native Windows/Mac Desktop Shortcut (.url / .webloc).
  */
 export async function triggerNativePwaInstall(
   targetLabId?: string,
-  targetLabName?: string
+  targetLabName?: string,
+  targetUrl?: string
 ): Promise<{ success: boolean; outcome: 'accepted' | 'dismissed' | 'already_installed' | 'unavailable'; message: string }> {
   if (typeof window === 'undefined') {
     return { success: false, outcome: 'unavailable', message: 'Window unavailable' };
@@ -41,11 +43,11 @@ export async function triggerNativePwaInstall(
     return {
       success: true,
       outcome: 'already_installed',
-      message: `✅ ${targetLabName || 'ऐप'} पहले से आपके डिवाइस पर इंस्टॉल है!`,
+      message: `✅ ${targetLabName || 'लैब'} का शॉर्टकट पहले से आपके डेस्कटॉप / डिवाइस पर मौजूद है!`,
     };
   }
 
-  // 2. Check native beforeinstallprompt event
+  // 2. Check native beforeinstallprompt event (PWA direct prompt)
   const promptEvent = window.__pwaDeferredPrompt;
 
   if (promptEvent) {
@@ -58,34 +60,46 @@ export async function triggerNativePwaInstall(
         return {
           success: true,
           outcome: 'accepted',
-          message: `✅ ${targetLabName || 'ऐप'} सफलतापूर्वक इंस्टॉल हो गया!`,
+          message: `✅ ${targetLabName || 'लैब'} का डेस्कटॉप शॉर्टकट सफलतापूर्वक इंस्टॉल हो गया!`,
         };
       }
       return {
         success: false,
         outcome: 'dismissed',
-        message: 'ℹ️ इंस्टॉलेशन रद्द किया गया।',
+        message: 'ℹ️ शॉर्टकट इंस्टॉलेशन रद्द किया गया।',
       };
     } catch (err) {
       console.warn('[Direct PWA Install Prompt Error]:', err);
     }
   }
 
-  // 3. Fallback: browser hasn't fired beforeinstallprompt or uses address-bar install
+  // 3. Fallback on Desktop / Mobile:
   const isAndroid = /android/i.test(navigator.userAgent);
   if (isAndroid) {
     return {
       success: false,
       outcome: 'unavailable',
-      message: '📲 Android: ऊपर 3 डॉट्स (⋮) पर टैप करके "Install app" या "Add to Home screen" चुनें।',
+      message: '📲 Android: ऊपर 3 डॉट्स (⋮) पर टैप करके "Add to Home screen" चुनें।',
     };
   }
 
-  return {
-    success: false,
-    outcome: 'unavailable',
-    message: '💻 Desktop: ब्राउज़र एड्रेस बार में (⊕ या 💻) "Install" आइकॉन पर क्लिक करें।',
-  };
+  // Generate and download real .url shortcut file for Desktop Windows/Mac
+  try {
+    const effectiveLink = targetUrl || window.location.href;
+    const shortcutRes = downloadDesktopShortcut(effectiveLink, targetLabName || 'Diagnostic_Lab');
+    return {
+      success: true,
+      outcome: 'accepted',
+      message: `✅ ${shortcutRes.filename} डाउनलोड हो गई है! इस फ़ाइल को अपने Desktop पर रखें या डबल-क्लिक करके खोलें।`,
+    };
+  } catch (err) {
+    console.warn('[Shortcut Download Error]:', err);
+    return {
+      success: false,
+      outcome: 'unavailable',
+      message: '💻 Desktop: ब्राउज़र एड्रेस बार में (⊕ या 💻) "Install" आइकॉन पर क्लिक करके डेस्कटॉप शॉर्टकट बनाएं।',
+    };
+  }
 }
 
 export function usePWAInstall() {

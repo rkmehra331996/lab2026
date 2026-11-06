@@ -20,6 +20,7 @@ import {
   Printer,
   Monitor,
 } from 'lucide-react';
+import { downloadDesktopShortcut } from '../utils/shortcutGenerator';
 
 export interface HomeScreenShortcutModalProps {
   isOpen: boolean;
@@ -167,7 +168,7 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
         const choiceResult = await promptObj.userChoice;
         if (choiceResult && choiceResult.outcome === 'accepted') {
           setIsInstalled(true);
-          setInstallSuccessToast('✅ ऐप आपके डिवाइस पर सफलतापूर्वक इंस्टॉल हो गया है!');
+          setInstallSuccessToast('✅ लैब का डेस्कटॉप शॉर्टकट सफलतापूर्वक इंस्टॉल हो गया है!');
           if (typeof window !== 'undefined') {
             (window as any).__pwaDeferredPrompt = null;
             (window as any).__pwaInstalled = true;
@@ -180,19 +181,24 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
           return;
         }
         setDeferredPrompt(null);
-        return;
       } catch {}
     }
 
-    // If native prompt is not available, show clear helpful guidance toast based on active tab
+    // If native prompt is not available or on Desktop, directly download the shortcut file!
     if (activeTab === 'desktop') {
-      setInstallSuccessToast('👉 ऊपर ब्राउज़र एड्रेस बार में (⊕ या 💻) "Install" आइकॉन पर क्लिक करें');
+      try {
+        const res = downloadDesktopShortcut(effectiveUrl, labName);
+        setIsInstalled(true);
+        setInstallSuccessToast(`✅ डेस्कटॉप शॉर्टकट फ़ाइल (${res.filename}) डाउनलोड हो गई है! इसे अपने Desktop पर रखें।`);
+      } catch {
+        setInstallSuccessToast('👉 ऊपर ब्राउज़र एड्रेस बार में (⊕ या 💻) "Install" आइकॉन पर क्लिक करें');
+      }
     } else if (activeTab === 'android') {
-      setInstallSuccessToast('👉 ऊपर दायें कोने में (⋮) मेनू पर क्लिक करें और "Add to Home screen" या "Install" चुनें');
+      setInstallSuccessToast('👉 ऊपर दायें कोने में (⋮) मेनू पर क्लिक करें और "Add to Home screen" चुनें');
     } else {
       setInstallSuccessToast('👉 नीचे Share (⎋) बटन पर टैप करें और "Add to Home Screen" चुनें');
     }
-    setTimeout(() => setInstallSuccessToast(null), 5000);
+    setTimeout(() => setInstallSuccessToast(null), 6000);
   };
 
   const handleCopyLink = () => {
@@ -226,7 +232,7 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
             type="button"
             onClick={onClose}
             className="absolute top-4 right-4 text-slate-300 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition cursor-pointer"
-            aria-label="Close Install Offline App Modal"
+            aria-label="Close Install Desktop Shortcut Modal"
           >
             <X className="w-5 h-5" />
           </button>
@@ -238,13 +244,13 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
             <div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-400/30 mb-1">
                 <Sparkles className="w-3 h-3" />
-                <span>Offline &amp; Online Ready • Desktop &amp; Mobile</span>
+                <span>1-Click Access • Desktop &amp; Mobile Shortcut</span>
               </div>
               <h2 id="install-offline-modal-title" className="text-lg sm:text-xl font-black text-white leading-tight">
-                Install Offline App (ऑफलाइन ऐप इंस्टॉल करें)
+                Install Shortcut on Desktop (डेस्कटॉप शॉर्टकट जोड़ें)
               </h2>
               <p className="text-xs text-slate-300">
-                {labName} • कंप्यूटर (Desktop PC) या मोबाइल में ऐप डाउनलोड करें और बिना इंटरनेट काम करें
+                {labName} • कंप्यूटर (Desktop PC) या मोबाइल में 1-क्लिक शॉर्टकट इंस्टॉल करें
               </p>
             </div>
           </div>
@@ -317,20 +323,20 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
                 <div>
                   <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm">
                     {activeTab === 'desktop'
-                      ? 'Desktop / PC Offline App Installation'
+                      ? 'Desktop / PC Shortcut Installation'
                       : activeTab === 'android'
-                      ? 'Android Offline App & Shortcut'
-                      : 'iPhone / iPad Offline App'}
+                      ? 'Android App & Shortcut'
+                      : 'iPhone / iPad Shortcut'}
                   </h3>
                   <p className="text-[11px] text-slate-500">
                     {activeTab === 'desktop'
-                      ? 'कंप्यूटर के डेस्कटॉप पर इंस्टॉल करें • बिना इंटरनेट भी चलेगा (Offline & Online)'
+                      ? 'कंप्यूटर के डेस्कटॉप पर 1-क्लिक शॉर्टकट इंस्टॉल करें (Direct Desktop Access)'
                       : 'सीधे फ़ोन की स्क्रीन से 1-क्लिक में रिपोर्ट्स, टेस्ट व बिलिंग एक्सेस करें'}
                   </p>
                 </div>
               </div>
               <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-200 shrink-0">
-                Offline Ready
+                1-Click Ready
               </span>
             </div>
 
@@ -343,11 +349,11 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
               <Download className="w-4 h-4 text-emerald-200" />
               <span>
                 {isInstalled
-                  ? '✅ App Already Installed (ऐप पहले से इंस्टॉल है)'
+                  ? '✅ Shortcut Already Installed (शॉर्टकट पहले से इंस्टॉल है)'
                   : activeTab === 'desktop'
-                  ? 'Install Desktop App on this PC (1-Click)'
+                  ? 'Install Shortcut on Desktop (1-Click)'
                   : activeTab === 'android'
-                  ? 'Install Android App (1-Click)'
+                  ? 'Install Android Shortcut (1-Click)'
                   : 'Add to iPhone Home Screen'}
               </span>
               <ArrowRight className="w-4 h-4 text-emerald-200 ml-1" />
@@ -359,43 +365,70 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
             <h3 className="font-black text-slate-900 text-xs sm:text-sm flex items-center justify-between">
               <span>
                 {activeTab === 'desktop'
-                  ? 'PC / Laptop पर ऑफलाइन ऐप कैसे इंस्टॉल करें (Step-by-Step Guide)'
+                  ? 'PC / Laptop पर डेस्कटॉप शॉर्टकट कैसे इंस्टॉल करें (Step-by-Step Guide)'
                   : activeTab === 'android'
-                  ? 'Android फ़ोन पर ऐप कैसे इंस्टॉल करें (Step-by-Step Guide)'
-                  : 'iPhone / iPad पर ऐप कैसे जोड़ें (Step-by-Step Guide)'}
+                  ? 'Android फ़ोन पर शॉर्टकट कैसे इंस्टॉल करें (Step-by-Step Guide)'
+                  : 'iPhone / iPad पर शॉर्टकट कैसे जोड़ें (Step-by-Step Guide)'}
               </span>
             </h3>
 
             {activeTab === 'desktop' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
-                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
-                    1
+              <div className="space-y-3">
+                {/* Instant Download Action Bar for Windows / Mac Desktop */}
+                <div className="p-3 bg-emerald-50/90 rounded-2xl border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 text-left w-full sm:w-auto">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Monitor className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-slate-900 text-xs">Direct Desktop Shortcut (.url फ़ाइल)</h4>
+                      <p className="text-[11px] text-slate-600">Windows PC पर तुरंत डेस्कटॉप शॉर्टकट डाउनलोड करें</p>
+                    </div>
                   </div>
-                  <h4 className="font-extrabold text-slate-900 text-xs">Chrome / Edge ब्राउज़र</h4>
-                  <p className="text-[11px] text-slate-500 leading-snug">
-                    अपने कंप्यूटर (PC / Laptop) के <strong>Google Chrome</strong> या <strong>Microsoft Edge</strong> ब्राउज़र में यह वेबसाइट खोलें।
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const res = downloadDesktopShortcut(effectiveUrl, labName);
+                      setInstallSuccessToast(`✅ ${res.filename} डाउनलोड हो गई है! इसे अपने Desktop पर रखें।`);
+                      setTimeout(() => setInstallSuccessToast(null), 6000);
+                    }}
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download .URL Shortcut</span>
+                  </button>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
-                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
-                    2
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
+                      1
+                    </div>
+                    <h4 className="font-extrabold text-slate-900 text-xs">Chrome / Edge ब्राउज़र</h4>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      अपने कंप्यूटर (PC / Laptop) के <strong>Google Chrome</strong> या <strong>Microsoft Edge</strong> ब्राउज़र में यह वेबसाइट खोलें।
+                    </p>
                   </div>
-                  <h4 className="font-extrabold text-slate-900 text-xs">Install (⊕ / 💻) आइकॉन</h4>
-                  <p className="text-[11px] text-slate-500 leading-snug">
-                    ऊपर एड्रेस बार के दायें कोने में <strong>Install Icon (⊕ या 💻)</strong> पर क्लिक करें, या ऊपर दिए गए <strong>"Install Desktop App"</strong> बटन को दबाएँ।
-                  </p>
-                </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
-                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
-                    3
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
+                      2
+                    </div>
+                    <h4 className="font-extrabold text-slate-900 text-xs">Install (⊕ / 💻) आइकॉन</h4>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      ऊपर एड्रेस बार के दायें कोने में <strong>Install Icon (⊕ या 💻)</strong> पर क्लिक करें, या ऊपर दिए गए <strong>"Install Shortcut on Desktop"</strong> बटन को दबाएँ।
+                    </p>
                   </div>
-                  <h4 className="font-extrabold text-slate-900 text-xs">Desktop Shortcut</h4>
-                  <p className="text-[11px] text-slate-500 leading-snug">
-                    <strong>"Install"</strong> पर क्लिक करते ही आपके डेस्कटॉप व टास्कबार पर {labName} का अलग सॉफ्टवेयर आइकॉन बन जाएगा।
-                  </p>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
+                      3
+                    </div>
+                    <h4 className="font-extrabold text-slate-900 text-xs">Desktop Shortcut</h4>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      <strong>"Install"</strong> पर क्लिक करते ही आपके डेस्कटॉप व टास्कबार पर {labName} का अलग सॉफ्टवेयर आइकॉन बन जाएगा।
+                    </p>
+                  </div>
                 </div>
               </div>
             ) : activeTab === 'android' ? (
@@ -465,10 +498,10 @@ export const HomeScreenShortcutModal: React.FC<HomeScreenShortcutModalProps> = (
             )}
           </div>
 
-          {/* Section: Offline & Online Benefits */}
+          {/* Section: Desktop Shortcut Benefits */}
           <div className="border-t border-slate-200 pt-4">
             <h4 className="font-extrabold text-slate-900 text-xs mb-2.5">
-              ऑफलाइन डेस्कटॉप ऐप के मुख्य फ़ायदे (Offline &amp; Online Features):
+              डेस्कटॉप शॉर्टकट के मुख्य फ़ायदे (Desktop Shortcut Features):
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div className="p-2.5 bg-emerald-50/70 rounded-xl border border-emerald-200 text-center">
