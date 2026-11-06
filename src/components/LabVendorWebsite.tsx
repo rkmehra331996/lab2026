@@ -2983,18 +2983,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <span className="sm:hidden text-[11px]">Report</span>
             </button>
 
-            {/* Install Shortcut on Desktop Button */}
-            <button
-              type="button"
-              onClick={handleDirectInstall}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition cursor-pointer shadow-xs shrink-0 active:scale-95 border border-emerald-500/50"
-              id="header-install-desktop-shortcut-btn"
-              title={`Install shortcut on desktop for ${labName}`}
-            >
-              <Monitor className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
-              <span className="hidden sm:inline">Install Shortcut on Desktop</span>
-              <span className="sm:hidden text-[11px]">Desktop Shortcut</span>
-            </button>
 
             {/* 2. Desktop: Expert Login / Dashboard Button */}
             {currentUser ? (
@@ -3174,26 +3162,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     Contact &amp; Location
                   </button>
 
-                  {/* Install Offline App & Visit Website QR Buttons in Drawer */}
+                  {/* Visit Website QR & Payment QR Buttons in Drawer */}
                   <div className="pt-2 space-y-1.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        handleDirectInstall();
-                      }}
-                      className="w-full text-left py-2.5 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 transition text-xs font-bold cursor-pointer flex items-center justify-between"
-                      id="drawer-install-desktop-shortcut-btn"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Monitor className="w-4 h-4 text-emerald-600" />
-                        <span>Install Shortcut on Desktop</span>
-                      </span>
-                      <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-black">
-                        PC / Desktop
-                      </span>
-                    </button>
-
                     <button
                       type="button"
                       onClick={() => {
@@ -5149,20 +5119,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     <span>Download Report</span>
                   </button>
                 </li>
-                <li>
-                  <button
-                    type="button"
-                    id="btn-footer-install-desktop-shortcut"
-                    onClick={handleDirectInstall}
-                    className="hover:text-[#123B6D] text-emerald-700 font-bold flex items-center gap-1.5 cursor-pointer text-left transition"
-                  >
-                    <Monitor className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Install Shortcut on Desktop</span>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold border border-emerald-200">
-                      1-Click Access
-                    </span>
-                  </button>
-                </li>
+
                 <li>
                   <button
                     type="button"
